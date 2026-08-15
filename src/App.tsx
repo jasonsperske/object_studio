@@ -13,6 +13,8 @@ import {
   saveObjectSource,
   slugify,
 } from './lib/objectStore'
+import type { SavedItem } from './lib/persistence'
+import { addPreset, loadPresets, removePreset, savePresets } from './lib/persistence'
 import type { Route } from './lib/router'
 import { galleryUrl, navigateTo, objectUrl, parseLocation } from './lib/router'
 import type { ObjectDefinition } from './types'
@@ -63,6 +65,8 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   /** Set by createObject so the studio opens on the editor for a new object. */
   const [createdId, setCreatedId] = useState<string | null>(null)
+  const [presets, setPresets] = useState<SavedItem[]>([])
+  const [presetsWritable, setPresetsWritable] = useState(false)
 
   // Object sources call formatLength() during their own metrics(), which runs
   // while children render — so the unit has to be in place before that, not in
@@ -88,6 +92,21 @@ export default function App() {
       setSources(loaded.sources)
       setSavedSources(loaded.sources)
       setWritable(loaded.writable)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    void loadPresets().then((loaded) => {
+      if (cancelled) return
+      setPresets(loaded.presets)
+      setPresetsWritable(loaded.writable)
+      if (loaded.migrated) {
+        setToast(`Moved ${loaded.migrated} preset${loaded.migrated === 1 ? '' : 's'} to the server`)
+      }
     })
     return () => {
       cancelled = true
@@ -189,6 +208,29 @@ export default function App() {
     }
   }, [activeId, sources, savedSources])
 
+  // --- presets -------------------------------------------------------------
+
+  /** Applies a change to the list and writes it back, rolling back on failure. */
+  const commitPresets = useCallback(
+    async (next: SavedItem[], done: string) => {
+      const previous = presets
+      setPresets(next)
+      if (!presetsWritable) {
+        setToast('Presets are read-only without the studio API.')
+        setPresets(previous)
+        return
+      }
+      try {
+        await savePresets(next)
+        setToast(done)
+      } catch (err) {
+        setPresets(previous)
+        setToast(`Could not save presets: ${err instanceof Error ? err.message : String(err)}`)
+      }
+    },
+    [presets, presetsWritable],
+  )
+
   // --- render --------------------------------------------------------------
 
   const entry = activeId ? compiled.find((c) => c.id === activeId) : undefined
@@ -243,6 +285,17 @@ export default function App() {
           canDelete={Object.keys(sources).length > 1}
           objectName={objectName}
           settings={settings}
+          presets={presets}
+          onSavePreset={(recipe, name) =>
+            void commitPresets(addPreset(presets, recipe, name), `Saved “${name}” to your presets`)
+          }
+          onDeletePreset={(id) => void commitPresets(removePreset(presets, id), 'Preset deleted')}
+          onImportPresets={(items) =>
+            void commitPresets(
+              [...items, ...presets],
+              `Imported ${items.length} preset${items.length === 1 ? '' : 's'}`,
+            )
+          }
           onOpenSettings={() => setSettingsOpen(true)}
           onSourceChange={updateSource}
           onSave={() => void saveSource()}

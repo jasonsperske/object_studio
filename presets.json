@@ -1,0 +1,30 @@
+[
+  {
+    "objectId": "staircase",
+    "params": {
+      "width": 400,
+      "totalRise": 600,
+      "steps": 3,
+      "going": 300,
+      "topTread": true,
+      "treadThickness": 90,
+      "nosing": 60,
+      "edgeStyle": "ogee",
+      "edgeSize": 26,
+      "risers": false,
+      "riserThickness": 20,
+      "stringers": "none",
+      "stringerThickness": 38,
+      "stringerDepth": 260,
+      "handrail": "none",
+      "railHeight": 900,
+      "railDiameter": 48,
+      "balusters": false,
+      "balusterDiameter": 22,
+      "balustersPerStep": 2
+    },
+    "id": "staircase-msu2ny94",
+    "name": "Ogee display steps",
+    "savedAt": 1786779977512
+  }
+]

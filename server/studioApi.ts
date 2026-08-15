@@ -4,17 +4,20 @@ import { join, resolve } from 'node:path'
 import type { Connect, Plugin, ViteDevServer, PreviewServer } from 'vite'
 
 /**
- * Serves the object library from disk so edits made in the browser's source
- * editor can be saved back. This is local authoring tooling: it hands out write
- * access to a directory, so it is wired into the dev and preview servers only
- * and should not be exposed beyond localhost.
+ * Serves the studio's persistent state from disk: the object library, so edits
+ * made in the browser's source editor can be saved back, and the presets file.
+ * This is local authoring tooling — it hands out write access to a directory,
+ * so it is wired into the dev and preview servers only and should not be
+ * exposed beyond localhost.
  */
 
 const ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/
 
-export interface ObjectApiOptions {
+export interface StudioApiOptions {
   /** Directory holding the object sources, relative to the project root. */
   dir?: string
+  /** File holding saved parameter presets, relative to the project root. */
+  presetsFile?: string
 }
 
 function json(res: Parameters<Connect.NextHandleFunction>[1], status: number, body: unknown) {
@@ -36,11 +39,46 @@ function readBody(req: Parameters<Connect.NextHandleFunction>[0]): Promise<strin
   })
 }
 
-export function objectApi(options: ObjectApiOptions = {}): Plugin {
+export function studioApi(options: StudioApiOptions = {}): Plugin {
   let objectsDir = ''
+  let presetsPath = ''
+
+  /**
+   * Presets are read and written as one document: every client operation —
+   * save, delete, import — is a change to the whole list.
+   */
+  const handlePresets = (
+    req: Parameters<Connect.NextHandleFunction>[0],
+    res: Parameters<Connect.NextHandleFunction>[1],
+  ) => {
+    const method = (req.method ?? 'GET').toUpperCase()
+    void (async () => {
+      try {
+        if (method === 'GET') {
+          const presets = existsSync(presetsPath)
+            ? JSON.parse(await readFile(presetsPath, 'utf8'))
+            : []
+          return json(res, 200, { writable: true, presets: Array.isArray(presets) ? presets : [] })
+        }
+        if (method === 'PUT') {
+          const body = await readBody(req)
+          const parsed = JSON.parse(body || '[]')
+          if (!Array.isArray(parsed)) return json(res, 400, { error: 'Presets must be an array.' })
+          await writeFile(presetsPath, `${JSON.stringify(parsed, null, 2)}\n`, 'utf8')
+          return json(res, 200, { saved: true, count: parsed.length })
+        }
+        return json(res, 405, { error: `${method} not supported.` })
+      } catch (err) {
+        return json(res, 500, { error: err instanceof Error ? err.message : String(err) })
+      }
+    })()
+  }
 
   const middleware: Connect.NextHandleFunction = (req, res, next) => {
     const url = req.url ?? ''
+    if (url.split('?')[0].replace(/\/+$/, '') === '/api/presets') {
+      return handlePresets(req, res)
+    }
     if (!url.startsWith('/api/objects')) return next()
 
     void (async () => {
@@ -98,9 +136,10 @@ export function objectApi(options: ObjectApiOptions = {}): Plugin {
   }
 
   return {
-    name: 'object-studio:object-api',
+    name: 'object-studio:studio-api',
     configResolved(config) {
       objectsDir = resolve(config.root, options.dir ?? 'objects')
+      presetsPath = resolve(config.root, options.presetsFile ?? 'presets.json')
     },
     configureServer(server: ViteDevServer) {
       server.middlewares.use(middleware)

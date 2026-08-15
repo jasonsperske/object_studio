@@ -9,21 +9,33 @@ export interface Recipe {
   v?: number
 }
 
-const STORAGE_KEY = 'object-studio.library.v1'
-
-// URL encoding lives in lib/router.ts — this module is only about presets.
-
-// --- Local library --------------------------------------------------------
-
 export interface SavedItem extends Recipe {
   id: string
   name: string
   savedAt: number
 }
 
-export function loadLibrary(): SavedItem[] {
+/**
+ * Presets live on the server in presets.json, alongside the object library —
+ * only display settings belong to the browser. The whole list is read and
+ * written as one document, because every operation (save, delete, import) is a
+ * change to the list rather than to one entry.
+ */
+
+/** Where presets used to live. Read once, to carry them over. */
+const LEGACY_KEY = 'object-studio.library.v1'
+
+export interface LoadedPresets {
+  presets: SavedItem[]
+  /** False when the studio API isn't running; presets are then read-only. */
+  writable: boolean
+  /** Number of presets carried over from the old localStorage store. */
+  migrated: number
+}
+
+function readLegacy(): SavedItem[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(LEGACY_KEY)
     if (!raw) return []
     const parsed = JSON.parse(raw)
     return Array.isArray(parsed) ? (parsed as SavedItem[]) : []
@@ -32,34 +44,58 @@ export function loadLibrary(): SavedItem[] {
   }
 }
 
-function persist(items: SavedItem[]) {
+export async function loadPresets(): Promise<LoadedPresets> {
+  let presets: SavedItem[] = []
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+    const response = await fetch('/api/presets')
+    if (!response.ok) throw new Error(String(response.status))
+    const body = (await response.json()) as { presets?: SavedItem[] }
+    presets = Array.isArray(body.presets) ? body.presets : []
   } catch {
-    // Quota or private-mode failures shouldn't break the editor.
+    // No API — fall back to whatever the browser still holds, read-only.
+    return { presets: readLegacy(), writable: false, migrated: 0 }
+  }
+
+  // One-time carry-over: anything saved before presets moved to the server.
+  const legacy = readLegacy()
+  if (legacy.length && !presets.length) {
+    try {
+      await savePresets(legacy)
+      localStorage.removeItem(LEGACY_KEY)
+      return { presets: legacy, writable: true, migrated: legacy.length }
+    } catch {
+      return { presets: legacy, writable: true, migrated: 0 }
+    }
+  }
+  if (legacy.length) localStorage.removeItem(LEGACY_KEY)
+
+  return { presets, writable: true, migrated: 0 }
+}
+
+export async function savePresets(items: SavedItem[]): Promise<void> {
+  const response = await fetch('/api/presets', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(items),
+  })
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({}))) as { error?: string }
+    throw new Error(body.error ?? `Request failed (${response.status})`)
   }
 }
 
-export function saveToLibrary(recipe: Recipe, name: string): SavedItem[] {
-  const items = loadLibrary()
+// --- list operations (pure) -----------------------------------------------
+
+export function addPreset(items: SavedItem[], recipe: Recipe, name: string): SavedItem[] {
   const item: SavedItem = {
     ...recipe,
     id: `${recipe.objectId}-${Date.now().toString(36)}`,
     name,
     savedAt: Date.now(),
   }
-  const next = [item, ...items]
-  persist(next)
-  return next
+  return [item, ...items]
 }
 
-export function deleteFromLibrary(id: string): SavedItem[] {
-  const next = loadLibrary().filter((item) => item.id !== id)
-  persist(next)
-  return next
-}
-
-export function replaceLibrary(items: SavedItem[]): SavedItem[] {
-  persist(items)
-  return items
+export function removePreset(items: SavedItem[], id: string): SavedItem[] {
+  return items.filter((item) => item.id !== id)
 }

@@ -109,6 +109,17 @@ bar instead of breaking the app.
 | **New** | scaffolds a new object type from a working starter template |
 | **Delete** | removes the object and its file |
 
+## What is stored where
+
+| | |
+| --- | --- |
+| `objects/*.js` | object definitions — written on create and on every save |
+| `presets.json` | saved parameter sets |
+| `localStorage` | display settings only: unit system, scale and theme |
+
+Only the display settings are per-browser. Everything that is library content lives on the
+server, so it survives a reload, follows you between browsers, and can be committed.
+
 Saving goes through a small API served by the Vite dev and preview servers. That API has write
 access to the `objects/` directory, so keep it on localhost — don't put it behind a public
 listener. A static build with no API still runs: the bundled sources are compiled in, the editor
@@ -138,9 +149,9 @@ you can write mm and hand a printer inches or a game engine metres. Key metrics 
 ## Sharing and saving configurations
 
 - **Share link** — copy the address bar; see [URLs](#urls) above.
-- **Presets** — save named parameter sets to `localStorage`, then export or import them as JSON.
-  Presets store parameters; `objects/*.js` stores the logic. Loading a preset for a different
-  object navigates to it.
+- **Presets** — save named parameter sets to `presets.json` on the server, then export or import
+  them as JSON. Presets store parameters; `objects/*.js` stores the logic. Loading a preset for a
+  different object navigates to it.
 - **Parameters (JSON)** — an export format that stores the recipe rather than the mesh.
 
 ## Viewport
@@ -158,7 +169,8 @@ independently. Switching to the source editor keeps the WebGL context and your c
 
 ```
 objects/*.js               the object library — editable at runtime
-server/objectApi.ts        Vite plugin: GET/PUT/DELETE for those files
+presets.json               saved parameter sets
+server/studioApi.ts        Vite plugin: reads and writes both of the above
 src/App.tsx                owns the library and the route; gallery or studio
 src/Studio.tsx             the properties + viewer/source workspace
 src/components/Gallery.tsx the root gallery

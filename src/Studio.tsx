@@ -12,12 +12,6 @@ import type { ExportFormat, Unit } from './lib/exporters'
 import { download, exportModel } from './lib/exporters'
 import { triangleCount } from './lib/geometry'
 import type { Recipe, SavedItem } from './lib/persistence'
-import {
-  deleteFromLibrary,
-  loadLibrary,
-  replaceLibrary,
-  saveToLibrary,
-} from './lib/persistence'
 import { galleryUrl, navigateTo, objectUrl, replaceUrl } from './lib/router'
 import type { Settings } from './lib/settings'
 import { themeDef } from './lib/settings'
@@ -45,6 +39,10 @@ export interface StudioProps {
   /** Resolves an object id to its display name, for preset subtitles. */
   objectName: (id: string) => string
   settings: Settings
+  presets: SavedItem[]
+  onSavePreset: (recipe: Recipe, name: string) => void
+  onDeletePreset: (id: string) => void
+  onImportPresets: (items: SavedItem[]) => void
   onOpenSettings: () => void
   onSourceChange: (source: string) => void
   onSave: () => void
@@ -96,6 +94,10 @@ export default function Studio({
   canDelete,
   objectName,
   settings,
+  presets,
+  onSavePreset,
+  onDeletePreset,
+  onImportPresets,
   onOpenSettings,
   onSourceChange,
   onSave,
@@ -113,7 +115,6 @@ export default function Studio({
     grid: true,
     shadows: true,
   })
-  const [library, setLibrary] = useState<SavedItem[]>(() => loadLibrary())
   const [panelWidth, setPanelWidth] = useState(360)
   const [fitToken, setFitToken] = useState(0)
 
@@ -348,22 +349,16 @@ export default function Studio({
               ))}
             {tab === 'presets' && (
               <LibraryPanel
-                items={library}
+                items={presets}
                 suggestedName={definition?.name ?? objectId}
                 objectName={objectName}
-                onSave={(name) => {
-                  setLibrary(saveToLibrary(recipe, name))
-                  notify(`Saved “${name}” to your presets`)
-                }}
+                onSave={(name) => onSavePreset(recipe, name)}
                 onLoad={loadPreset}
-                onDelete={(id) => setLibrary(deleteFromLibrary(id))}
-                onImport={(items) => {
-                  setLibrary(replaceLibrary([...items, ...library]))
-                  notify(`Imported ${items.length} preset${items.length === 1 ? '' : 's'}`)
-                }}
+                onDelete={onDeletePreset}
+                onImport={onImportPresets}
                 onExportAll={() =>
                   download(
-                    new Blob([JSON.stringify(library, null, 2)], { type: 'application/json' }),
+                    new Blob([JSON.stringify(presets, null, 2)], { type: 'application/json' }),
                     'object-studio-presets.json',
                   )
                 }
