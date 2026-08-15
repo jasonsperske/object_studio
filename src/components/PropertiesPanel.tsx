@@ -1,10 +1,12 @@
 import { useMemo } from 'react'
+import type { Settings } from '../lib/settings'
 import type { ObjectDefinition, ParamSpec, ParamValue, Params } from '../types'
 import ParamControl from './ParamControl'
 
 interface Props {
   definition: ObjectDefinition
   params: Params
+  settings: Settings
   onChange: (id: string, value: ParamValue) => void
   onReset: () => void
 }
@@ -22,7 +24,7 @@ function groupParams(specs: ParamSpec[], params: Params) {
   return groups
 }
 
-export default function PropertiesPanel({ definition, params, onChange, onReset }: Props) {
+export default function PropertiesPanel({ definition, params, settings, onChange, onReset }: Props) {
   const groups = useMemo(() => groupParams(definition.params, params), [definition, params])
 
   return (
@@ -37,6 +39,7 @@ export default function PropertiesPanel({ definition, params, onChange, onReset 
               key={spec.id}
               spec={spec}
               value={params[spec.id]}
+              settings={settings}
               onChange={(value) => onChange(spec.id, value)}
             />
           ))}

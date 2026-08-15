@@ -17,7 +17,7 @@ export const FORMATS: { id: ExportFormat; label: string; ext: string; note: stri
   { id: 'json', label: 'Parameters (JSON)', ext: 'json', note: 'The recipe, not the mesh — reload it into the studio.' },
 ]
 
-export type Unit = 'mm' | 'cm' | 'm' | 'in'
+export type Unit = 'mm' | 'cm' | 'm' | 'in' | 'ft'
 
 /** Geometry is authored in millimetres; these convert to the export unit. */
 export const UNIT_SCALE: Record<Unit, number> = {
@@ -25,6 +25,7 @@ export const UNIT_SCALE: Record<Unit, number> = {
   cm: 0.1,
   m: 0.001,
   in: 1 / 25.4,
+  ft: 1 / 304.8,
 }
 
 /** Builds a throwaway scene at export scale so the live preview is untouched. */

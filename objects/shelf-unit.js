@@ -125,10 +125,10 @@ export function metrics(p) {
   const spanLevel = span > 900 ? 'error' : span > 750 ? 'warn' : 'ok'
 
   return [
-    { label: 'Clear bay height', value: `${bay.toFixed(0)} mm`, level: bay < 120 ? 'warn' : 'ok' },
+    { label: 'Clear bay height', value: formatLength(bay), level: bay < 120 ? 'warn' : 'ok' },
     {
       label: 'Shelf span',
-      value: `${span.toFixed(0)} mm`,
+      value: formatLength(span),
       level: spanLevel,
       note: spanLevel === 'ok' ? undefined : 'Spans over 750 mm sag noticeably in most timber.',
     },

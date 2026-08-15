@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Gallery from './components/Gallery'
+import SettingsDialog from './components/SettingsDialog'
 import Studio from './Studio'
+import type { Settings } from './lib/settings'
+import { loadSettings, saveSettings } from './lib/settings'
+import { setDisplayUnits } from './lib/compile'
 import { ObjectSourceError, compileObject, starterSource } from './lib/compile'
 import {
   builtinSources,
@@ -55,6 +59,19 @@ export default function App() {
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [route, setRoute] = useState<Route>(() => parseLocation())
+  const [settings, setSettings] = useState<Settings>(() => loadSettings())
+  const [settingsOpen, setSettingsOpen] = useState(false)
+
+  // Object sources call formatLength() during their own metrics(), which runs
+  // while children render — so the unit has to be in place before that, not in
+  // an effect afterwards. useMemo gives us that ordering.
+  useMemo(() => setDisplayUnits(settings.unit, settings.fraction), [settings.unit, settings.fraction])
+
+  // The theme is a data attribute on the root so CSS can swap the whole token set.
+  useEffect(() => {
+    document.documentElement.dataset.theme = settings.theme
+    saveSettings(settings)
+  }, [settings])
 
   useEffect(() => {
     const onPopState = () => setRoute(parseLocation())
@@ -170,6 +187,7 @@ export default function App() {
           writable={writable}
           onOpen={(id) => navigateTo(objectUrl(id))}
           onCreate={createObject}
+          onOpenSettings={() => setSettingsOpen(true)}
         />
       )}
 
@@ -205,11 +223,21 @@ export default function App() {
           saving={saving}
           canDelete={Object.keys(sources).length > 1}
           objectName={objectName}
+          settings={settings}
+          onOpenSettings={() => setSettingsOpen(true)}
           onSourceChange={updateSource}
           onSave={() => void saveSource()}
           onCreateObject={createObject}
           onDeleteObject={() => void deleteObject()}
           notify={setToast}
+        />
+      )}
+
+      {settingsOpen && (
+        <SettingsDialog
+          settings={settings}
+          onChange={setSettings}
+          onClose={() => setSettingsOpen(false)}
         />
       )}
 

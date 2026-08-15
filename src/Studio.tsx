@@ -1,6 +1,7 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import ExportPanel from './components/ExportPanel'
+import GearIcon from './components/GearIcon'
 import LibraryPanel from './components/LibraryPanel'
 import MetricsPanel from './components/MetricsPanel'
 import PropertiesPanel from './components/PropertiesPanel'
@@ -18,6 +19,9 @@ import {
   saveToLibrary,
 } from './lib/persistence'
 import { galleryUrl, navigateTo, objectUrl, replaceUrl } from './lib/router'
+import type { Settings } from './lib/settings'
+import { themeDef } from './lib/settings'
+import type { LengthUnit } from './lib/units'
 import type { DisplayOptions, Projection, ViewName } from './lib/studioScene'
 import type { ObjectDefinition, ParamValue, Params, Part } from './types'
 import { defaultParams } from './types'
@@ -38,6 +42,8 @@ export interface StudioProps {
   canDelete: boolean
   /** Resolves an object id to its display name, for preset subtitles. */
   objectName: (id: string) => string
+  settings: Settings
+  onOpenSettings: () => void
   onSourceChange: (source: string) => void
   onSave: () => void
   onCreateObject: (name: string) => void
@@ -53,6 +59,15 @@ function withDefaults(definition: ObjectDefinition, params: Params): Params {
 function isDefault(definition: ObjectDefinition, params: Params): boolean {
   const defaults = defaultParams(definition)
   return Object.keys(defaults).every((key) => defaults[key] === params[key])
+}
+
+const EXPORT_UNIT: Record<LengthUnit, Unit> = {
+  mm: 'mm',
+  cm: 'cm',
+  m: 'm',
+  in: 'in',
+  ft: 'ft',
+  ftin: 'in',
 }
 
 const VIEW_KEYS: Record<string, ViewName> = {
@@ -77,6 +92,8 @@ export default function Studio({
   saving,
   canDelete,
   objectName,
+  settings,
+  onOpenSettings,
   onSourceChange,
   onSave,
   onCreateObject,
@@ -98,6 +115,10 @@ export default function Studio({
   const [fitToken, setFitToken] = useState(0)
 
   const viewportRef = useRef<ViewportHandle>(null)
+
+  // Seed the export dialog from the display unit. Feet-and-inches has no
+  // meaning in a mesh file, so it exports as inches.
+  const exportUnit: Unit = EXPORT_UNIT[settings.unit]
 
   // Params are merged with the definition's defaults on the way out, so editing
   // the source to add a parameter takes effect without resetting the others.
@@ -126,6 +147,8 @@ export default function Studio({
   const parts = built.parts
   const viewerError = compileError ?? built.error
 
+  // Depends on the unit too: object metrics format their own lengths, so a unit
+  // change has to invalidate them even though the geometry is unchanged.
   const metrics = useMemo(() => {
     if (!deferred.definition?.metrics) return []
     try {
@@ -133,7 +156,7 @@ export default function Studio({
     } catch {
       return []
     }
-  }, [deferred])
+  }, [deferred, settings.unit, settings.fraction])
 
   const stats = useMemo(() => {
     const box = new THREE.Box3()
@@ -278,6 +301,16 @@ export default function Studio({
             </button>
           ))}
         </nav>
+
+        <button
+          type="button"
+          className="icon settings-button"
+          onClick={onOpenSettings}
+          title="Settings — units and theme"
+          aria-label="Settings"
+        >
+          <GearIcon />
+        </button>
       </header>
 
       <div className="workspace">
@@ -288,6 +321,7 @@ export default function Studio({
                 <PropertiesPanel
                   definition={definition}
                   params={effectiveParams}
+                  settings={settings}
                   onChange={updateParam}
                   onReset={() => setParams({})}
                 />
@@ -323,6 +357,7 @@ export default function Studio({
             {tab === 'export' && (
               <ExportPanel
                 defaultName={objectId}
+                defaultUnit={exportUnit}
                 onExport={handleExport}
                 onCopyLink={copyLink}
                 onSnapshot={savePng}
@@ -332,7 +367,12 @@ export default function Studio({
           </div>
 
           <div className="panel-footer">
-            <MetricsPanel metrics={metrics} triangles={stats.triangles} size={stats.size} />
+            <MetricsPanel
+              metrics={metrics}
+              triangles={stats.triangles}
+              size={stats.size}
+              settings={settings}
+            />
           </div>
         </aside>
 
@@ -373,6 +413,7 @@ export default function Studio({
             <Viewport
               ref={viewportRef}
               parts={parts}
+              sceneTheme={themeDef(settings.theme).scene}
               projection={projection}
               display={display}
               fitToken={deferred.fitToken}

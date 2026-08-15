@@ -1,13 +1,16 @@
 import { useRef, useState } from 'react'
+import type { Settings } from '../lib/settings'
+import { formatLengthValue, isNumericInput, parseLength, unitDef } from '../lib/units'
 import type { NumberParam, ParamSpec, ParamValue } from '../types'
 
 interface Props {
   spec: ParamSpec
   value: ParamValue
+  settings: Settings
   onChange: (value: ParamValue) => void
 }
 
-export default function ParamControl({ spec, value, onChange }: Props) {
+export default function ParamControl({ spec, value, settings, onChange }: Props) {
   if (spec.type === 'boolean') {
     return (
       <label className="param param-boolean">
@@ -43,21 +46,38 @@ export default function ParamControl({ spec, value, onChange }: Props) {
 
   // A separate component so its state hook is never reached conditionally —
   // editing a source can change a parameter's type under a stable id.
-  return <NumberControl spec={spec} value={value} onChange={onChange} />
+  return <NumberControl spec={spec} value={value} settings={settings} onChange={onChange} />
 }
 
 function NumberControl({
   spec,
   value,
+  settings,
   onChange,
 }: {
   spec: NumberParam
   value: ParamValue
+  settings: Settings
   onChange: (value: ParamValue) => void
 }) {
   const numeric = Number(value)
   const settled = Number.isFinite(numeric) ? numeric : spec.default
   const round = (n: number) => (spec.type === 'int' ? Math.round(n) : n)
+
+  // Only lengths convert. Angles, counts and anything else a source declares
+  // keep their own unit and are shown exactly as authored.
+  const isLength = spec.unit === 'mm'
+  const unit = settings.unit
+  const suffix = isLength ? unitDef(unit).suffix : (spec.unit ?? '')
+  const numericField = !isLength || isNumericInput(unit)
+  const nativeRange = numericField && (!isLength || unit === 'mm')
+
+  const toField = (mm: number) => (isLength ? formatLengthValue(mm, unit, settings.fraction) : String(mm))
+  const fromField = (text: string): number | null => {
+    if (isLength) return parseLength(text, unit)
+    const parsed = Number(text)
+    return Number.isFinite(parsed) ? parsed : null
+  }
 
   /**
    * While the field has focus its text is held here, so a half-typed number is
@@ -73,16 +93,16 @@ function NumberControl({
   // clamping each keystroke turns "12" into 22 in a field whose minimum is 2.
   const handleType = (raw: string) => {
     setDraft(raw)
-    const parsed = Number(raw)
-    if (raw.trim() === '' || !Number.isFinite(parsed)) return
+    const parsed = fromField(raw)
+    if (parsed === null) return
     onChange(round(parsed))
   }
 
   // Leaving the field is what settles it: clamp, round, and drop the draft. An
   // empty or unparseable field falls back to the last committed value.
   const handleBlur = () => {
-    const parsed = Number(draft ?? '')
-    const base = draft !== null && draft.trim() !== '' && Number.isFinite(parsed) ? parsed : settled
+    const parsed = draft === null ? null : fromField(draft)
+    const base = parsed ?? settled
     onChange(round(Math.min(spec.max, Math.max(spec.min, base))))
     setDraft(null)
   }
@@ -101,11 +121,14 @@ function NumberControl({
         <div className="param-value">
           <input
             id={`p-${spec.id}`}
-            type="number"
-            value={draft ?? settled}
-            min={spec.min}
-            max={spec.max}
-            step={spec.step}
+            type={numericField ? 'number' : 'text'}
+            inputMode="decimal"
+            value={draft ?? toField(settled)}
+            // Range attributes only make sense while the field is showing the
+            // unit the spec declared them in.
+            min={nativeRange ? spec.min : undefined}
+            max={nativeRange ? spec.max : undefined}
+            step={nativeRange ? spec.step : undefined}
             onChange={(e) => handleType(e.target.value)}
             onFocus={() => {
               valueOnFocus.current = settled
@@ -121,7 +144,7 @@ function NumberControl({
               }
             }}
           />
-          {spec.unit && <span className="unit">{spec.unit}</span>}
+          {suffix && <span className="unit">{suffix}</span>}
         </div>
       </div>
       <input

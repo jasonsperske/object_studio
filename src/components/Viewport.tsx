@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
+import type { SceneTheme } from '../lib/settings'
 import type { DisplayOptions, Projection, ViewName } from '../lib/studioScene'
 import { StudioScene } from '../lib/studioScene'
 import type { Part } from '../types'
@@ -11,6 +12,7 @@ export interface ViewportHandle {
 
 interface Props {
   parts: Part[]
+  sceneTheme: SceneTheme
   projection: Projection
   display: DisplayOptions
   /** Bumped by the parent to request a re-fit (e.g. after switching objects). */
@@ -22,7 +24,7 @@ interface Props {
  * survives every parameter change; only the geometry is swapped.
  */
 const Viewport = forwardRef<ViewportHandle, Props>(function Viewport(
-  { parts, projection, display, fitToken },
+  { parts, sceneTheme, projection, display, fitToken },
   ref,
 ) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -50,6 +52,10 @@ const Viewport = forwardRef<ViewportHandle, Props>(function Viewport(
     previousParts.current = parts
     if (previous !== parts) for (const part of previous) part.geometry.dispose()
   }, [parts])
+
+  useEffect(() => {
+    sceneRef.current?.applyTheme(sceneTheme)
+  }, [sceneTheme])
 
   useEffect(() => {
     sceneRef.current?.setProjection(projection)

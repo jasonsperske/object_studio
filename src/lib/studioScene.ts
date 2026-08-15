@@ -1,5 +1,7 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import type { SceneTheme } from './settings'
+import { themeDef } from './settings'
 import type { Part } from '../types'
 
 export type ViewName = 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom' | 'iso'
@@ -49,6 +51,7 @@ export class StudioScene {
   private center = new THREE.Vector3(0, 500, 0)
   private gridSpan = 0
   private orthoHalfHeight = 1000
+  private theme: SceneTheme = themeDef('studio').scene
   private frameHandle = 0
   private needsRender = true
 
@@ -65,7 +68,7 @@ export class StudioScene {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
     container.appendChild(this.renderer.domElement)
 
-    this.scene.background = new THREE.Color(0x14181f)
+    this.scene.background = new THREE.Color(this.theme.background)
 
     this.perspective = new THREE.PerspectiveCamera(FOV, width / height, 1, 200_000)
     this.orthographic = new THREE.OrthographicCamera(-1, 1, 1, -1, -100_000, 200_000)
@@ -86,7 +89,7 @@ export class StudioScene {
 
     this.ground = new THREE.Mesh(
       new THREE.PlaneGeometry(1, 1),
-      new THREE.ShadowMaterial({ opacity: 0.32 }),
+      new THREE.ShadowMaterial({ opacity: this.theme.shadowOpacity }),
     )
     this.ground.rotation.x = -Math.PI / 2
     this.ground.receiveShadow = true
@@ -122,7 +125,11 @@ export class StudioScene {
 
       const edges = new THREE.LineSegments(
         new THREE.EdgesGeometry(part.geometry, 25),
-        new THREE.LineBasicMaterial({ color: 0x0b0d11, transparent: true, opacity: 0.45 }),
+        new THREE.LineBasicMaterial({
+          color: this.theme.edge,
+          transparent: true,
+          opacity: this.theme.edgeOpacity,
+        }),
       )
       edges.visible = this.display.edges
       this.edgeGroup.add(edges)
@@ -160,8 +167,13 @@ export class StudioScene {
       this.gridSpan = span
       this.disposeGrid()
       this.grid = new THREE.Group()
-      const fine = new THREE.GridHelper(span, span / 100, 0x2b3240, 0x222834)
-      const coarse = new THREE.GridHelper(span, span / 1000, 0x3f4a5e, 0x3f4a5e)
+      const fine = new THREE.GridHelper(span, span / 100, this.theme.gridFine, this.theme.gridFine)
+      const coarse = new THREE.GridHelper(
+        span,
+        span / 1000,
+        this.theme.gridCoarse,
+        this.theme.gridCoarse,
+      )
       fine.position.y = -0.6
       this.grid.add(fine, coarse)
       this.scene.add(this.grid)
@@ -310,6 +322,22 @@ export class StudioScene {
   }
 
   // --- display -------------------------------------------------------------
+
+  /** Repaints background, grid, edges and contact shadow for a new theme. */
+  applyTheme(theme: SceneTheme) {
+    this.theme = theme
+    ;(this.scene.background as THREE.Color).set(theme.background)
+    ;(this.ground.material as THREE.ShadowMaterial).opacity = theme.shadowOpacity
+    for (const child of this.edgeGroup.children) {
+      const material = (child as THREE.LineSegments).material as THREE.LineBasicMaterial
+      material.color.set(theme.edge)
+      material.opacity = theme.edgeOpacity
+    }
+    // Force the grid to be rebuilt with the new colours.
+    this.gridSpan = 0
+    this.updateBounds()
+    this.needsRender = true
+  }
 
   setDisplay(options: DisplayOptions) {
     this.display = options

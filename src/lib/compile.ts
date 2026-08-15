@@ -9,8 +9,27 @@ import {
   triangleCount,
   tube,
 } from './geometry'
+import type { LengthUnit } from './units'
+import { formatLength as formatLengthIn } from './units'
 import type { ObjectDefinition, ParamSpec } from '../types'
 import { bool, num, str } from '../types'
+
+/**
+ * The display unit object sources see. Held at module level because sources are
+ * compiled once but must follow the setting without being recompiled.
+ */
+let displayUnit: LengthUnit = 'mm'
+let displayFraction = 16
+
+export function setDisplayUnits(unit: LengthUnit, fraction: number) {
+  displayUnit = unit
+  displayFraction = fraction
+}
+
+/** Formats a millimetre length in the reader's chosen unit. */
+function formatLength(mm: number): string {
+  return formatLengthIn(mm, displayUnit, displayFraction)
+}
 
 /**
  * Object definitions are plain JavaScript that the studio evaluates at runtime,
@@ -31,6 +50,7 @@ const HELPERS = {
   num,
   str,
   bool,
+  formatLength,
 }
 
 const HELPER_NAMES = Object.keys(HELPERS)

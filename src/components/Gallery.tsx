@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { renderThumbnails } from '../lib/thumbnails'
+import GearIcon from './GearIcon'
 import type { ObjectDefinition } from '../types'
 import { defaultParams } from '../types'
 
@@ -14,9 +15,10 @@ interface Props {
   writable: boolean
   onOpen: (objectId: string) => void
   onCreate: (name: string) => void
+  onOpenSettings: () => void
 }
 
-export default function Gallery({ entries, writable, onOpen, onCreate }: Props) {
+export default function Gallery({ entries, writable, onOpen, onCreate, onOpenSettings }: Props) {
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({})
   const [newName, setNewName] = useState<string | null>(null)
 
@@ -56,9 +58,20 @@ export default function Gallery({ entries, writable, onOpen, onCreate }: Props) 
           </div>
 
           {newName === null ? (
-            <button type="button" className="primary" onClick={() => setNewName('')}>
-              New object
-            </button>
+            <div className="button-row gallery-actions">
+              <button type="button" className="primary" onClick={() => setNewName('')}>
+                New object
+              </button>
+              <button
+                type="button"
+                className="icon settings-button"
+                onClick={onOpenSettings}
+                title="Settings — units and theme"
+                aria-label="Settings"
+              >
+                <GearIcon />
+              </button>
+            </div>
           ) : (
             <div className="button-row gallery-new">
               <input

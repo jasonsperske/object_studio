@@ -4,6 +4,7 @@ import { FORMATS, UNIT_SCALE } from '../lib/exporters'
 
 interface Props {
   defaultName: string
+  defaultUnit: Unit
   onExport: (format: ExportFormat, unit: Unit, filename: string) => Promise<void>
   onCopyLink: () => void
   onSnapshot: () => void
@@ -14,13 +15,14 @@ const UNITS = Object.keys(UNIT_SCALE) as Unit[]
 
 export default function ExportPanel({
   defaultName,
+  defaultUnit,
   onExport,
   onCopyLink,
   onSnapshot,
   triangles,
 }: Props) {
   const [format, setFormat] = useState<ExportFormat>('stl')
-  const [unit, setUnit] = useState<Unit>('mm')
+  const [unit, setUnit] = useState<Unit>(defaultUnit)
   const [name, setName] = useState(defaultName)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -76,7 +78,7 @@ export default function ExportPanel({
         >
           {UNITS.map((u) => (
             <option key={u} value={u}>
-              {u === 'in' ? 'inches' : u}
+              {u === 'in' ? 'inches' : u === 'ft' ? 'feet' : u}
             </option>
           ))}
         </select>

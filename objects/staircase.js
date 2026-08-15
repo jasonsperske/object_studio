@@ -2,9 +2,10 @@
 //
 // This file is the object definition — edit it and the viewer rebuilds live.
 // In scope: THREE, and the studio helpers (box, slab, post, tube, boardProfile,
-// extrudeProfile, merge, triangleCount, num, str, bool). Also `studio`, which
-// holds all of them. Units are millimetres; +X is the run, +Y is up, +Z is
-// width centred on zero.
+// extrudeProfile, merge, triangleCount, num, str, bool, formatLength). Also
+// `studio`, which holds all of them. Geometry is in millimetres; +X is the run,
+// +Y is up, +Z is width centred on zero. formatLength renders a millimetre
+// length in whatever unit the reader picked in Settings.
 
 export const meta = {
   order: 1,
@@ -12,9 +13,6 @@ export const meta = {
   description:
     'A straight flight with a shaped tread nosing, optional risers, stringers and handrail. Riser height is derived from the floor-to-floor rise and the step count.',
 }
-
-const MM_PER_INCH = 25.4
-const inches = (mm) => `${(mm / MM_PER_INCH).toFixed(2)}"`
 
 const EDGE_OPTIONS = [
   { value: 'square', label: 'Square' },
@@ -423,19 +421,19 @@ export function metrics(p) {
   return [
     {
       label: 'Riser height',
-      value: `${rise.toFixed(1)} mm / ${inches(rise)}`,
+      value: formatLength(rise),
       level: riserLevel,
       note: riserLevel === 'ok' ? undefined : 'IRC R311.7.5.1 caps risers at 7¾" (196 mm).',
     },
     {
       label: 'Tread depth (going)',
-      value: `${going.toFixed(1)} mm / ${inches(going)}`,
+      value: formatLength(going),
       level: goingLevel,
       note: goingLevel === 'ok' ? undefined : 'IRC R311.7.5.2 requires at least 10" (254 mm).',
     },
     {
       label: '2R + G',
-      value: `${rule.toFixed(0)} mm / ${inches(rule)}`,
+      value: formatLength(rule),
       level: ruleLevel,
       note: ruleLevel === 'ok' ? undefined : 'Comfortable stairs land between 550 and 700 mm.',
     },
@@ -445,7 +443,7 @@ export function metrics(p) {
       level: pitchLevel,
       note: pitchLevel === 'ok' ? undefined : 'Domestic stairs are usually 30–37°.',
     },
-    { label: 'Total run', value: `${L.totalRun.toFixed(0)} mm / ${inches(L.totalRun)}` },
+    { label: 'Total run', value: formatLength(L.totalRun) },
     { label: 'Treads drawn', value: `${L.treadCount} of ${L.steps} steps` },
   ]
 }

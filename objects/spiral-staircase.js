@@ -11,8 +11,6 @@ export const meta = {
     'Wedge treads winding around a central column, with an optional helical handrail. The ledge profile wraps the full tread outline.',
 }
 
-const MM_PER_INCH = 25.4
-const inches = (mm) => `${(mm / MM_PER_INCH).toFixed(2)}"`
 const rad = (deg) => (deg * Math.PI) / 180
 
 export const params = [
@@ -198,21 +196,21 @@ export function metrics(p) {
   return [
     {
       label: 'Riser height',
-      value: `${L.rise.toFixed(1)} mm / ${inches(L.rise)}`,
+      value: formatLength(L.rise),
       level: riserLevel,
       note: riserLevel === 'ok' ? undefined : 'IRC R311.7.10.1 caps spiral risers at 9½" (241 mm).',
     },
     {
       label: 'Going at walk line',
-      value: `${walkGoing.toFixed(1)} mm / ${inches(walkGoing)}`,
+      value: formatLength(walkGoing),
       level: goingLevel,
       note:
         goingLevel === 'ok'
           ? undefined
           : 'Measured 12" in from the outer edge; spiral stairs need 7½" (190 mm) minimum.',
     },
-    { label: '2R + G', value: `${rule.toFixed(0)} mm / ${inches(rule)}` },
-    { label: 'Overall diameter', value: `${(L.outerR * 2).toFixed(0)} mm / ${inches(L.outerR * 2)}` },
+    { label: '2R + G', value: formatLength(rule) },
+    { label: 'Overall diameter', value: formatLength(L.outerR * 2) },
     {
       label: 'Rotation',
       value: `${num(p, 'sweep').toFixed(0)}° ${str(p, 'direction') === 'ccw' ? 'counter-clockwise' : 'clockwise'}`,

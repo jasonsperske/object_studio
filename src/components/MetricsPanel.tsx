@@ -1,14 +1,17 @@
+import type { Settings } from '../lib/settings'
+import { formatLength } from '../lib/units'
 import type { Metric } from '../types'
 
 interface Props {
   metrics: Metric[]
   triangles: number
   size: { x: number; y: number; z: number }
+  settings: Settings
 }
 
-const mm = (value: number) => `${value.toFixed(0)} mm`
+export default function MetricsPanel({ metrics, triangles, size, settings }: Props) {
+  const mm = (value: number) => formatLength(value, settings.unit, settings.fraction)
 
-export default function MetricsPanel({ metrics, triangles, size }: Props) {
   return (
     <div className="metrics">
       <div className="metric">
