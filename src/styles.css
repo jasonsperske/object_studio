@@ -546,6 +546,13 @@ button.full {
   text-align: right;
 }
 
+/* Out of range while typing — blur will clamp it, so flag it rather than
+   silently rewriting what is being typed. */
+.param-value input:invalid {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
 .unit {
   color: var(--muted);
   font-size: 11px;
