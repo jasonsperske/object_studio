@@ -34,6 +34,8 @@ export interface StudioProps {
   definition: ObjectDefinition | null
   compileError: string | null
   initialParams: Params | null
+  /** Which pane to open on — 'source' for an object just created. */
+  initialPane: Pane
   source: string
   savedSource: string
   builtinSource: string | undefined
@@ -85,6 +87,7 @@ export default function Studio({
   definition,
   compileError,
   initialParams,
+  initialPane,
   source,
   savedSource,
   builtinSource,
@@ -102,7 +105,7 @@ export default function Studio({
 }: StudioProps) {
   const [params, setParams] = useState<Params>(() => initialParams ?? {})
   const [tab, setTab] = useState<Tab>('properties')
-  const [pane, setPane] = useState<Pane>('viewer')
+  const [pane, setPane] = useState<Pane>(initialPane)
   const [projection, setProjection] = useState<Projection>('perspective')
   const [display, setDisplay] = useState<DisplayOptions>({
     wireframe: false,
@@ -266,6 +269,18 @@ export default function Studio({
   }, [])
 
   const dirty = source !== savedSource
+
+  // A reload would discard unsaved source edits — moving between objects would
+  // not, since App owns the sources.
+  useEffect(() => {
+    if (!dirty) return
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [dirty])
 
   return (
     <div className="app">

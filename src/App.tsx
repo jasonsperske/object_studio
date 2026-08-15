@@ -61,6 +61,8 @@ export default function App() {
   const [route, setRoute] = useState<Route>(() => parseLocation())
   const [settings, setSettings] = useState<Settings>(() => loadSettings())
   const [settingsOpen, setSettingsOpen] = useState(false)
+  /** Set by createObject so the studio opens on the editor for a new object. */
+  const [createdId, setCreatedId] = useState<string | null>(null)
 
   // Object sources call formatLength() during their own metrics(), which runs
   // while children render — so the unit has to be in place before that, not in
@@ -132,8 +134,10 @@ export default function App() {
     }
   }, [activeId, writable, sources, savedSources])
 
+  // A new object is written to the server straight away, so it survives a
+  // reload without the author having to notice the Save button first.
   const createObject = useCallback(
-    (name: string) => {
+    async (name: string) => {
       const id = slugify(name)
       if (!id) {
         setToast('That name has no usable letters or digits.')
@@ -143,9 +147,23 @@ export default function App() {
         setToast(`An object called “${id}” already exists.`)
         return
       }
-      setSources((current) => ({ ...current, [id]: starterSource(name) }))
+
+      const source = starterSource(name)
+      setSources((current) => ({ ...current, [id]: source }))
+      setCreatedId(id)
       navigateTo(objectUrl(id))
-      setToast(writable ? `Created ${id} — save it to write objects/${id}.js` : `Created ${id}`)
+
+      if (!writable) {
+        setToast(`Created ${id} — read-only, so it lives in this tab only`)
+        return
+      }
+      try {
+        await saveObjectSource(id, source)
+        setSavedSources((current) => ({ ...current, [id]: source }))
+        setToast(`Created objects/${id}.js`)
+      } catch (err) {
+        setToast(`Created ${id}, but saving failed: ${err instanceof Error ? err.message : String(err)}`)
+      }
     },
     [sources, writable],
   )
@@ -186,7 +204,7 @@ export default function App() {
           entries={compiled}
           writable={writable}
           onOpen={(id) => navigateTo(objectUrl(id))}
-          onCreate={createObject}
+          onCreate={(name) => void createObject(name)}
           onOpenSettings={() => setSettingsOpen(true)}
         />
       )}
@@ -216,6 +234,7 @@ export default function App() {
           definition={entry.definition}
           compileError={entry.error}
           initialParams={route.params}
+          initialPane={createdId === entry.id ? 'source' : 'viewer'}
           source={sources[entry.id] ?? ''}
           savedSource={savedSources[entry.id] ?? ''}
           builtinSource={builtinSources[entry.id]}
@@ -227,7 +246,7 @@ export default function App() {
           onOpenSettings={() => setSettingsOpen(true)}
           onSourceChange={updateSource}
           onSave={() => void saveSource()}
-          onCreateObject={createObject}
+          onCreateObject={(name) => void createObject(name)}
           onDeleteObject={() => void deleteObject()}
           notify={setToast}
         />
