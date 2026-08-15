@@ -136,6 +136,11 @@ you'd run.
 | **Straight staircase** | Rise/going derived from floor-to-floor height and step count, six tread-nosing profiles, optional risers, cut or closed stringers, handrail with balusters |
 | **Spiral staircase** | Wedge treads around a central column, adjustable sweep and winding direction, helical handrail |
 | **Shelf unit** | Carcass with evenly spaced shelves, sharing the same edge profiles as the stair treads |
+| **Fractal tree** | Seeded recursive branching — thickness, angle, taper, droop and apical dominance set the habit; six leaf models and five fruit/blossom models dress the outer growth |
+
+The tree ships with presets for a pine, oak, silver birch, apple, cherry blossom and weeping
+willow. Its randomness is seeded, so a given seed always rebuilds the same tree, and growth stops
+at a limb cap so a careless slider cannot lock the tab up.
 
 The staircases report riser height, going, pitch and the 2R+G rule as you edit, flagging values
 outside common building-code limits in amber or red. Those checks are advisory design aids, not a

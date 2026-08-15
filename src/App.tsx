@@ -61,6 +61,9 @@ export default function App() {
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [route, setRoute] = useState<Route>(() => parseLocation())
+  /** Bumped per navigation, so arriving at the object you are already on with
+      different properties still re-seeds the studio. */
+  const [navSeq, setNavSeq] = useState(0)
   const [settings, setSettings] = useState<Settings>(() => loadSettings())
   const [settingsOpen, setSettingsOpen] = useState(false)
   /** Set by createObject so the studio opens on the editor for a new object. */
@@ -79,10 +82,20 @@ export default function App() {
     saveSettings(settings)
   }, [settings])
 
+  // popstate covers in-app navigation and Back/Forward; hashchange covers a
+  // share link pasted into the address bar while already on that object, which
+  // changes only the fragment and so fires neither a load nor a popstate.
   useEffect(() => {
-    const onPopState = () => setRoute(parseLocation())
-    window.addEventListener('popstate', onPopState)
-    return () => window.removeEventListener('popstate', onPopState)
+    const onNavigate = () => {
+      setRoute(parseLocation())
+      setNavSeq((seq) => seq + 1)
+    }
+    window.addEventListener('popstate', onNavigate)
+    window.addEventListener('hashchange', onNavigate)
+    return () => {
+      window.removeEventListener('popstate', onNavigate)
+      window.removeEventListener('hashchange', onNavigate)
+    }
   }, [])
 
   useEffect(() => {
@@ -269,9 +282,9 @@ export default function App() {
 
       {route.kind === 'object' && entry && (
         <Studio
-          // Remounting per object keeps parameter state from leaking across
-          // navigations, including Back and Forward.
-          key={entry.id}
+          // Remounting per navigation keeps parameter state from leaking
+          // across them, including Back, Forward and a pasted share link.
+          key={`${entry.id}:${navSeq}`}
           objectId={entry.id}
           definition={entry.definition}
           compileError={entry.error}
