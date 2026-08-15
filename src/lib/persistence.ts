@@ -11,49 +11,7 @@ export interface Recipe {
 
 const STORAGE_KEY = 'object-studio.library.v1'
 
-// --- URL sharing ----------------------------------------------------------
-
-function toBase64Url(text: string): string {
-  const bytes = new TextEncoder().encode(text)
-  let binary = ''
-  for (const byte of bytes) binary += String.fromCharCode(byte)
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-}
-
-function fromBase64Url(encoded: string): string {
-  const padded = encoded.replace(/-/g, '+').replace(/_/g, '/')
-  const binary = atob(padded)
-  const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0))
-  return new TextDecoder().decode(bytes)
-}
-
-export function encodeRecipe(recipe: Recipe): string {
-  return toBase64Url(JSON.stringify({ ...recipe, v: 1 }))
-}
-
-export function decodeRecipe(encoded: string): Recipe | null {
-  try {
-    const parsed = JSON.parse(fromBase64Url(encoded)) as Recipe
-    if (typeof parsed?.objectId !== 'string' || typeof parsed?.params !== 'object') return null
-    return parsed
-  } catch {
-    return null
-  }
-}
-
-/** Reads the recipe encoded in the current location hash, if any. */
-export function recipeFromLocation(): Recipe | null {
-  const hash = window.location.hash.replace(/^#/, '')
-  if (!hash.startsWith('m=')) return null
-  return decodeRecipe(hash.slice(2))
-}
-
-export function writeRecipeToLocation(recipe: Recipe) {
-  const next = `#m=${encodeRecipe(recipe)}`
-  if (next !== window.location.hash) {
-    window.history.replaceState(null, '', next)
-  }
-}
+// URL encoding lives in lib/router.ts — this module is only about presets.
 
 // --- Local library --------------------------------------------------------
 

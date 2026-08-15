@@ -70,6 +70,19 @@ body {
   gap: 9px;
   font-size: 14px;
   letter-spacing: 0.01em;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 5px;
+  padding: 4px 6px;
+  margin-left: -6px;
+}
+
+a.brand:hover {
+  background: var(--panel-2);
+}
+
+a.brand:hover .mark {
+  border-color: var(--text);
 }
 
 .brand strong {
@@ -122,6 +135,136 @@ body {
   flex: 1;
   display: flex;
   min-height: 0;
+}
+
+/* --- gallery ------------------------------------------------------------- */
+
+.gallery {
+  height: 100%;
+  overflow-y: auto;
+  background:
+    radial-gradient(1100px 520px at 50% -8%, rgba(90, 169, 255, 0.11), transparent 70%),
+    var(--bg);
+}
+
+.gallery-inner {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 44px 24px 64px;
+}
+
+.gallery-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.gallery-header h1 {
+  margin: 0 0 6px;
+  font-size: 25px;
+  font-weight: 620;
+  letter-spacing: -0.01em;
+}
+
+.gallery-header p {
+  margin: 0;
+  color: var(--muted);
+  max-width: 62ch;
+}
+
+.gallery-new {
+  flex: none;
+}
+
+.gallery-new input {
+  min-width: 240px;
+}
+
+.gallery .source-note {
+  border: 1px solid rgba(229, 161, 60, 0.3);
+  border-radius: var(--radius);
+  margin-bottom: 22px;
+}
+
+.gallery-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(258px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  gap: 0;
+  padding: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  color: var(--text);
+  font: inherit;
+  transition: border-color 0.14s ease, transform 0.14s ease;
+}
+
+.card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.card-preview {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  background:
+    linear-gradient(180deg, rgba(90, 169, 255, 0.07), transparent 62%),
+    var(--panel-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.card-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 10px;
+}
+
+.card-placeholder {
+  color: var(--muted);
+  font-size: 20px;
+}
+
+.card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 12px 14px 14px;
+}
+
+.card-name {
+  font-size: 14px;
+  font-weight: 560;
+}
+
+.card-description {
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.card-meta {
+  color: var(--muted);
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  margin-top: 2px;
 }
 
 /* --- left panel ---------------------------------------------------------- */

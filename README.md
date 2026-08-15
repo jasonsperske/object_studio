@@ -4,10 +4,27 @@ A JSFiddle for 3D objects. Objects are **plain JavaScript files** that export a 
 and a `build` function. The studio turns the schema into a settings pane, evaluates `build` live
 as you drag sliders, and exports the result as STL, OBJ, PLY or glTF.
 
-The window splits into **object properties** on the left and, on the right, a panel you flip
-between the **viewer** and the **source editor** for the object itself. Edit the source, switch
-back, and you're looking at the evaluated logic. Save, and it's written back to `objects/` on the
-server.
+The root URL is a gallery of the library. Open an object and the window splits into **object
+properties** on the left and, on the right, a panel you flip between the **viewer** and the
+**source editor** for the object itself. Edit the source, switch back, and you're looking at the
+evaluated logic. Save, and it's written back to `objects/` on the server.
+
+## URLs
+
+| | |
+| --- | --- |
+| `/` | gallery of every object, with a live preview per card |
+| `/{objectId}` | that object at its default properties |
+| `/{objectId}/#m={hash}` | that object with saved properties |
+
+Properties live in the hash, so editing them rewrites the current history entry rather than
+stacking one up — only moving between objects adds history. The hash appears the moment a
+property differs from its default and disappears again on **Reset to defaults**, so a URL you
+share is as short as it can be. Links in the older `/#m={objectId+params}` form still resolve and
+are rewritten to the new shape on arrival.
+
+Paths are client-side routes, so a static deploy needs the usual SPA rewrite — serve
+`index.html` for any unmatched path. `npm run dev` and `npm run preview` already do.
 
 ```bash
 npm install
@@ -120,11 +137,10 @@ you can write mm and hand a printer inches or a game engine metres. Key metrics 
 
 ## Sharing and saving configurations
 
-- **Share link** — the object id and its parameters encode into the URL hash. Copy the address
-  bar and whoever opens it sees your model. Pasting a different link into a running tab swaps the
-  model without a reload.
+- **Share link** — copy the address bar; see [URLs](#urls) above.
 - **Presets** — save named parameter sets to `localStorage`, then export or import them as JSON.
-  Presets store parameters; `objects/*.js` stores the logic.
+  Presets store parameters; `objects/*.js` stores the logic. Loading a preset for a different
+  object navigates to it.
 - **Parameters (JSON)** — an export format that stores the recipe rather than the mesh.
 
 ## Viewport
@@ -141,13 +157,18 @@ independently. Switching to the source editor keeps the WebGL context and your c
 ## Layout
 
 ```
-objects/*.js            the object library — editable at runtime
-server/objectApi.ts     Vite plugin: GET/PUT/DELETE for those files
-src/lib/compile.ts      source → live object definition, plus the injected API
-src/lib/geometry.ts     the geometry helpers injected into object sources
-src/lib/studioScene.ts  three.js renderer, cameras, standard views
-src/lib/exporters.ts    STL / OBJ / PLY / glTF / GLB, with unit scaling
-src/lib/objectStore.ts  loads bundled sources, talks to the object API
+objects/*.js               the object library — editable at runtime
+server/objectApi.ts        Vite plugin: GET/PUT/DELETE for those files
+src/App.tsx                owns the library and the route; gallery or studio
+src/Studio.tsx             the properties + viewer/source workspace
+src/components/Gallery.tsx the root gallery
+src/lib/router.ts          URL scheme: parsing, building, navigation
+src/lib/compile.ts         source → live object definition, plus the injected API
+src/lib/geometry.ts        the geometry helpers injected into object sources
+src/lib/studioScene.ts     three.js renderer, cameras, standard views
+src/lib/thumbnails.ts      offscreen renders for the gallery cards
+src/lib/exporters.ts       STL / OBJ / PLY / glTF / GLB, with unit scaling
+src/lib/objectStore.ts     loads bundled sources, talks to the object API
 ```
 
 React 18 + TypeScript + Vite, three.js r169 driven imperatively so parameter edits swap geometry
