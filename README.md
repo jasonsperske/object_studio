@@ -174,3 +174,10 @@ src/lib/objectStore.ts     loads bundled sources, talks to the object API
 React 18 + TypeScript + Vite, three.js r169 driven imperatively so parameter edits swap geometry
 without tearing down the WebGL context. Rebuilds run through `useDeferredValue`, keeping sliders
 and the editor responsive on heavy models.
+
+## Credits
+
+The **3D Studio DOS** theme uses *Web437 IBM VGA 8x16* from
+[The Ultimate Oldschool PC Font Pack](https://int10h.org/oldschool-pc-fonts/) by VileR, licensed
+[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The font is bundled unmodified in
+`src/fonts/` with its licence.

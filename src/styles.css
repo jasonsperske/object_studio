@@ -1,3 +1,17 @@
+/*
+ * Web437 IBM VGA 8x16 — the IBM VGA text-mode ROM face (code page 437) as
+ * traced by VileR for The Ultimate Oldschool PC Font Pack, int10h.org.
+ * Licensed CC BY-SA 4.0; see src/fonts/LICENSE-oldschool-pc-fonts.txt.
+ * A bitmap design: it is pixel-exact at 16px and whole multiples of it.
+ */
+@font-face {
+  font-family: 'IBM VGA 8x16';
+  src: url('./fonts/Web437_IBM_VGA_8x16.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
 :root {
   --bg: #0d1015;
   --panel: #151a22;
@@ -50,24 +64,27 @@
   --radius-lg: 0px;
   --radius-pill: 0px;
   --accent-text: #ffffff;
-  --font-size: 15px;
+  --font-size: 16px;
   --chrome-bg: #0f7d8c;
   --chrome-text: #ffffff;
   --chrome-muted: #bfe9f0;
   --glow: transparent;
   --glow-soft: transparent;
-  /* VT323 — a terminal bitmap face, self-hosted via @fontsource. The source
-     editor keeps a real coding mono, set on the CodeMirror theme. */
-  --font: 'VT323', ui-monospace, monospace;
-  --font-mono: 'VT323', ui-monospace, monospace;
+  /* The source editor keeps a real coding mono, set on the CodeMirror theme. */
+  --font: 'IBM VGA 8x16', ui-monospace, monospace;
+  --font-mono: 'IBM VGA 8x16', ui-monospace, monospace;
 }
 
-:root[data-theme='dos'] body,
-:root[data-theme='dos'] input,
-:root[data-theme='dos'] select,
-:root[data-theme='dos'] button {
+:root[data-theme='dos'] * {
+  /* A bitmap face is only crisp at its cell height, so everything shares one
+     size the way a real text-mode UI did. */
+  font-size: 16px;
   -webkit-font-smoothing: none;
   font-smooth: never;
+}
+
+:root[data-theme='dos'] .gallery-header h1 {
+  font-size: 32px;
 }
 
 /* Sunken fields and raised buttons, the way VGA-era dialogs drew them. */
