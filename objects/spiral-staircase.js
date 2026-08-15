@@ -90,16 +90,20 @@ function sectorTread(innerR, outerR, startAngle, sweep, thickness, edgeStyle, ed
     bevelSize: s,
     bevelSegments,
   })
-  // Shape is drawn in XY; stand it up so thickness runs along +Y.
-  g.rotateX(-Math.PI / 2)
-  g.translate(0, s, 0)
+  // Shape is drawn in XY; stand it up so thickness runs along +Y. Rotating the
+  // other way would map shape angle θ to world azimuth −θ, winding the treads
+  // against the handrail and balusters, which are placed at +θ directly.
+  g.rotateX(Math.PI / 2)
+  g.translate(0, thickness - s, 0)
   return g
 }
 
 function layout(p) {
   const steps = Math.max(2, Math.round(num(p, 'steps')))
   const totalRise = num(p, 'totalRise')
-  const totalSweep = rad(num(p, 'sweep')) * (str(p, 'direction') === 'ccw' ? 1 : -1)
+  // Azimuth increases clockwise seen from above (screen-right is +X, screen-up
+  // is −Z in the Top view), so clockwise ascent is a positive sweep.
+  const totalSweep = rad(num(p, 'sweep')) * (str(p, 'direction') === 'ccw' ? -1 : 1)
   return {
     steps,
     totalRise,
