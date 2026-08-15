@@ -60,6 +60,13 @@ export interface Metric {
   note?: string
 }
 
+/** A named set of properties an object ships with, declared in its source. */
+export interface ObjectPreset {
+  name: string
+  /** Partial: merged over the definition's defaults when applied. */
+  params: Params
+}
+
 export interface ObjectDefinition {
   id: string
   name: string
@@ -70,6 +77,8 @@ export interface ObjectDefinition {
   build: (params: Params) => Part[]
   /** Optional derived measurements / design-rule checks. */
   metrics?: (params: Params) => Metric[]
+  /** Named property sets the object ships with. */
+  presets: ObjectPreset[]
 }
 
 export function defaultParams(def: ObjectDefinition): Params {

@@ -16,17 +16,19 @@ export interface SavedItem extends Recipe {
 }
 
 /**
- * Presets live on the server in presets.json, alongside the object library —
- * only display settings belong to the browser. The whole list is read and
- * written as one document, because every operation (save, delete, import) is a
- * change to the list rather than to one entry.
+ * Presets belong to an object, not to the app: an object declares its own in
+ * its source, and anything you save afterwards is kept per object in
+ * presets.json on the server. Only display settings belong to the browser.
  */
+
+/** Saved sets, keyed by object id. */
+export type PresetStore = Record<string, SavedItem[]>
 
 /** Where presets used to live. Read once, to carry them over. */
 const LEGACY_KEY = 'object-studio.library.v1'
 
 export interface LoadedPresets {
-  presets: SavedItem[]
+  presets: PresetStore
   /** False when the studio API isn't running; presets are then read-only. */
   writable: boolean
   /** Number of presets carried over from the old localStorage store. */
@@ -44,27 +46,37 @@ function readLegacy(): SavedItem[] {
   }
 }
 
+function groupByObject(items: SavedItem[]): PresetStore {
+  const store: PresetStore = {}
+  for (const item of items) (store[item.objectId] ??= []).push(item)
+  return store
+}
+
 export async function loadPresets(): Promise<LoadedPresets> {
-  let presets: SavedItem[] = []
+  let presets: PresetStore = {}
   try {
     const response = await fetch('/api/presets')
     if (!response.ok) throw new Error(String(response.status))
-    const body = (await response.json()) as { presets?: SavedItem[] }
-    presets = Array.isArray(body.presets) ? body.presets : []
+    const body = (await response.json()) as { presets?: PresetStore }
+    presets = body.presets && typeof body.presets === 'object' ? body.presets : {}
   } catch {
     // No API — fall back to whatever the browser still holds, read-only.
-    return { presets: readLegacy(), writable: false, migrated: 0 }
+    return { presets: groupByObject(readLegacy()), writable: false, migrated: 0 }
   }
 
-  // One-time carry-over: anything saved before presets moved to the server.
+  // One-time carry-over from before presets moved to the server.
   const legacy = readLegacy()
-  if (legacy.length && !presets.length) {
+  const empty = Object.keys(presets).length === 0
+  if (legacy.length && empty) {
+    const grouped = groupByObject(legacy)
     try {
-      await savePresets(legacy)
+      for (const [objectId, items] of Object.entries(grouped)) {
+        await saveObjectPresets(objectId, items)
+      }
       localStorage.removeItem(LEGACY_KEY)
-      return { presets: legacy, writable: true, migrated: legacy.length }
+      return { presets: grouped, writable: true, migrated: legacy.length }
     } catch {
-      return { presets: legacy, writable: true, migrated: 0 }
+      return { presets: grouped, writable: true, migrated: 0 }
     }
   }
   if (legacy.length) localStorage.removeItem(LEGACY_KEY)
@@ -72,8 +84,9 @@ export async function loadPresets(): Promise<LoadedPresets> {
   return { presets, writable: true, migrated: 0 }
 }
 
-export async function savePresets(items: SavedItem[]): Promise<void> {
-  const response = await fetch('/api/presets', {
+/** Replaces one object's saved presets; other objects are untouched. */
+export async function saveObjectPresets(objectId: string, items: SavedItem[]): Promise<void> {
+  const response = await fetch(`/api/presets/${encodeURIComponent(objectId)}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(items),

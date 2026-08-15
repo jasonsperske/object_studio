@@ -879,6 +879,29 @@ button.full {
   margin: 8px 0 0;
 }
 
+/* --- presets ------------------------------------------------------------- */
+
+.preset-group {
+  margin-bottom: 22px;
+}
+
+.preset-group h3 {
+  margin: 0 0 9px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.preset-group .saved-list {
+  margin-bottom: 8px;
+}
+
+.preset-group code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
 /* --- library ------------------------------------------------------------- */
 
 .saved-list {

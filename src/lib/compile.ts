@@ -11,7 +11,7 @@ import {
 } from './geometry'
 import type { LengthUnit } from './units'
 import { formatLength as formatLengthIn } from './units'
-import type { ObjectDefinition, ParamSpec } from '../types'
+import type { ObjectDefinition, ObjectPreset, ParamSpec } from '../types'
 import { bool, num, str } from '../types'
 
 /**
@@ -57,7 +57,7 @@ const HELPER_NAMES = Object.keys(HELPERS)
 const HELPER_VALUES = Object.values(HELPERS)
 
 /** Names an author can define. Deliberately excludes `name`, which is a global. */
-export const EXPORT_NAMES = ['meta', 'params', 'build', 'metrics'] as const
+export const EXPORT_NAMES = ['meta', 'params', 'build', 'metrics', 'presets'] as const
 
 export const STUDIO_API = { THREE, ...HELPERS }
 
@@ -71,6 +71,7 @@ const EPILOGUE = `
   params: typeof params !== 'undefined' ? params : undefined,
   build: typeof build !== 'undefined' ? build : undefined,
   metrics: typeof metrics !== 'undefined' ? metrics : undefined,
+  presets: typeof presets !== 'undefined' ? presets : undefined,
 };`
 
 /**
@@ -117,6 +118,22 @@ function assertParams(params: unknown): asserts params is ParamSpec[] {
   }
 }
 
+/** Presets are optional; a malformed one is worth naming rather than ignoring. */
+function readPresets(value: unknown): ObjectPreset[] {
+  if (value === undefined) return []
+  if (!Array.isArray(value)) throw new ObjectSourceError('`presets` must be an array.')
+  return value.map((entry, index) => {
+    const preset = entry as Partial<ObjectPreset>
+    if (!preset || typeof preset.name !== 'string' || !preset.name) {
+      throw new ObjectSourceError(`presets[${index}] needs a non-empty string \`name\`.`)
+    }
+    if (!preset.params || typeof preset.params !== 'object') {
+      throw new ObjectSourceError(`presets[${index}] ("${preset.name}") needs a \`params\` object.`)
+    }
+    return { name: preset.name, params: preset.params }
+  })
+}
+
 /**
  * Evaluates object source into a definition. Throws ObjectSourceError with a
  * readable message for syntax errors, missing exports and malformed params —
@@ -151,6 +168,7 @@ export function compileObject(id: string, source: string): ObjectDefinition {
   }
   assertParams(result?.params)
 
+  const presets = readPresets(result.presets)
   const meta = (result.meta ?? {}) as { name?: string; description?: string; order?: number }
 
   return {
@@ -163,6 +181,7 @@ export function compileObject(id: string, source: string): ObjectDefinition {
     metrics: typeof result.metrics === 'function'
       ? (result.metrics as ObjectDefinition['metrics'])
       : undefined,
+    presets,
   }
 }
 

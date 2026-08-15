@@ -13,8 +13,8 @@ import {
   saveObjectSource,
   slugify,
 } from './lib/objectStore'
-import type { SavedItem } from './lib/persistence'
-import { addPreset, loadPresets, removePreset, savePresets } from './lib/persistence'
+import type { PresetStore, SavedItem } from './lib/persistence'
+import { addPreset, loadPresets, removePreset, saveObjectPresets } from './lib/persistence'
 import type { Route } from './lib/router'
 import { galleryUrl, navigateTo, objectUrl, parseLocation } from './lib/router'
 import type { ObjectDefinition } from './types'
@@ -68,7 +68,7 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   /** Set by createObject so the studio opens on the editor for a new object. */
   const [createdId, setCreatedId] = useState<string | null>(null)
-  const [presets, setPresets] = useState<SavedItem[]>([])
+  const [presets, setPresets] = useState<PresetStore>({})
   const [presetsWritable, setPresetsWritable] = useState(false)
 
   // Object sources call formatLength() during their own metrics(), which runs
@@ -133,11 +133,6 @@ export default function App() {
   }, [toast])
 
   const compiled = useMemo(() => compileAll(sources), [sources])
-  const objectName = useCallback(
-    (id: string) => compiled.find((c) => c.id === id)?.definition?.name ?? id,
-    [compiled],
-  )
-
   // --- source mutations ----------------------------------------------------
 
   const activeId = route.kind === 'object' ? route.objectId : null
@@ -214,27 +209,38 @@ export default function App() {
       delete remainingSaved[activeId]
       setSources(remaining)
       setSavedSources(remainingSaved)
+      // Presets belong to the object, so they go with it.
+      if (presets[activeId]?.length) {
+        await saveObjectPresets(activeId, []).catch(() => {})
+        setPresets((current) => {
+          const next = { ...current }
+          delete next[activeId]
+          return next
+        })
+      }
       navigateTo(galleryUrl())
       setToast(`Deleted ${activeId}`)
     } catch (err) {
       setToast(`Delete failed: ${err instanceof Error ? err.message : String(err)}`)
     }
-  }, [activeId, sources, savedSources])
+  }, [activeId, sources, savedSources, presets])
 
   // --- presets -------------------------------------------------------------
 
-  /** Applies a change to the list and writes it back, rolling back on failure. */
+  /**
+   * Writes one object's saved presets, rolling back on failure. Scoped per
+   * object so two objects' presets can never clobber each other.
+   */
   const commitPresets = useCallback(
-    async (next: SavedItem[], done: string) => {
-      const previous = presets
-      setPresets(next)
+    async (objectId: string, next: SavedItem[], done: string) => {
       if (!presetsWritable) {
         setToast('Presets are read-only without the studio API.')
-        setPresets(previous)
         return
       }
+      const previous = presets
+      setPresets({ ...previous, [objectId]: next })
       try {
-        await savePresets(next)
+        await saveObjectPresets(objectId, next)
         setToast(done)
       } catch (err) {
         setPresets(previous)
@@ -296,16 +302,23 @@ export default function App() {
           writable={writable}
           saving={saving}
           canDelete={Object.keys(sources).length > 1}
-          objectName={objectName}
           settings={settings}
-          presets={presets}
+          presets={presets[entry.id] ?? []}
+          presetsWritable={presetsWritable}
           onSavePreset={(recipe, name) =>
-            void commitPresets(addPreset(presets, recipe, name), `Saved “${name}” to your presets`)
+            void commitPresets(
+              entry.id,
+              addPreset(presets[entry.id] ?? [], recipe, name),
+              `Saved “${name}”`,
+            )
           }
-          onDeletePreset={(id) => void commitPresets(removePreset(presets, id), 'Preset deleted')}
+          onDeletePreset={(id) =>
+            void commitPresets(entry.id, removePreset(presets[entry.id] ?? [], id), 'Preset deleted')
+          }
           onImportPresets={(items) =>
             void commitPresets(
-              [...items, ...presets],
+              entry.id,
+              [...items, ...(presets[entry.id] ?? [])],
               `Imported ${items.length} preset${items.length === 1 ? '' : 's'}`,
             )
           }

@@ -44,28 +44,43 @@ export function studioApi(options: StudioApiOptions = {}): Plugin {
   let presetsPath = ''
 
   /**
-   * Presets are read and written as one document: every client operation —
-   * save, delete, import — is a change to the whole list.
+   * Presets belong to an object, so the file is a map of object id to that
+   * object's saved sets. A flat array from the earlier global store is grouped
+   * on read and written back in the new shape.
    */
+  async function readPresets(): Promise<Record<string, unknown[]>> {
+    if (!existsSync(presetsPath)) return {}
+    const parsed = JSON.parse(await readFile(presetsPath, 'utf8'))
+    if (Array.isArray(parsed)) {
+      const grouped: Record<string, unknown[]> = {}
+      for (const item of parsed) {
+        const key = typeof item?.objectId === 'string' ? item.objectId : 'unknown'
+        ;(grouped[key] ??= []).push(item)
+      }
+      return grouped
+    }
+    return parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown[]>) : {}
+  }
+
   const handlePresets = (
     req: Parameters<Connect.NextHandleFunction>[0],
     res: Parameters<Connect.NextHandleFunction>[1],
+    objectId: string,
   ) => {
     const method = (req.method ?? 'GET').toUpperCase()
     void (async () => {
       try {
-        if (method === 'GET') {
-          const presets = existsSync(presetsPath)
-            ? JSON.parse(await readFile(presetsPath, 'utf8'))
-            : []
-          return json(res, 200, { writable: true, presets: Array.isArray(presets) ? presets : [] })
+        if (method === 'GET' && !objectId) {
+          return json(res, 200, { writable: true, presets: await readPresets() })
         }
-        if (method === 'PUT') {
-          const body = await readBody(req)
-          const parsed = JSON.parse(body || '[]')
+        if (method === 'PUT' && ID_PATTERN.test(objectId)) {
+          const parsed = JSON.parse((await readBody(req)) || '[]')
           if (!Array.isArray(parsed)) return json(res, 400, { error: 'Presets must be an array.' })
-          await writeFile(presetsPath, `${JSON.stringify(parsed, null, 2)}\n`, 'utf8')
-          return json(res, 200, { saved: true, count: parsed.length })
+          const all = await readPresets()
+          if (parsed.length) all[objectId] = parsed
+          else delete all[objectId]
+          await writeFile(presetsPath, `${JSON.stringify(all, null, 2)}\n`, 'utf8')
+          return json(res, 200, { saved: true, objectId, count: parsed.length })
         }
         return json(res, 405, { error: `${method} not supported.` })
       } catch (err) {
@@ -76,8 +91,9 @@ export function studioApi(options: StudioApiOptions = {}): Plugin {
 
   const middleware: Connect.NextHandleFunction = (req, res, next) => {
     const url = req.url ?? ''
-    if (url.split('?')[0].replace(/\/+$/, '') === '/api/presets') {
-      return handlePresets(req, res)
+    const path = url.split('?')[0].replace(/\/+$/, '')
+    if (path === '/api/presets' || path.startsWith('/api/presets/')) {
+      return handlePresets(req, res, decodeURIComponent(path.slice('/api/presets/'.length)))
     }
     if (!url.startsWith('/api/objects')) return next()
 

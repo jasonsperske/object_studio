@@ -125,6 +125,63 @@ export const params = [
   },
 ]
 
+// Presets ship with the object: they are part of what a fractal tree is, and
+// only list the properties that differ from the defaults above.
+export const presets = [
+  {
+    name: 'Pine tree',
+    params: {
+      height: 1800, thickness: 160, taper: 0.82, branches: 4, branchAngle: 74,
+      lengthRatio: 0.5, apical: 0.98, twist: 90, droop: 22, irregularity: 0.22, seed: 21,
+      leafModel: 'needle', leafSize: 210, leafDensity: 100, foliageColor: 'deep',
+      fruitModel: 'cone', fruitSize: 110, fruitFrequency: 22, fruitColor: 'brown'
+    },
+  },
+  {
+    name: 'Oak tree',
+    params: {
+      height: 1500, thickness: 300, taper: 0.7, branchAngle: 46, lengthRatio: 0.76,
+      apical: 0.12, droop: -4, irregularity: 0.5, seed: 4, leafModel: 'lobed',
+      leafSize: 150, leafDensity: 85, fruitModel: 'acorn', fruitSize: 60,
+      fruitFrequency: 25, fruitColor: 'brown'
+    },
+  },
+  {
+    name: 'Silver birch',
+    params: {
+      height: 1900, thickness: 90, taper: 0.76, branches: 2, branchAngle: 32,
+      lengthRatio: 0.78, apical: 0.65, droop: 20, irregularity: 0.35, seed: 12,
+      leafModel: 'heart', leafSize: 80, leafDensity: 80, foliageColor: 'olive',
+      fruitFrequency: 0, fruitColor: 'gold'
+    },
+  },
+  {
+    name: 'Apple tree',
+    params: {
+      height: 900, thickness: 160, taper: 0.68, branchAngle: 52, apical: 0.1, droop: 10,
+      irregularity: 0.5, seed: 33, leafSize: 95, leafDensity: 80, fruitModel: 'apple',
+      fruitSize: 75, fruitFrequency: 35
+    },
+  },
+  {
+    name: 'Cherry blossom',
+    params: {
+      height: 1200, thickness: 180, taper: 0.7, branchAngle: 48, lengthRatio: 0.76,
+      apical: 0.18, droop: 16, irregularity: 0.4, seed: 58, leafSize: 65, leafDensity: 30,
+      foliageColor: 'olive', fruitModel: 'blossom', fruitSize: 70, fruitFrequency: 90,
+      fruitColor: 'pink'
+    },
+  },
+  {
+    name: 'Weeping willow',
+    params: {
+      height: 1700, thickness: 200, taper: 0.74, branchAngle: 42, lengthRatio: 0.82,
+      apical: 0.4, droop: 45, irregularity: 0.4, seed: 77, leafSize: 120, leafDensity: 90,
+      leafLevels: 3, foliageColor: 'olive', fruitFrequency: 0, fruitColor: 'gold'
+    },
+  },
+]
+
 // --- helpers ---------------------------------------------------------------
 
 /** Small, fast, seedable PRNG — the tree must rebuild identically every time. */

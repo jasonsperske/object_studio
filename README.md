@@ -64,6 +64,13 @@ export function build(p) {
 export function metrics(p) {
   return [{ label: 'Riser height', value: '180 mm', level: 'warn', note: 'Why it matters.' }]
 }
+
+// Optional. Named property sets the object ships with — part of what the object
+// is, so they live here rather than in any app-level store. List only what each
+// one changes; the rest comes from the defaults above.
+export const presets = [
+  { name: 'Pine tree', params: { apical: 0.98, branchAngle: 74, leafModel: 'needle' } },
+]
 ```
 
 Parameter types are `number`, `int`, `select` and `boolean`. Returning `Part[]` rather than one
@@ -114,7 +121,7 @@ bar instead of breaking the app.
 | | |
 | --- | --- |
 | `objects/*.js` | object definitions — written on create and on every save |
-| `presets.json` | saved parameter sets |
+| `presets.json` | property sets you save, keyed by object |
 | `localStorage` | display settings only: unit system, scale and theme |
 
 Only the display settings are per-browser. Everything that is library content lives on the
@@ -138,8 +145,8 @@ you'd run.
 | **Shelf unit** | Carcass with evenly spaced shelves, sharing the same edge profiles as the stair treads |
 | **Fractal tree** | Seeded recursive branching — thickness, angle, taper, droop and apical dominance set the habit; six leaf models and five fruit/blossom models dress the outer growth |
 
-The tree ships with presets for a pine, oak, silver birch, apple, cherry blossom and weeping
-willow. Its randomness is seeded, so a given seed always rebuilds the same tree, and growth stops
+The tree declares presets for a pine, oak, silver birch, apple, cherry blossom and weeping willow
+in its own source. Its randomness is seeded, so a given seed always rebuilds the same tree, and growth stops
 at a limb cap so a careless slider cannot lock the tab up.
 
 The staircases report riser height, going, pitch and the 2R+G rule as you edit, flagging values
@@ -154,9 +161,12 @@ you can write mm and hand a printer inches or a game engine metres. Key metrics 
 ## Sharing and saving configurations
 
 - **Share link** — copy the address bar; see [URLs](#urls) above.
-- **Presets** — save named parameter sets to `presets.json` on the server, then export or import
-  them as JSON. Presets store parameters; `objects/*.js` stores the logic. Loading a preset for a
-  different object navigates to it.
+- **Presets** belong to an object, never to the app, and the Presets tab only ever shows the
+  current object's. They come from two places: the ones the object **declares in its own
+  definition**, which are read-only in the UI and edited in the source; and the ones you **save**,
+  which are kept per object in `presets.json`. Saving a set of properties never changes the
+  object's definition — that is the point of the split. Deleting an object takes its saved
+  presets with it.
 - **Parameters (JSON)** — an export format that stores the recipe rather than the mesh.
 
 ## Viewport

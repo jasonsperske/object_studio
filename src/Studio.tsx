@@ -2,7 +2,7 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } f
 import * as THREE from 'three'
 import ExportPanel from './components/ExportPanel'
 import GearIcon from './components/GearIcon'
-import LibraryPanel from './components/LibraryPanel'
+import PresetsPanel from './components/PresetsPanel'
 import MetricsPanel from './components/MetricsPanel'
 import PropertiesPanel from './components/PropertiesPanel'
 import SourcePane from './components/SourcePane'
@@ -36,10 +36,9 @@ export interface StudioProps {
   writable: boolean
   saving: boolean
   canDelete: boolean
-  /** Resolves an object id to its display name, for preset subtitles. */
-  objectName: (id: string) => string
   settings: Settings
   presets: SavedItem[]
+  presetsWritable: boolean
   onSavePreset: (recipe: Recipe, name: string) => void
   onDeletePreset: (id: string) => void
   onImportPresets: (items: SavedItem[]) => void
@@ -92,9 +91,9 @@ export default function Studio({
   writable,
   saving,
   canDelete,
-  objectName,
   settings,
   presets,
+  presetsWritable,
   onSavePreset,
   onDeletePreset,
   onImportPresets,
@@ -194,17 +193,13 @@ export default function Studio({
     setParams((current) => ({ ...current, [id]: value }))
   }, [])
 
-  const loadPreset = useCallback(
-    (item: SavedItem) => {
-      if (item.objectId !== objectId) {
-        navigateTo(objectUrl(item.objectId, item.params))
-        return
-      }
-      setParams(item.params)
-      setFitToken((token) => token + 1)
-    },
-    [objectId],
-  )
+  // Presets only ever belong to the object on screen, so applying one is just
+  // a change of properties — merged over defaults, since a preset lists only
+  // what it changes.
+  const applyPreset = useCallback((preset: Params) => {
+    setParams(preset)
+    setFitToken((token) => token + 1)
+  }, [])
 
   // --- export --------------------------------------------------------------
 
@@ -348,18 +343,20 @@ export default function Studio({
                 </p>
               ))}
             {tab === 'presets' && (
-              <LibraryPanel
-                items={presets}
+              <PresetsPanel
+                objectId={objectId}
+                builtIn={definition?.presets ?? []}
+                saved={presets}
+                writable={presetsWritable}
                 suggestedName={definition?.name ?? objectId}
-                objectName={objectName}
+                onApply={applyPreset}
                 onSave={(name) => onSavePreset(recipe, name)}
-                onLoad={loadPreset}
                 onDelete={onDeletePreset}
                 onImport={onImportPresets}
                 onExportAll={() =>
                   download(
                     new Blob([JSON.stringify(presets, null, 2)], { type: 'application/json' }),
-                    'object-studio-presets.json',
+                    `${objectId}-presets.json`,
                   )
                 }
               />
