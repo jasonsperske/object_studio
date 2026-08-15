@@ -581,6 +581,7 @@ button.full {
 .button-row {
   display: flex;
   gap: 8px;
+  align-items: center;
 }
 
 .button-row > * {
