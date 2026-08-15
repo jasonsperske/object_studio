@@ -24,6 +24,9 @@ body,
 #root {
   height: 100%;
   margin: 0;
+  /* The shell is a fixed-size layout with its own scroll containers. Locking
+     the root too means a stray scroll-into-view can never slide it off-screen. */
+  overflow: hidden;
 }
 
 body {
@@ -31,7 +34,6 @@ body {
   color: var(--text);
   font: 13px/1.5 ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
-  overflow: hidden;
 }
 
 .sr-only {
@@ -465,10 +467,20 @@ button.full {
   align-items: center;
   gap: 4px 9px;
   cursor: pointer;
+  /* Positions the hidden checkbox below. Without this it resolves against the
+     page, so clicking a toggle in a scrolled panel scrolls the whole app. */
+  position: relative;
 }
 
+/* Hidden but still focusable, and pinned over the switch it drives so that
+   focusing it never scrolls anything unexpected into view. */
 .param-boolean input {
   position: absolute;
+  top: 0;
+  left: 0;
+  width: 30px;
+  height: 17px;
+  margin: 0;
   opacity: 0;
   pointer-events: none;
 }
