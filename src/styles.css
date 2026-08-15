@@ -12,6 +12,12 @@
   --error: #ef6a6a;
   --ok: #55c08a;
   --radius: 7px;
+  --radius-sm: 5px;
+  --radius-lg: 10px;
+  --radius-pill: 999px;
+  /* Text that sits on an --accent fill. */
+  --accent-text: #08121e;
+  --font-size: 13px;
   /* Chrome = the top bar and status strip; separate so a theme can colour them
      independently of the panels. */
   --chrome-bg: var(--panel);
@@ -40,12 +46,28 @@
   --error: #a80000;
   --ok: #00551f;
   --radius: 0px;
+  --radius-sm: 0px;
+  --radius-lg: 0px;
+  --radius-pill: 0px;
+  --accent-text: #ffffff;
+  --font-size: 15px;
   --chrome-bg: #0f7d8c;
   --chrome-text: #ffffff;
   --chrome-muted: #bfe9f0;
   --glow: transparent;
   --glow-soft: transparent;
-  --font: var(--font-mono);
+  /* VT323 — a terminal bitmap face, self-hosted via @fontsource. The source
+     editor keeps a real coding mono, set on the CodeMirror theme. */
+  --font: 'VT323', ui-monospace, monospace;
+  --font-mono: 'VT323', ui-monospace, monospace;
+}
+
+:root[data-theme='dos'] body,
+:root[data-theme='dos'] input,
+:root[data-theme='dos'] select,
+:root[data-theme='dos'] button {
+  -webkit-font-smoothing: none;
+  font-smooth: never;
 }
 
 /* Sunken fields and raised buttons, the way VGA-era dialogs drew them. */
@@ -105,7 +127,7 @@ body,
 body {
   background: var(--bg);
   color: var(--text);
-  font: 13px/1.5 var(--font);
+  font: var(--font-size) / 1.5 var(--font);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -137,7 +159,7 @@ body {
   letter-spacing: 0.01em;
   color: inherit;
   text-decoration: none;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   padding: 4px 6px;
   margin-left: -6px;
 }
@@ -158,7 +180,7 @@ a.brand:hover .mark {
   width: 16px;
   height: 16px;
   border: 1.5px solid var(--accent);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   transform: rotate(45deg);
   box-shadow: inset 0 0 0 3px var(--accent-soft);
 }
@@ -190,7 +212,7 @@ a.brand:hover .mark {
   background: transparent;
   color: var(--muted);
   padding: 5px 13px;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font: inherit;
 }
@@ -278,7 +300,7 @@ a.brand:hover .mark {
   padding: 0;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   cursor: pointer;
   color: var(--text);
@@ -484,7 +506,7 @@ select {
   background: #10151c;
   border: 1px solid var(--line);
   color: var(--text);
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   padding: 5px 7px;
   font: inherit;
   min-width: 0;
@@ -512,7 +534,7 @@ button.ghost {
 button.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #08121e;
+  color: var(--accent-text);
   font-weight: 600;
 }
 
@@ -653,13 +675,13 @@ button.full {
 .slider::-webkit-slider-runnable-track {
   height: 3px;
   background: var(--line);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
 }
 
 .slider::-moz-range-track {
   height: 3px;
   background: var(--line);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
 }
 
 .slider::-webkit-slider-thumb {
@@ -667,7 +689,7 @@ button.full {
   width: 13px;
   height: 13px;
   margin-top: -5px;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   background: var(--accent);
   border: 0;
 }
@@ -675,7 +697,7 @@ button.full {
 .slider::-moz-range-thumb {
   width: 13px;
   height: 13px;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   background: var(--accent);
   border: 0;
 }
@@ -707,7 +729,7 @@ button.full {
 .param-boolean .switch {
   width: 30px;
   height: 17px;
-  border-radius: 9px;
+  border-radius: var(--radius-pill);
   background: var(--line);
   position: relative;
   transition: background 0.14s ease;
@@ -721,7 +743,7 @@ button.full {
   left: 2px;
   width: 13px;
   height: 13px;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   background: var(--muted);
   transition: transform 0.14s ease, background 0.14s ease;
 }
@@ -806,7 +828,7 @@ button.full {
   gap: 8px;
   padding: 6px 9px;
   border: 1px solid transparent;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
@@ -941,7 +963,7 @@ button.icon.danger:hover {
 .source-file .dot {
   width: 6px;
   height: 6px;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   background: var(--accent);
 }
 
@@ -974,7 +996,7 @@ button.icon.danger:hover {
   font-size: 11.5px;
   background: rgba(0, 0, 0, 0.3);
   padding: 1px 4px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
 }
 
 .source-editor {
