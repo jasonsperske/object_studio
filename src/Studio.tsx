@@ -36,8 +36,8 @@ export interface StudioProps {
   writable: boolean
   saving: boolean
   canDelete: boolean
+  /** Resolves an object id to its display name, for preset subtitles. */
   objectName: (id: string) => string
-  objectIds: string[]
   onSourceChange: (source: string) => void
   onSave: () => void
   onCreateObject: (name: string) => void
@@ -77,7 +77,6 @@ export default function Studio({
   saving,
   canDelete,
   objectName,
-  objectIds,
   onSourceChange,
   onSave,
   onCreateObject,
@@ -263,16 +262,7 @@ export default function Studio({
           </span>
         </a>
 
-        <label className="object-picker">
-          <span className="sr-only">Object</span>
-          <select value={objectId} onChange={(e) => navigateTo(objectUrl(e.target.value))}>
-            {objectIds.map((id) => (
-              <option key={id} value={id}>
-                {objectName(id)}
-              </option>
-            ))}
-          </select>
-        </label>
+        <h1 className="object-name">{definition?.name ?? objectId}</h1>
 
         <nav className="tabs" role="tablist">
           {(['properties', 'presets', 'export'] as Tab[]).map((id) => (

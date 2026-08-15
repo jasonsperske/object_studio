@@ -82,8 +82,6 @@ export default function App() {
   }, [toast])
 
   const compiled = useMemo(() => compileAll(sources), [sources])
-  const objectIds = useMemo(() => compiled.map((c) => c.id), [compiled])
-
   const objectName = useCallback(
     (id: string) => compiled.find((c) => c.id === id)?.definition?.name ?? id,
     [compiled],
@@ -207,7 +205,6 @@ export default function App() {
           saving={saving}
           canDelete={Object.keys(sources).length > 1}
           objectName={objectName}
-          objectIds={objectIds}
           onSourceChange={updateSource}
           onSave={() => void saveSource()}
           onCreateObject={createObject}
