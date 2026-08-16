@@ -10,11 +10,6 @@
 // per the studio convention, and the floor is at Y = 0. The edge profiles and
 // leg profiles are the ones the table uses, so a chair drawn at the same
 // fanciness sits with it rather than beside it.
-//
-// The plan-outline algebra below — miter offsets, the sweep, the flat faces —
-// is the same as the table's. Object files are standalone by design: they are
-// evaluated on their own with only the studio helpers in scope, so shared
-// working like this lives in each file that needs it.
 
 export const meta = {
   order: 6,
@@ -193,107 +188,11 @@ export const params = [
 ]
 
 // ---------------------------------------------------------------------------
-// Plan outlines
+// The seat in plan
 //
-// An outline is an array of {x, z}, closed implicitly and wound anticlockwise
-// in the XZ plane (the sense of (cos t, sin t)). Everything below relies on
-// that winding for its face normals, so `ring` enforces it.
+// One closed loop of {x, z} wound anticlockwise, which is what the studio's
+// `ring`, `roundCorners`, `plan`, `sweep` and `face` helpers all work on.
 // ---------------------------------------------------------------------------
-
-// Points closer together than this are the same point; anything finer only
-// feeds degenerate edges, whose direction is noise, into the normals below.
-const GRAIN = 0.05
-
-function ring(points) {
-  const out = []
-  for (const q of points) {
-    const prev = out[out.length - 1]
-    if (prev && Math.hypot(prev.x - q.x, prev.z - q.z) < GRAIN) continue
-    out.push({ x: q.x, z: q.z })
-  }
-  while (out.length > 2 && Math.hypot(out[0].x - out[out.length - 1].x, out[0].z - out[out.length - 1].z) < GRAIN) {
-    out.pop()
-  }
-  let area = 0
-  for (let i = 0; i < out.length; i++) {
-    const a = out[i]
-    const b = out[(i + 1) % out.length]
-    area += a.x * b.z - b.x * a.z
-  }
-  if (area < 0) out.reverse()
-  return out
-}
-
-/** Convex hull, anticlockwise — used to repair an offset that has knotted. */
-function hull(points) {
-  const pts = points.slice().sort((a, b) => a.x - b.x || a.z - b.z)
-  if (pts.length < 3) return ring(points)
-  const cross = (o, a, b) => (a.x - o.x) * (b.z - o.z) - (a.z - o.z) * (b.x - o.x)
-  const half = (source) => {
-    const out = []
-    for (const q of source) {
-      while (out.length >= 2 && cross(out[out.length - 2], out[out.length - 1], q) <= 0) out.pop()
-      out.push(q)
-    }
-    out.pop()
-    return out
-  }
-  const chain = half(pts).concat(half(pts.slice().reverse()))
-  return chain.length >= 3 ? ring(chain) : ring(points)
-}
-
-/** Replaces each corner of a polygon with an arc tangent to both of its edges. */
-function roundCorners(pts, radius, steps = 5) {
-  if (radius < 0.5) return ring(pts)
-  const n = pts.length
-  const out = []
-  for (let i = 0; i < n; i++) {
-    const q = pts[i]
-    const prev = pts[(i - 1 + n) % n]
-    const next = pts[(i + 1) % n]
-    const a = { x: prev.x - q.x, z: prev.z - q.z }
-    const b = { x: next.x - q.x, z: next.z - q.z }
-    const la = Math.hypot(a.x, a.z)
-    const lb = Math.hypot(b.x, b.z)
-    if (la < GRAIN || lb < GRAIN) {
-      out.push(q)
-      continue
-    }
-    a.x /= la
-    a.z /= la
-    b.x /= lb
-    b.z /= lb
-    const angle = Math.acos(Math.max(-1, Math.min(1, a.x * b.x + a.z * b.z)))
-    // A corner that barely turns — a point along a sampled curve — is left be.
-    if (!(angle > 0.08 && angle < Math.PI - 0.08)) {
-      out.push(q)
-      continue
-    }
-    const half = Math.tan(angle / 2)
-    const cut = Math.min(radius / half, la * 0.5, lb * 0.5)
-    const r = cut * half
-    if (r < 0.5) {
-      out.push(q)
-      continue
-    }
-    const bisector = { x: a.x + b.x, z: a.z + b.z }
-    const lb2 = Math.hypot(bisector.x, bisector.z) || 1
-    const centre = {
-      x: q.x + (bisector.x / lb2) * (r / Math.sin(angle / 2)),
-      z: q.z + (bisector.z / lb2) * (r / Math.sin(angle / 2)),
-    }
-    const from = Math.atan2(q.z + a.z * cut - centre.z, q.x + a.x * cut - centre.x)
-    const to = Math.atan2(q.z + b.z * cut - centre.z, q.x + b.x * cut - centre.x)
-    let sweepBy = to - from
-    while (sweepBy > Math.PI) sweepBy -= Math.PI * 2
-    while (sweepBy < -Math.PI) sweepBy += Math.PI * 2
-    for (let k = 0; k <= steps; k++) {
-      const t = from + sweepBy * (k / steps)
-      out.push({ x: centre.x + r * Math.cos(t), z: centre.z + r * Math.sin(t) })
-    }
-  }
-  return ring(out)
-}
 
 /**
  * The seat in plan. The front edge is at -X and the back at +X, so a trapezoid
@@ -329,237 +228,8 @@ function seatOutline(shape, depth, width, taper, radius) {
 }
 
 // ---------------------------------------------------------------------------
-// Working on an outline
-// ---------------------------------------------------------------------------
-
-function miters(pts) {
-  const n = pts.length
-  const edge = []
-  for (let i = 0; i < n; i++) {
-    const a = pts[i]
-    const b = pts[(i + 1) % n]
-    const dx = b.x - a.x
-    const dz = b.z - a.z
-    const len = Math.hypot(dx, dz) || 1
-    // Inward normal of an anticlockwise ring.
-    edge.push({ x: -dz / len, z: dx / len })
-  }
-  return pts.map((_, i) => {
-    const a = edge[(i - 1 + n) % n]
-    const b = edge[i]
-    const dot = a.x * b.x + a.z * b.z
-    if (dot < -0.9) return { x: b.x, z: b.z }
-    const s = 1 + dot
-    return { x: (a.x + b.x) / s, z: (a.z + b.z) / s }
-  })
-}
-
-/** Inward line equations, one per edge: a point is inside while n·q ≥ c. */
-function edgeLines(pts) {
-  const lines = []
-  for (let i = 0; i < pts.length; i++) {
-    const a = pts[i]
-    const b = pts[(i + 1) % pts.length]
-    const dx = b.x - a.x
-    const dz = b.z - a.z
-    const len = Math.hypot(dx, dz)
-    if (len < 1e-6) continue
-    const nx = -dz / len
-    const nz = dx / len
-    lines.push({ nx, nz, c: nx * a.x + nz * a.z })
-  }
-  return lines
-}
-
-/**
- * An outline gets worked on inset by inset, so the offsets are prepared once
- * and cached against it. A plain miter offset turns itself inside out wherever
- * a corner is rounded tighter than the inset, so every offset point is then
- * pushed back inside the half-plane of any edge it has crossed.
- */
-function plan(outline) {
-  const pts = hull(outline)
-  const m = miters(pts)
-  const lines = edgeLines(pts)
-  let cx = 0
-  let cz = 0
-  for (const q of pts) {
-    cx += q.x / pts.length
-    cz += q.z / pts.length
-  }
-  let inradius = Infinity
-  for (const l of lines) inradius = Math.min(inradius, l.nx * cx + l.nz * cz - l.c)
-  inradius = Math.max(inradius, 0)
-  const cache = new Map()
-  const offset = (d) => {
-    const t = Math.min(d, inradius * 0.92)
-    const key = Math.round(t * 64)
-    const hit = cache.get(key)
-    if (hit) return hit
-    const out = pts.map((q, i) => ({ x: q.x + t * m[i].x, z: q.z + t * m[i].z }))
-    if (t > 1e-6) {
-      for (let pass = 0; pass < 2; pass++) {
-        for (const q of out) {
-          for (const l of lines) {
-            const over = t - (l.nx * q.x + l.nz * q.z - l.c)
-            if (over > 1e-6) {
-              q.x += over * l.nx
-              q.z += over * l.nz
-            }
-          }
-        }
-      }
-    }
-    cache.set(key, out)
-    return out
-  }
-  return { pts, offset, inradius }
-}
-
-function asPlan(outline) {
-  return outline.offset ? outline : plan(outline)
-}
-
-/** Whether a point sits inside a convex outline — every one here is convex. */
-function contains(pts, x, z) {
-  for (const l of edgeLines(pts)) {
-    if (l.nx * x + l.nz * z - l.c < 0) return false
-  }
-  return true
-}
-
-/** The point of the outline furthest in a direction. */
-function supportPoint(pts, dx, dz) {
-  let best = pts[0]
-  let bestValue = -Infinity
-  for (const q of pts) {
-    const v = q.x * dx + q.z * dz
-    if (v > bestValue) {
-      bestValue = v
-      best = q
-    }
-  }
-  return best
-}
-
-// ---------------------------------------------------------------------------
 // Surfaces
 // ---------------------------------------------------------------------------
-
-/** A flat horizontal face over a set of contours; the first is the outer one. */
-function face(contours, y, up) {
-  const outer = contours[0]
-  const holes = contours.slice(1)
-  if (!outer || outer.length < 3) return null
-  const toV2 = (q) => new THREE.Vector2(q.x, q.z)
-  const faces = THREE.ShapeUtils.triangulateShape(outer.map(toV2), holes.map((h) => h.map(toV2)))
-  const all = outer.concat(...holes)
-  const position = []
-  for (const f of faces) {
-    const a = all[f[0]]
-    const b = all[f[1]]
-    const c = all[f[2]]
-    if (!a || !b || !c) continue
-    // Positive area is anticlockwise in XZ, which faces down in world space.
-    const area = (b.x - a.x) * (c.z - a.z) - (c.x - a.x) * (b.z - a.z)
-    const tri = area > 0 === Boolean(up) ? [c, b, a] : [a, b, c]
-    for (const q of tri) position.push(q.x, y, q.z)
-  }
-  if (!position.length) return null
-  const g = new THREE.BufferGeometry()
-  g.setAttribute('position', new THREE.Float32BufferAttribute(position, 3))
-  g.computeVertexNormals()
-  return g
-}
-
-/**
- * Sweeps a cross-section around the outline. A section is a list of
- * {inset, y}: `inset` measures inwards from the outline along the miter, `y` is
- * absolute. `closed` wraps the last section point back to the first, giving a
- * solid ring that needs no caps; left open, the ends want a `face` each.
- */
-function sweep(outline, section, closed) {
-  const planned = asPlan(outline)
-  const n = planned.pts.length
-  const at = (i, s) => {
-    const q = planned.offset(s.inset)[i]
-    return { x: q.x, y: s.y, z: q.z }
-  }
-  const position = []
-  const push = (a, b, c) => position.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z)
-  const k = section.length
-  const last = closed ? k : k - 1
-  for (let i = 0; i < n; i++) {
-    const j = (i + 1) % n
-    for (let s = 0; s < last; s++) {
-      const t = (s + 1) % k
-      const a = at(i, section[s])
-      const b = at(j, section[s])
-      const c = at(j, section[t])
-      const d = at(i, section[t])
-      if (Math.hypot(a.x - d.x, a.y - d.y, a.z - d.z) < 1e-6) continue
-      push(a, b, c)
-      push(a, c, d)
-    }
-  }
-  if (!position.length) return null
-  const g = new THREE.BufferGeometry()
-  g.setAttribute('position', new THREE.Float32BufferAttribute(position, 3))
-  g.computeVertexNormals()
-  return g
-}
-
-/** A circular cross-section — a bead run around an edge. */
-function beadSection(inset, y, radius, steps = 10) {
-  const section = []
-  for (let i = 0; i < steps; i++) {
-    const a = (Math.PI * 2 * i) / steps
-    section.push({ inset: inset + radius * Math.cos(a), y: y + radius * Math.sin(a) })
-  }
-  return section
-}
-
-/**
- * The edge treatment, taken from the shared board profile and re-read as insets
- * from the outline: the section from the top face round the edge to the bottom
- * one, plus the depth the flat faces are held back by.
- */
-function edgeSection(style, thickness, size, limit) {
-  const depth = Math.min(Math.max(thickness, size * 2, 0.5), Math.max(limit, 1))
-  const raw = boardProfile(depth, thickness, style, size).extractPoints(16).shape
-  const section = []
-  for (const q of raw) {
-    const s = { inset: Math.max(0, depth - q.x), y: q.y }
-    const prev = section[section.length - 1]
-    if (prev && Math.abs(prev.inset - s.inset) < 1e-6 && Math.abs(prev.y - s.y) < 1e-6) continue
-    section.push(s)
-  }
-  const first = section[0]
-  const end = section[section.length - 1]
-  // The profile comes back as a closed loop; dropping the point that closes it
-  // leaves an open run, which the sweep wants to walk from the top down.
-  if (section.length > 2 && Math.abs(first.inset - end.inset) < 1e-6 && Math.abs(first.y - end.y) < 1e-6) {
-    section.pop()
-  }
-  if (section.length < 2) return { depth, section: [{ inset: depth, y: thickness }, { inset: depth, y: 0 }] }
-  if (section[0].y < section[section.length - 1].y) section.reverse()
-  return { depth, section }
-}
-
-/** A board: the edge profile swept round the outline, with a face top and bottom. */
-function board(outline, y0, thickness, style, size) {
-  const planned = asPlan(outline)
-  const { depth, section } = edgeSection(style, thickness, size, planned.inradius * 0.75)
-  const raised = section.map((s) => ({ inset: s.inset, y: s.y + y0 }))
-  const inner = hull(planned.offset(depth))
-  return merge(
-    [
-      sweep(planned, raised, false),
-      face([inner], y0 + thickness, true),
-      face([inner], y0, false),
-    ].filter(Boolean),
-  )
-}
 
 /** A frame under the seat: a closed section swept round, so it needs no caps. */
 function frameRing(outline, yTop, depth, width) {
@@ -578,18 +248,6 @@ function frameRing(outline, yTop, depth, width) {
 // ---------------------------------------------------------------------------
 // Members
 // ---------------------------------------------------------------------------
-
-/** Cylinder from `base` to `tip`; four sides and a 45° twist make it square. */
-function strut(base, tip, dBase, dTip, sides, twist = 0) {
-  const dir = new THREE.Vector3().subVectors(tip, base)
-  const len = dir.length() || 1e-3
-  const g = new THREE.CylinderGeometry(Math.max(dTip, 0.2) / 2, Math.max(dBase, 0.2) / 2, len, sides)
-  if (twist) g.rotateY(twist)
-  const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize())
-  g.applyQuaternion(q)
-  g.translate((base.x + tip.x) / 2, (base.y + tip.y) / 2, (base.z + tip.z) / 2)
-  return g
-}
 
 // Radius factors up a turned member, foot to top: pad foot, a ring above it,
 // the vase under the seat, and a bead where the square block would start.
@@ -747,12 +405,12 @@ export function build(p) {
   const railWidth = Math.max(legSize, seatPlan.inradius * 0.3)
   if (framed) {
     const railDepth = Math.max(seatThickness, 55)
-    const ringSolid = frameRing(seatPlan, seatTop, railDepth, railWidth)
-    if (ringSolid) parts.push({ name: 'seat-frame', geometry: ringSolid, color: COLOR.frame })
+    const frame = frameRing(seatPlan, seatTop, railDepth, railWidth)
+    if (frame) parts.push({ name: 'seat-frame', geometry: frame, color: COLOR.frame })
   } else {
     parts.push({
       name: 'seat',
-      geometry: board(seatPlan, seatBottom, seatThickness, style, edgeSize),
+      geometry: profiledBoard(seatPlan, seatBottom, seatThickness, style, edgeSize),
       color: COLOR.seat,
     })
   }
@@ -763,7 +421,7 @@ export function build(p) {
     const inset = pad === 'dropIn' ? railWidth * 0.7 : pad === 'full' ? 0 : railWidth * 0.35
     const cushionPlan = plan(hull(seatPlan.offset(inset)))
     const base = pad === 'over' ? seatTop : seatTop - padThickness * 0.35
-    const cushion = board(cushionPlan, base, padThickness, 'rounded', padThickness * 0.45)
+    const cushion = profiledBoard(cushionPlan, base, padThickness, 'rounded', padThickness * 0.45)
     const upholstery = [cushion]
     if (fancy >= 5) {
       // Buttoned, in a grid clipped to the pad.

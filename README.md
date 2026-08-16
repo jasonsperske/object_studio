@@ -85,11 +85,30 @@ Available as bare identifiers (and collected on a `studio` object):
 | | |
 | --- | --- |
 | `THREE` | the three.js namespace, for anything the helpers don't cover |
-| `box`, `slab`, `post`, `tube` | primitives placed by min-corner or endpoints |
+| `box`, `slab`, `post`, `tube`, `strut` | primitives placed by min-corner or endpoints; `strut` tapers |
 | `boardProfile` | side profile of a board: square, chamfer, rounded, bullnose, cove, ogee |
 | `extrudeProfile` | extrudes a profile across a width, front- or back-facing |
+| `ring`, `hull`, `roundCorners` | plan outlines: cleaned and wound, repaired, corners arced |
+| `plan`, `clip`, `contains`, `supportPoint`, `perimeter` | offsetting an outline, cutting it, measuring it |
+| `sweep`, `face`, `profiledBoard` | the solids you make over one |
+| `edgeSection`, `beadSection` | cross-sections to sweep: a board profile read as insets, or a bead |
 | `merge`, `triangleCount` | buffer merging and mesh stats |
 | `num`, `str`, `bool` | typed parameter accessors |
+
+### Plan outlines
+
+Anything with a shaped footprint — a table top, a chair seat — is described as one closed loop of
+`{x, z}` in the plan plane, wound anticlockwise, and the solid is made by working on that loop.
+`sweep` runs a cross-section around it, which is how a moulded edge, an apron, a bead or a seat
+frame are all the same operation; `plan` prepares it for offsetting, so an inlay band or a leg
+position is the outline pulled inwards; `clip` cuts it into pieces, which is how a table leaf and
+a breadboard end are the same operation too.
+
+`edgeSection` is the bridge between the two halves of that: it reads one of the `boardProfile`
+shapes back as insets from the outline, so the six profiles the stair treads use will run around a
+round table top or a shaped seat. Offsetting is the fiddly part and is handled for you — a plain
+miter offset turns itself inside out wherever a corner is rounded tighter than the inset, so `plan`
+pushes each offset point back inside the outline and `hull` repairs what is left.
 
 `export` is stripped before evaluation, so the files read like ES modules but run as a function
 body. An explicit `return { params, build, metrics }` works too.
@@ -150,7 +169,9 @@ you'd run.
 The table is built out of a single plan outline: the moulded edge and the apron are cross-sections
 swept around it, the inlay band and the leg positions are the outline offset inwards, and the
 leaves and breadboard ends are it clipped into slices. That is what lets an ogee edge run round a
-round top and an arched apron follow an oval without either knowing what shape it is on. It
+round top and an arched apron follow an oval without either knowing what shape it is on. None of
+that algebra belongs to the table — it is the [plan outline](#plan-outlines) helpers, the same way
+the ledge profiles belong to the library rather than to the staircase. It
 declares presets for a farmhouse dining table, a Georgian extending oval, a round pedestal café
 table, a Pembroke drop-leaf, a trestle work table, a hairpin coffee table and an octagonal games
 table.

@@ -1,11 +1,25 @@
 import * as THREE from 'three'
 import {
+  beadSection,
   box,
   boardProfile,
+  clip,
+  contains,
+  edgeSection,
   extrudeProfile,
+  face,
+  hull,
   merge,
+  perimeter,
+  plan,
   post,
+  profiledBoard,
+  ring,
+  roundCorners,
   slab,
+  strut,
+  supportPoint,
+  sweep,
   triangleCount,
   tube,
 } from './geometry'
@@ -43,8 +57,22 @@ const HELPERS = {
   slab,
   post,
   tube,
+  strut,
   boardProfile,
   extrudeProfile,
+  ring,
+  hull,
+  roundCorners,
+  plan,
+  clip,
+  contains,
+  supportPoint,
+  perimeter,
+  face,
+  sweep,
+  edgeSection,
+  beadSection,
+  profiledBoard,
   merge,
   triangleCount,
   num,
@@ -187,9 +215,20 @@ export function compileObject(id: string, source: string): ObjectDefinition {
 
 /** Starting point for a brand new object type. */
 export function starterSource(name: string): string {
+  // The helper list is long enough to want wrapping in the comment it lands in.
+  const scope: string[] = []
+  for (const helper of HELPER_NAMES) {
+    const line = scope.length ? scope[scope.length - 1] : ''
+    if (!line || line.length + helper.length + 2 > 74) scope.push(`// ${helper},`)
+    else scope[scope.length - 1] = `${line} ${helper},`
+  }
+  const lastLine = scope.length - 1
+  scope[lastLine] = `${scope[lastLine].replace(/,$/, '')}.`
+
   return `// ${name}
 //
-// In scope: THREE, and the studio helpers — ${HELPER_NAMES.join(', ')}.
+// In scope: THREE, and the studio helpers —
+${scope.join('\n')}
 // Units are millimetres. +X is depth, +Y is up, +Z is width centred on zero.
 
 export const meta = {
