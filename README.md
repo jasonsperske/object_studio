@@ -144,6 +144,15 @@ you'd run.
 | **Spiral staircase** | Wedge treads around a central column, adjustable sweep and winding direction, helical handrail |
 | **Shelf unit** | Carcass with evenly spaced shelves, sharing the same edge profiles as the stair treads |
 | **Fractal tree** | Seeded recursive branching — thickness, angle, taper, droop and apical dominance set the habit; six leaf models and five fruit/blossom models dress the outer growth |
+| **Table** | Seven plan shapes, the tread edge profiles swept round any of them, banding / breadboard / lip borders, extension and drop leaves, six leg arrangements from corner legs to twin pedestal, and one fanciness dial for the ornament |
+
+The table is built out of a single plan outline: the moulded edge and the apron are cross-sections
+swept around it, the inlay band and the leg positions are the outline offset inwards, and the
+leaves and breadboard ends are it clipped into slices. That is what lets an ogee edge run round a
+round top and an arched apron follow an oval without either knowing what shape it is on. It
+declares presets for a farmhouse dining table, a Georgian extending oval, a round pedestal café
+table, a Pembroke drop-leaf, a trestle work table, a hairpin coffee table and an octagonal games
+table.
 
 The tree declares presets for a pine, oak, silver birch, apple, cherry blossom and weeping willow
 in its own source. Its randomness is seeded, so a given seed always rebuilds the same tree, and growth stops
