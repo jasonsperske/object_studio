@@ -145,6 +145,7 @@ you'd run.
 | **Shelf unit** | Carcass with evenly spaced shelves, sharing the same edge profiles as the stair treads |
 | **Fractal tree** | Seeded recursive branching — thickness, angle, taper, droop and apical dominance set the habit; six leaf models and five fruit/blossom models dress the outer growth |
 | **Table** | Seven plan shapes, the tread edge profiles swept round any of them, banding / breadboard / lip borders, extension and drop leaves, six leg arrangements from corner legs to twin pedestal, and one fanciness dial for the ornament |
+| **Chair** | Four seat shapes with the same moulded edges, seven backs from ladder to upholstered, five leg profiles including a swept cabriole, optional arms, drop-in or fully upholstered seats, and the same fanciness dial |
 
 The table is built out of a single plan outline: the moulded edge and the apron are cross-sections
 swept around it, the inlay band and the leg positions are the outline offset inwards, and the
@@ -153,6 +154,14 @@ round top and an arched apron follow an oval without either knowing what shape i
 declares presets for a farmhouse dining table, a Georgian extending oval, a round pedestal café
 table, a Pembroke drop-leaf, a trestle work table, a hairpin coffee table and an octagonal games
 table.
+
+The chair is made to sit at it and built the same way: its seat is a plan outline too, and its
+back is drawn flat as boards standing in a plane and then tipped as a whole by the rake angle,
+about the back edge of the seat. It borrows the table's edge and leg profiles, so a chair drawn at
+the same fanciness matches rather than merely accompanies, and it measures its seat height against
+the same 750 mm table the table object measures its knee clearance from. Its presets run from a
+farmhouse ladderback and a Windsor to a cabriole-legged Georgian splat, a carver with arms and an
+upholstered diner.
 
 The tree declares presets for a pine, oak, silver birch, apple, cherry blossom and weeping willow
 in its own source. Its randomness is seeded, so a given seed always rebuilds the same tree, and growth stops
