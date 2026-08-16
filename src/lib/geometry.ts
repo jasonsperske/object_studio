@@ -137,11 +137,24 @@ function normalize(g: THREE.BufferGeometry): THREE.BufferGeometry {
   return out
 }
 
-/** Merges geometries into one buffer, disposing the inputs. */
+/**
+ * Merges geometries into one buffer, disposing the inputs.
+ *
+ * The primitives carry texture coordinates and the swept and triangulated
+ * surfaces do not; merging insists on all or none, so any that are missing are
+ * filled in rather than letting the merge fail and take the part with it.
+ */
 export function merge(geoms: THREE.BufferGeometry[]): THREE.BufferGeometry {
   const usable = geoms.filter(Boolean)
   if (usable.length === 0) return new THREE.BufferGeometry()
   const normalized = usable.map(normalize)
+  if (normalized.some((g) => g.getAttribute('uv'))) {
+    for (const g of normalized) {
+      if (g.getAttribute('uv')) continue
+      const count = g.getAttribute('position')?.count ?? 0
+      g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(count * 2), 2))
+    }
+  }
   const merged = mergeGeometries(normalized, false)
   for (const g of usable) g.dispose()
   return merged ?? new THREE.BufferGeometry()
@@ -337,8 +350,11 @@ function edgeLines(pts: PlanPoint[]) {
     const b = pts[(i + 1) % pts.length]
     const dx = b.x - a.x
     const dz = b.z - a.z
+    // Anything shorter than the grain is a collapsed corner rather than an
+    // edge, and its direction is noise. Taking its word for which way is inside
+    // would put every test point outside.
     const len = Math.hypot(dx, dz)
-    if (len < 1e-6) continue
+    if (len < GRAIN) continue
     const nx = -dz / len
     const nz = dx / len
     lines.push({ nx, nz, c: nx * a.x + nz * a.z })
@@ -440,9 +456,16 @@ export function supportPoint(pts: PlanPoint[], dx: number, dz: number): PlanPoin
   return best
 }
 
-/** Whether a point sits inside a convex outline. */
+/**
+ * Whether a point sits inside a convex outline.
+ *
+ * Repaired first, because the obvious thing to hand one is an offset, and an
+ * offset keeps a point per point of the outline rather than a tidy ring — where
+ * a corner has collapsed, its knot of points can be locally out of order, and
+ * one backwards edge would report every point as outside.
+ */
 export function contains(pts: PlanPoint[], x: number, z: number): boolean {
-  for (const l of edgeLines(pts)) {
+  for (const l of edgeLines(hull(pts))) {
     if (l.nx * x + l.nz * z - l.c < 0) return false
   }
   return true

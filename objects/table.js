@@ -306,9 +306,15 @@ function slice(pts, axis, cuts) {
   return slices
 }
 
-/** Swings a drop leaf down about its hinge line, which runs along X at z0. */
-function hingeDown(geometry, y0, z0, degrees) {
-  const a = (degrees * Math.PI) / 180
+/**
+ * Swings a drop leaf down about its hinge line, which runs along X at z0. A
+ * leaf longer than the table is tall cannot hang straight down — it comes to
+ * rest on the floor — so the swing stops where the floor is.
+ */
+function hingeDown(geometry, y0, z0, reach, degrees) {
+  const wanted = (degrees * Math.PI) / 180
+  const limit = reach > y0 ? Math.asin(Math.max(-1, Math.min(1, y0 / reach))) : wanted
+  const a = Math.min(wanted, limit)
   geometry.translate(0, -y0, -z0)
   geometry.rotateX(z0 >= 0 ? a : -a)
   geometry.translate(0, y0, z0)
@@ -354,13 +360,16 @@ function legGeometry(profile, height, size, x, z, taper, fancy) {
     const shaft = strut(base, tip, foot, size, 20)
     const reeds = [shaft]
     const count = 12
+    const rTop = size * 0.5
+    const rBottom = foot * 0.5
+    // The reeds lean out with the taper, so their feet are cut at an angle and
+    // want lifting by as much as that takes off the lowest corner.
+    const reedLift = (size * 0.065) * Math.sin(Math.atan2(rTop - rBottom, height))
     for (let i = 0; i < count; i++) {
       const a = (Math.PI * 2 * i) / count
-      const rTop = size * 0.5
-      const rBottom = foot * 0.5
       reeds.push(
         strut(
-          new THREE.Vector3(x + Math.cos(a) * rBottom, 0, z + Math.sin(a) * rBottom),
+          new THREE.Vector3(x + Math.cos(a) * rBottom, reedLift, z + Math.sin(a) * rBottom),
           new THREE.Vector3(x + Math.cos(a) * rTop, height, z + Math.sin(a) * rTop),
           size * 0.13,
           size * 0.13,
@@ -472,7 +481,7 @@ export function build(p) {
       if (!geometry) continue
       const swung =
         board.kind === 'leaf' && leafStyle === 'drop' && !leafOpen
-          ? hingeDown(geometry, topY, board.hinge, 87)
+          ? hingeDown(geometry, topY, board.hinge, Math.max(0, width / 2 - Math.abs(board.hinge)), 87)
           : geometry
       into.push(swung)
     }
@@ -530,9 +539,12 @@ export function build(p) {
       if (arrangement === 'splayed') {
         const radial = Math.hypot(q.x, q.z) || 1
         const kick = Math.tan(splay) * legTop
-        const foot = new THREE.Vector3(q.x + (q.x / radial) * kick, 0, q.z + (q.z / radial) * kick)
-        const tip = new THREE.Vector3(q.x, legTop, q.z)
         const square = legProfile === 'square' || legProfile === 'tapered'
+        // Cut off square to a leaning axis, a foot would dig into the floor;
+        // lift it by as much as the lean takes off its lowest corner.
+        const lift = legSize * taper * (square ? Math.SQRT1_2 : 0.5) * Math.sin(splay)
+        const foot = new THREE.Vector3(q.x + (q.x / radial) * kick, lift, q.z + (q.z / radial) * kick)
+        const tip = new THREE.Vector3(q.x, legTop, q.z)
         legs.push(
           strut(
             foot,
@@ -563,7 +575,9 @@ export function build(p) {
         // A leaning rod is cut off square, so its foot sits just clear of the
         // floor rather than through it.
         const reach = Math.hypot(kick, kick * 0.45)
-        const lean = Math.atan2(reach, legTop)
+        // Measured to where the rod actually meets the plate, not to the top of
+        // the leg, or the lift comes up short and the foot scuffs the floor.
+        const lean = Math.atan2(reach, legTop - 8)
         const foot = new THREE.Vector3(
           q.x + nx * kick - nz * spread * kick * 0.45,
           (rod / 2) * Math.sin(lean),

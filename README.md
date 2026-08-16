@@ -165,6 +165,13 @@ you'd run.
 | **Fractal tree** | Seeded recursive branching — thickness, angle, taper, droop and apical dominance set the habit; six leaf models and five fruit/blossom models dress the outer growth |
 | **Table** | Seven plan shapes, the tread edge profiles swept round any of them, banding / breadboard / lip borders, extension and drop leaves, six leg arrangements from corner legs to twin pedestal, and one fanciness dial for the ornament |
 | **Chair** | Four seat shapes with the same moulded edges, seven backs from ladder to upholstered, five leg profiles including a swept cabriole, optional arms, drop-in or fully upholstered seats, and the same fanciness dial |
+| **Home micro** | 1977–85. The wedge with the keyboard built in, sized by its key pitch and layout; cassette, cartridge slot and an edge connector |
+| **Integrated micro** | 1977–83. The all-in-one built around a tube, with the tape deck or twin 5¼" drives in the same case |
+| **AT desktop** | 1984–93. Monitor on top, case sized from the board standard, the card height and the bay openings; ISA cards |
+| **Multimedia PC** | 1995–2001. The beige mini tower with a CD-ROM and a sound card, ISA and PCI side by side |
+| **Gaming tower** | 2002–12. Black ATX, a double-height graphics card, a windowed side panel and the fans |
+| **Notebook** | 1995–2008. The thick clamshell, sized by panel and keyboard, with a swappable drive bay and a PC Card slot |
+| **All-in-one** | 2007–18. The machine behind the panel — bezel, chin, a slot-loading drive and a stand |
 
 The table is built out of a single plan outline: the moulded edge and the apron are cross-sections
 swept around it, the inlay band and the leg positions are the outline offset inwards, and the
@@ -183,6 +190,21 @@ the same fanciness matches rather than merely accompanies, and it measures its s
 the same 750 mm table the table object measures its knee clearance from. Its presets run from a
 farmhouse ladderback and a Windsor to a cabriole-legged Georgian splat, a carver with arms and an
 upholstered diner.
+
+The seven computers are a series rather than one object with a decade on a dial. A 1977 wedge and
+a 2013 all-in-one have almost nothing in common — not their shape, not their storage, not whether
+the screen is part of the machine — and keeping them apart is what stops the settings offering a
+1980s laptop with drive bays and no keyboard. Each one carries only the fittings its own years had,
+and can be corrected without disturbing its neighbours.
+
+What they share is how they are sized. Case dimensions were not styling: they came from the board
+standard and the drive bays, so that is what the parameters are. Pick PC/XT or AT and the desktop
+grows the way the real ones did; add a 5¼" opening to a tower and it gets 41.3 mm taller whether
+anything goes in it or not. Where there was no board standard to build around — a home micro, a
+notebook, an all-in-one — the size comes from whatever really drove it: the key pitch and the
+number of columns, the panel and the palm rest, the panel and the chin. The sizes are reported
+rather than set, with a note saying where each came from, and the metrics say when more drives have
+been asked for than there are openings to take them.
 
 The tree declares presets for a pine, oak, silver birch, apple, cherry blossom and weeping willow
 in its own source. Its randomness is seeded, so a given seed always rebuilds the same tree, and growth stops
