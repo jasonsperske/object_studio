@@ -1,0 +1,69 @@
+name: Pages
+
+# Builds the studio for static hosting and publishes it to GitHub Pages.
+#
+# The deployed site is two things at once: the studio itself, read-only because
+# there is no object API behind it, and dist/agent — the generator library as
+# an agent consumes it. Both come out of `npm run build`.
+
+on:
+  push:
+    branches: [main]
+  # So a broken build is caught on the branch rather than on main.
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# One deployment at a time, and let a newer push finish rather than cancelling
+# it: half-published Pages is worse than a slightly stale one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # The docs an agent reads are generated from the object sources. If they
+      # have drifted, that is a broken promise rather than a cosmetic problem,
+      # so it fails the build here rather than shipping.
+      - name: Check the agent docs are current
+        run: npm run agent-bundle -- --check
+
+      - name: Typecheck
+        run: npx tsc -b --noEmit
+
+      # BASE_PATH is the repository name, because a project site is served from
+      # a subdirectory. A user or organisation site would set it to "/".
+      - name: Build
+        run: npm run build
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    # Pull requests are built to prove they compile, not published.
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

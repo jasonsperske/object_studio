@@ -267,16 +267,18 @@ export default function Studio({
   const dirty = source !== savedSource
 
   // A reload would discard unsaved source edits — moving between objects would
-  // not, since App owns the sources.
+  // not, since App owns the sources. With no API to save to there is nothing to
+  // lose: edits are written to the browser as they are typed, so warning about
+  // them would be a lie that also makes reloading tedious.
   useEffect(() => {
-    if (!dirty) return
+    if (!dirty || !writable) return
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault()
       event.returnValue = ''
     }
     window.addEventListener('beforeunload', onBeforeUnload)
     return () => window.removeEventListener('beforeunload', onBeforeUnload)
-  }, [dirty])
+  }, [dirty, writable])
 
   return (
     <div className="app">

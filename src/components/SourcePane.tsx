@@ -82,65 +82,80 @@ export default function SourcePane({
       <div className="source-toolbar">
         <span className="source-file">
           objects/{objectId}.js
-          {dirty && <span className="dot" title="Unsaved changes" />}
+          {dirty && (
+            <span
+              className="dot"
+              title={writable ? 'Unsaved changes' : 'Edited — kept in this browser'}
+            />
+          )}
         </span>
 
-        <div className="control-group">
-          <button type="button" onClick={() => setNewName('')} title="Create a new object type">
-            New
-          </button>
-          {confirmingDelete ? (
-            <>
-              <button type="button" className="danger-text" onClick={onDelete}>
-                Delete {objectId}?
-              </button>
-              <button type="button" onClick={() => setConfirmingDelete(false)}>
-                Cancel
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setConfirmingDelete(true)}
-              disabled={!canDelete}
-              title={canDelete ? 'Delete this object type' : 'The library needs at least one object'}
-            >
-              Delete
+        {/* New and Delete both write files. With no API there is nothing to
+            write to, so they are not offered rather than offered and refused. */}
+        {writable && (
+          <div className="control-group">
+            <button type="button" onClick={() => setNewName('')} title="Create a new object type">
+              New
             </button>
-          )}
-        </div>
+            {confirmingDelete ? (
+              <>
+                <button type="button" className="danger-text" onClick={onDelete}>
+                  Delete {objectId}?
+                </button>
+                <button type="button" onClick={() => setConfirmingDelete(false)}>
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmingDelete(true)}
+                disabled={!canDelete}
+                title={
+                  canDelete ? 'Delete this object type' : 'The library needs at least one object'
+                }
+              >
+                Delete
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="control-group">
-          <button type="button" onClick={onRevert} disabled={!dirty} title="Discard unsaved edits">
-            Revert
-          </button>
+          {/* Revert means "back to what is on disk", which only exists when
+              something is writing to disk. Read-only edits are kept as they are
+              typed, so the only way back is the version that shipped. */}
+          {writable && (
+            <button type="button" onClick={onRevert} disabled={!dirty} title="Discard unsaved edits">
+              Revert
+            </button>
+          )}
           <button
             type="button"
             onClick={onResetBuiltin}
             disabled={!hasBuiltin}
-            title="Replace with the version this project shipped with"
+            title={
+              writable
+                ? 'Replace with the version this project shipped with'
+                : 'Replace with the version this project shipped with, and forget the local edit'
+            }
           >
             Reset to built-in
           </button>
         </div>
 
-        <button
-          type="button"
-          className="primary"
-          onClick={onSave}
-          disabled={!writable || !dirty || saving}
-          title={writable ? 'Save to objects/ on the server (⌘S / Ctrl-S)' : undefined}
-        >
-          {saving ? 'Saving…' : dirty ? 'Save' : 'Saved'}
-        </button>
+        {writable && (
+          <button
+            type="button"
+            className="primary"
+            onClick={onSave}
+            disabled={!dirty || saving}
+            title="Save to objects/ on the server (⌘S / Ctrl-S)"
+          >
+            {saving ? 'Saving…' : dirty ? 'Save' : 'Saved'}
+          </button>
+        )}
       </div>
-
-      {!writable && (
-        <p className="source-note">
-          Running without the object API, so edits stay in this tab only. Start the app with{' '}
-          <code>npm run dev</code> to save changes back to <code>objects/</code>.
-        </p>
-      )}
 
       <SourceEditor documentKey={objectId} value={source} onChange={onChange} onSave={onSave} />
 

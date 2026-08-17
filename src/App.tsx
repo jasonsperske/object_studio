@@ -12,6 +12,7 @@ import {
   loadObjectSources,
   saveObjectSource,
   slugify,
+  storeLocalEdit,
 } from './lib/objectStore'
 import type { PresetStore, SavedItem } from './lib/persistence'
 import { addPreset, loadPresets, removePreset, saveObjectPresets } from './lib/persistence'
@@ -105,6 +106,10 @@ export default function App() {
       setSources(loaded.sources)
       setSavedSources(loaded.sources)
       setWritable(loaded.writable)
+      if (loaded.restored.length) {
+        const count = loaded.restored.length
+        setToast(`Restored ${count} edited object${count === 1 ? '' : 's'} from this browser`)
+      }
     })
     return () => {
       cancelled = true
@@ -141,8 +146,13 @@ export default function App() {
     (next: string) => {
       if (!activeId) return
       setSources((current) => ({ ...current, [activeId]: next }))
+      // With no API to save to, the browser is the only place an edit can
+      // live, so it goes there as it is typed rather than waiting for a Save
+      // that has nothing to talk to. Matching the built-in again forgets it,
+      // which is what makes Reset to built-in mean what it says.
+      if (!writable) storeLocalEdit(activeId, next)
     },
-    [activeId],
+    [activeId, writable],
   )
 
   const saveSource = useCallback(async () => {

@@ -24,6 +24,9 @@ export interface SavedItem extends Recipe {
 /** Saved sets, keyed by object id. */
 export type PresetStore = Record<string, SavedItem[]>
 
+/** Where the API lives, relative to wherever the app is deployed. */
+const API = `${import.meta.env.BASE_URL.replace(/\/+$/, '')}/api`
+
 /** Where presets used to live. Read once, to carry them over. */
 const LEGACY_KEY = 'object-studio.library.v1'
 
@@ -55,7 +58,7 @@ function groupByObject(items: SavedItem[]): PresetStore {
 export async function loadPresets(): Promise<LoadedPresets> {
   let presets: PresetStore = {}
   try {
-    const response = await fetch('/api/presets')
+    const response = await fetch(`${API}/presets`)
     if (!response.ok) throw new Error(String(response.status))
     const body = (await response.json()) as { presets?: PresetStore }
     presets = body.presets && typeof body.presets === 'object' ? body.presets : {}
@@ -86,7 +89,7 @@ export async function loadPresets(): Promise<LoadedPresets> {
 
 /** Replaces one object's saved presets; other objects are untouched. */
 export async function saveObjectPresets(objectId: string, items: SavedItem[]): Promise<void> {
-  const response = await fetch(`/api/presets/${encodeURIComponent(objectId)}`, {
+  const response = await fetch(`${API}/presets/${encodeURIComponent(objectId)}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(items),

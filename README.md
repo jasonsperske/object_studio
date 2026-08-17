@@ -24,7 +24,9 @@ share is as short as it can be. Links in the older `/#m={objectId+params}` form 
 are rewritten to the new shape on arrival.
 
 Paths are client-side routes, so a static deploy needs the usual SPA rewrite — serve
-`index.html` for any unmatched path. `npm run dev` and `npm run preview` already do.
+`index.html` for any unmatched path. `npm run dev` and `npm run preview` already do, and the
+build writes a `404.html` for hosts that use one (see [Publishing to GitHub
+Pages](#publishing-to-github-pages)).
 
 ```bash
 npm install
@@ -32,6 +34,68 @@ npm run dev      # http://localhost:5173
 npm run build    # production bundle in dist/
 npm run preview  # serve the bundle, object API still enabled
 ```
+
+## Publishing to GitHub Pages
+
+`.github/workflows/pages.yml` builds the site on every push to `main` and publishes it. Turn it on
+once, in **Settings → Pages → Build and deployment → Source: GitHub Actions**. Nothing else needs
+configuring: the workflow reads the repository name and builds for that subdirectory.
+
+It checks the agent docs are current and typechecks before building, so a drifted doc or a broken
+type fails the run rather than shipping. Pull requests build but do not deploy.
+
+Two things make a static host work:
+
+- **`BASE_PATH`.** A project site is served from `/{repo}/`, so the workflow passes
+  `BASE_PATH=/object_studio/` and Vite writes that into every asset URL. Everything that builds a
+  link reads `import.meta.env.BASE_URL`, so nothing else changes. A user or organisation site —
+  served from the domain root — would set it to `/`. Local `dev` and `preview` leave it unset and
+  run at the root.
+- **`404.html`.** Paths like `/table` are client-side routes and the host has never heard of them.
+  Pages serves `404.html` for anything it cannot find, so the build writes the app out under that
+  name as well; a deep link then loads, and the router opens the right object. The build also
+  writes `.nojekyll`, without which Pages would run the output through Jekyll and drop anything
+  beginning with an underscore.
+
+The published site is two things at once: the studio, read-only because no object API sits behind
+it, and `dist/agent/` — the generator library as an agent consumes it.
+
+### What read-only means
+
+The studio is fully usable without the API. It is not a degraded mode with a banner explaining
+itself; it is simply a studio where the library is fixed:
+
+- Every object opens, every property works, metrics and exports are unchanged.
+- **Source edits are kept in the browser.** They are written to `localStorage` as you type, so a
+  reload picks up where you left off. **Reset to built-in** discards the edit and forgets it.
+- The buttons that write files — **New**, **Delete**, **Save** and **Revert** — are not shown,
+  because there is nothing behind them. Revert in particular has no meaning when there is no saved
+  copy to revert to; the way back is the version that shipped.
+
+With the API running, none of that applies: disk is the source of truth, the local store is never
+consulted, and all the buttons are there.
+
+## Driving it from an agent
+
+`CLAUDE.md` is the front door for anything that is not a person with a mouse: what the library
+can generate, how to turn a request into parameters, and the conventions every object keeps. Each
+object has its own guide beside it — `objects/table.CLAUDE.md` and so on — with worked examples of
+requests turned into parameter sets.
+
+A build also publishes `dist/agent/`, which is that documentation plus everything needed to run a
+generator anywhere:
+
+| | |
+| --- | --- |
+| `index.json` | every object, its parameters and its presets |
+| `<id>.js` | the generator source |
+| `<id>.md` | that generator's guide |
+| `runtime.js` | the compiler and three.js, bundled — `createStudioRuntime()` returns `{ THREE, compileObject }` |
+
+Nothing in there needs a server, so a static deploy is a complete API for an agent. `npm run
+agent-bundle` writes it, refreshes the parameter tables inside each object's guide, and checks
+that every worked example in the prose still matches the schema it claims to drive;
+`npm run agent-bundle -- --check` fails instead of rewriting, which is what to run in CI.
 
 ## The object contract
 
@@ -127,13 +191,13 @@ Edits re-evaluate as you type: the properties pane rebuilds from the new schema 
 you'd already set), the viewer rebuilds the mesh, and syntax or schema errors appear in a status
 bar instead of breaking the app.
 
-| Action | |
-| --- | --- |
-| **Save** (⌘S / Ctrl-S) | writes the source back to `objects/<id>.js` |
-| **Revert** | discards unsaved edits |
-| **Reset to built-in** | restores the version bundled with the project |
-| **New** | scaffolds a new object type from a working starter template |
-| **Delete** | removes the object and its file |
+| Action | | Without the API |
+| --- | --- | --- |
+| **Save** (⌘S / Ctrl-S) | writes the source back to `objects/<id>.js` | not shown — edits are kept as you type |
+| **Revert** | discards unsaved edits | not shown — there is no saved copy to go back to |
+| **Reset to built-in** | restores the version bundled with the project | also forgets the stored edit |
+| **New** | scaffolds a new object type from a working starter template | not shown |
+| **Delete** | removes the object and its file | not shown |
 
 ## What is stored where
 
@@ -141,15 +205,17 @@ bar instead of breaking the app.
 | --- | --- |
 | `objects/*.js` | object definitions — written on create and on every save |
 | `presets.json` | property sets you save, keyed by object |
-| `localStorage` | display settings only: unit system, scale and theme |
+| `localStorage` | display settings: unit system, scale and theme. Plus source edits, but only where there is no API to save them to |
 
-Only the display settings are per-browser. Everything that is library content lives on the
-server, so it survives a reload, follows you between browsers, and can be committed.
+With the API running, everything that is library content lives on the server, so it survives a
+reload, follows you between browsers, and can be committed.
 
 Saving goes through a small API served by the Vite dev and preview servers. That API has write
 access to the `objects/` directory, so keep it on localhost — don't put it behind a public
-listener. A static build with no API still runs: the bundled sources are compiled in, the editor
-works, and it tells you edits live only in that tab.
+listener. A static build with no API still runs: the bundled sources are compiled in and the
+editor works, with edits kept in the browser instead of on disk. The local store is only ever
+read in that case — with the API up, a stale local edit would silently shadow a file someone had
+changed underneath it.
 
 Object sources are evaluated with `new Function`. That's the point — it's a fiddle — but it does
 mean an object file can run any JavaScript, so treat one you didn't write like any other script
@@ -258,6 +324,7 @@ independently. Switching to the source editor keeps the WebGL context and your c
 objects/*.js               the object library — editable at runtime
 presets.json               saved parameter sets
 server/studioApi.ts        Vite plugin: reads and writes both of the above
+tools/agent-bundle.mjs     builds dist/agent and keeps the object guides current
 src/App.tsx                owns the library and the route; gallery or studio
 src/Studio.tsx             the properties + viewer/source workspace
 src/components/Gallery.tsx the root gallery

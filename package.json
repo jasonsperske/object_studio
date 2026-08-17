@@ -3,12 +3,13 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "A JSFiddle for parametric 3D objects — define, preview, and export models in common 3D formats.",
+  "description": "A JSFiddle for parametric 3D objects \u2014 define, preview, and export models in common 3D formats.",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node tools/agent-bundle.mjs",
     "preview": "vite preview",
-    "typecheck": "tsc -b --noEmit false --emitDeclarationOnly false || tsc -b"
+    "typecheck": "tsc -b --noEmit false --emitDeclarationOnly false || tsc -b",
+    "agent-bundle": "node tools/agent-bundle.mjs"
   },
   "dependencies": {
     "@codemirror/lang-javascript": "^6.2.5",

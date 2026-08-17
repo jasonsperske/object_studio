@@ -59,9 +59,11 @@ export default function Gallery({ entries, writable, onOpen, onCreate, onOpenSet
 
           {newName === null ? (
             <div className="button-row gallery-actions">
-              <button type="button" className="primary" onClick={() => setNewName('')}>
-                New object
-              </button>
+              {writable && (
+                <button type="button" className="primary" onClick={() => setNewName('')}>
+                  New object
+                </button>
+              )}
               <button
                 type="button"
                 className="icon settings-button"
@@ -98,13 +100,6 @@ export default function Gallery({ entries, writable, onOpen, onCreate, onOpenSet
             </div>
           )}
         </header>
-
-        {!writable && (
-          <p className="source-note">
-            Running without the object API. Objects are read-only — start the app with{' '}
-            <code>npm run dev</code> to save edits back to <code>objects/</code>.
-          </p>
-        )}
 
         <ul className="gallery-grid">
           {entries.map((entry) => (
