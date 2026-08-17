@@ -179,9 +179,12 @@ body. An explicit `return { params, build, metrics }` works too.
 
 ### Conventions
 
-- `+X` is the run/depth direction (a staircase ascends toward +X)
 - `+Y` is up, with the floor at `Y = 0`
-- `+Z` is width, models centred on `Z = 0`
+- Anything with a front **faces `+Z`** — the direction the viewport's **Front** button looks from,
+  so the front view shows the front, and a staircase is met at the bottom of the flight looking up
+  it. Its width runs along `X`, centred on `X = 0`
+- Anything without one runs along `+X` — a table's length lies along it — with width on `+Z`,
+  centred on `Z = 0`. The Front view is then the long side
 - Dimensions are millimetres
 
 ## Editing and saving
@@ -239,6 +242,8 @@ you'd run.
 | **Notebook** | 1995–2008. The thick clamshell, sized by panel and keyboard, with a swappable drive bay and a PC Card slot |
 | **All-in-one** | 2007–18. The machine behind the panel — bezel, chin, a slot-loading drive and a stand |
 | **Rock** | Pebble to boulder on one slider — fracture planes worn down by erosion, sedimentary bedding, a geode that splits open on its crystals, and moss on whatever faces the sky |
+| **CRT television** | 1948–2008. Sized by its tube, in a console on turned or cabriole legs, a moulded box, a portable with a handle or a late black box — with the dials, push-buttons or nothing-at-all its own years had |
+| **Flat panel television** | 1998–. Sized by its panel, with plasma, LCD or OLED setting how thin it can honestly be; slab, tapered or stepped backs, a curved screen, and a pedestal, feet, a plate, an easel or a wall |
 
 The table is built out of a single plan outline: the moulded edge and the apron are cross-sections
 swept around it, the inlay band and the leg positions are the outline offset inwards, and the
@@ -272,6 +277,19 @@ notebook, an all-in-one — the size comes from whatever really drove it: the ke
 number of columns, the panel and the palm rest, the panel and the chin. The sizes are reported
 rather than set, with a note saying where each came from, and the metrics say when more drives have
 been asked for than there are openings to take them.
+
+The two televisions are split the same way and for the same reason. A tube set is a cabinet drawn
+round a piece of glass with a funnel behind it; a flat set is a panel with the boards stuck on the
+back. Keeping them apart is what stops the settings offering a console on cabriole legs with an
+OLED panel in it. What they share is that neither has a shape of its own: the CRT follows its tube
+out through the moulding, the bands the speaker and the controls need, and the room behind for the
+chassis, and the flat panel follows its panel and nothing else — except that picking plasma, LCD or
+OLED sets a floor under how thin it can honestly be, the way picking a board standard sets the size
+of a desktop. Both report the years every choice on them overlapped in, and say which two never met
+when they do not: a widescreen tube on turned legs, or a 40 mm bezel round a 21:9 panel. The tube
+set is where the decades actually show, and they show in two dials — what it is housed in, and
+where the controls are. Dials down the side above a speaker grille, a row of tuning push-buttons
+behind a flap, or four small buttons under the glass and the handset on the floor.
 
 The rock is one function: for every direction out of its middle there is a distance to its
 surface. Freshly broken, that distance is the nearest of the flat planes it fractured along, which

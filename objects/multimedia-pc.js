@@ -11,7 +11,8 @@
 //   width  = a card standing off the board, plus the panel either side
 //   height = the board, the supply above it, and the bay stack at the front
 //
-// Built with the front at -X and turned to face +X at the end. +Z is width,
+// Built with the front at -X and turned at the end to face +Z, which is where
+// the studio's Front view looks from. Width then runs along X centred on zero,
 // +Y is up, the floor is Y = 0.
 
 export const meta = {
@@ -475,7 +476,9 @@ export function build(p) {
   add('screen', glass, bool(p, 'screenOn') ? 0x9fb8d8 : COLOR.screen)
 
   const facing = parts.filter((part) => part.geometry && triangleCount(part.geometry) > 0)
-  for (const part of facing) part.geometry.rotateY(Math.PI)
+  // Swung round from -X to +Z, which is where the Front view looks from, so the
+  // front of the machine is what the front view shows.
+  for (const part of facing) part.geometry.rotateY(Math.PI / 2)
   return facing
 }
 

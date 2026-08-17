@@ -6,10 +6,12 @@
 // drawn flat, as boards standing in a plane, and then the whole assembly is
 // tipped backwards by the rake angle about the back edge of the seat.
 //
-// The seat depth runs along +X with the back at the rear, its width along +Z,
-// per the studio convention, and the floor is at Y = 0. The edge profiles and
-// leg profiles are the ones the table uses, so a chair drawn at the same
-// fanciness sits with it rather than beside it.
+// It is drawn with the seat depth along +X and the back at the +X end, because
+// that is the easy way to write a seat outline, and then turned at the end so
+// the sitter looks along +Z — where the studio's Front view looks from, and
+// across the long side of a table drawn beside it. The floor is at Y = 0. The
+// edge profiles and leg profiles are the ones the table uses, so a chair drawn
+// at the same fanciness sits with it rather than beside it.
 
 export const meta = {
   order: 6,
@@ -49,7 +51,7 @@ export const params = [
       { value: 'round', label: 'Round' },
     ],
   },
-  { id: 'seatWidth', label: 'Seat width', type: 'number', min: 260, max: 700, step: 5, default: 450, unit: 'mm', group: 'Seat', help: 'Across +Z, at the front.' },
+  { id: 'seatWidth', label: 'Seat width', type: 'number', min: 260, max: 700, step: 5, default: 450, unit: 'mm', group: 'Seat', help: 'Across the front, shoulder to shoulder.' },
   { id: 'seatDepth', label: 'Seat depth', type: 'number', min: 260, max: 700, step: 5, default: 430, unit: 'mm', group: 'Seat' },
   { id: 'seatHeight', label: 'Seat height', type: 'number', min: 250, max: 800, step: 5, default: 460, unit: 'mm', group: 'Seat', help: 'Floor to the top of the seat. 450 sits at a 750 table.' },
   { id: 'seatThickness', label: 'Seat thickness', type: 'number', min: 12, max: 90, step: 1, default: 34, unit: 'mm', group: 'Seat' },
@@ -789,7 +791,13 @@ export function build(p) {
   if (feet.length) parts.push({ name: 'feet', geometry: merge(feet), color: COLOR.frame })
   if (rails.length) parts.push({ name: 'stretchers', geometry: merge(rails), color: COLOR.rail })
 
-  return parts.filter((part) => part.geometry && triangleCount(part.geometry) > 0)
+  // Drawn with the sitter looking down -X, because that is the direction the
+  // seat outline and the back are easiest to write in, and then swung round so
+  // the sitter looks along +Z — where the Front view looks from, and across the
+  // long side of a table drawn beside it.
+  const facing = parts.filter((part) => part.geometry && triangleCount(part.geometry) > 0)
+  for (const part of facing) part.geometry.rotateY(Math.PI / 2)
+  return facing
 }
 
 export function metrics(p) {

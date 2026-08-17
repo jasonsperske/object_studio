@@ -86,8 +86,8 @@ export function build(p) {
   for (let i = 1; i <= shelves; i++) {
     levels.push(toe + shelfT + (clear * i) / (shelves + 1) - shelfT / 2)
   }
-  // The shaped edge points along +X so the default three-quarter view looks
-  // into the unit rather than at its back panel.
+  // The shaped edge points along +X while the unit is being drawn; the whole
+  // thing is turned to +Z at the end, so it opens toward the viewer.
   for (const y of levels) {
     boards.push(extrudeProfile(shape, innerWidth, 0, y, 'front'))
   }
@@ -110,7 +110,12 @@ export function build(p) {
     })
   }
 
-  return parts
+  // Built with the open face along +X, which is the easy way to extrude a shelf,
+  // and then swung round so it opens toward +Z — where the Front view looks
+  // from, so the front view looks into the unit rather than along it.
+  const facing = parts.filter((part) => part.geometry && triangleCount(part.geometry) > 0)
+  for (const part of facing) part.geometry.rotateY(-Math.PI / 2)
+  return facing
 }
 
 export function metrics(p) {

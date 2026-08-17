@@ -39,7 +39,7 @@ No stools, no benches, no rockers, no swivel or castor bases. The arms are a sin
 | Parameter | Type | Range | Default | Notes |
 | --- | --- | --- | --- | --- |
 | `seatShape` | select | `square`, `trapezoid`, `bowfront`, `round` | `"trapezoid"` |  |
-| `seatWidth` | number | 260–700 mm, step 5 | `450` | Across +Z, at the front. |
+| `seatWidth` | number | 260–700 mm, step 5 | `450` | Across the front, shoulder to shoulder. |
 | `seatDepth` | number | 260–700 mm, step 5 | `430` |  |
 | `seatHeight` | number | 250–800 mm, step 5 | `460` | Floor to the top of the seat. 450 sits at a 750 table. |
 | `seatThickness` | number | 12–90 mm, step 1 | `34` |  |

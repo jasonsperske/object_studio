@@ -112,12 +112,16 @@ function layout(p) {
     stepAngle: totalSweep / steps,
     outerR: num(p, 'outerRadius'),
     columnR: num(p, 'columnDiameter') / 2,
+    // A wedge hangs a thickness below the step it makes, so a board thicker
+    // than the rise would pass through the wedge under it and, at the bottom,
+    // through the floor.
+    treadThickness: Math.min(num(p, 'treadThickness'), totalRise / steps),
   }
 }
 
 export function build(p) {
   const L = layout(p)
-  const thickness = num(p, 'treadThickness')
+  const thickness = L.treadThickness
   const gap = rad(num(p, 'treadGap'))
   const innerR = L.columnR + num(p, 'treadInset')
   const parts = []
@@ -197,7 +201,7 @@ export function metrics(p) {
   const riserLevel = L.rise > 241 ? 'error' : L.rise > 196 ? 'warn' : 'ok'
   const goingLevel = walkGoing < 190 ? 'error' : walkGoing < 254 ? 'warn' : 'ok'
 
-  return [
+  const rows = [
     {
       label: 'Riser height',
       value: formatLength(L.rise),
@@ -220,4 +224,18 @@ export function metrics(p) {
       value: `${num(p, 'sweep').toFixed(0)}° ${str(p, 'direction') === 'ccw' ? 'counter-clockwise' : 'clockwise'}`,
     },
   ]
+
+  // Only worth a row when it actually bit: the tread is normally nowhere near
+  // thick enough for the rise to be a constraint on it.
+  const askedThickness = num(p, 'treadThickness')
+  if (L.treadThickness < askedThickness - 1e-6) {
+    rows.push({
+      label: 'Tread thickness',
+      value: formatLength(L.treadThickness),
+      level: 'warn',
+      note: `Held to the riser height. The ${formatLength(askedThickness)} asked for would hang through the wedge below it, and the bottom one through the floor.`,
+    })
+  }
+
+  return rows
 }

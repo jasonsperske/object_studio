@@ -9,8 +9,9 @@
 //   width  = board width + the bay stack beside it + the supply behind that
 //   height = a card standing in a slot, plus the lid, or the bays if taller
 //
-// Built with the front at -X and turned to face +X at the end. +Z is width,
-// +Y is up, the desk is Y = 0.
+// Built with the front at -X and turned at the end to face +Z, which is where
+// the studio's Front view looks from. Width then runs along X centred on zero,
+// +Y is up, and the desk is Y = 0.
 
 export const meta = {
   order: 9,
@@ -452,7 +453,9 @@ export function build(p) {
   add('screen', glass, bool(p, 'screenOn') && display !== 'none' ? PHOSPHOR[display] ?? PHOSPHOR.green : COLOR.screen)
 
   const facing = parts.filter((part) => part.geometry && triangleCount(part.geometry) > 0)
-  for (const part of facing) part.geometry.rotateY(Math.PI)
+  // Swung round from -X to +Z, which is where the Front view looks from, so the
+  // front of the machine is what the front view shows.
+  for (const part of facing) part.geometry.rotateY(Math.PI / 2)
   return facing
 }
 

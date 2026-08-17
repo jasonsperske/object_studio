@@ -303,6 +303,20 @@ function fruitPrototype(model, size) {
 }
 
 /** Grows the tree once and hands back everything both build and metrics need. */
+/**
+ * How far the furthest vertex of a prototype sits from its own origin — which
+ * is the point it gets stamped at. Anything anchored higher than that times its
+ * scale is clear of the ground whichever way it has been turned.
+ */
+function protoReach(geometry) {
+  const pos = geometry.getAttribute('position')
+  let reach = 0
+  for (let i = 0; i < pos.count; i++) {
+    reach = Math.max(reach, Math.hypot(pos.getX(i), pos.getY(i), pos.getZ(i)))
+  }
+  return reach
+}
+
 function grow(p) {
   const rng = mulberry32(Math.round(num(p, 'seed')))
   const levels = Math.round(num(p, 'levels'))
@@ -335,14 +349,29 @@ function grow(p) {
       return
     }
     const dir = direction.clone().normalize()
-    const end = origin.clone().addScaledVector(dir, length)
     const radiusTop = radius * taper
+    let end = origin.clone().addScaledVector(dir, length)
+
+    // Nothing grows into the ground. A limb heading below it is cut off where it
+    // gets there and stops — no children, because there is nowhere for them to
+    // go. The cut is square to the limb's own axis, so it is stopped by the
+    // vertical reach of that end face rather than by its centre, which is what
+    // keeps the rim of a steeply drooping branch out of the soil.
+    let grounded = false
+    if (end.y < 0) {
+      const clearance = radiusTop * Math.sqrt(Math.max(0, 1 - dir.y * dir.y))
+      length = Math.min(length, (origin.y - clearance) / -dir.y)
+      if (length <= 0.1) return
+      end = origin.clone().addScaledVector(dir, length)
+      grounded = true
+    }
+
     limbs.push(limb(origin, end, radius, radiusTop, depth > levels - 2 ? 7 : 5))
 
     if (depth >= levels - leafLevels) {
-      sites.push({ start: origin.clone(), end, dir, tip: depth === levels })
+      sites.push({ start: origin.clone(), end, dir, tip: depth === levels || grounded })
     }
-    if (depth >= levels) return
+    if (grounded || depth >= levels) return
 
     // The leader carries on nearly straight; side branches ring around it.
     const children = []
@@ -409,6 +438,7 @@ export function build(p) {
 
   if (leafModel !== 'none' && leafChance > 0) {
     const proto = leafPrototype(leafModel, num(p, 'leafSize'))
+    const reach = protoReach(proto)
     const perLimb = leafModel === 'needle' ? 12 : 6
     const leaves = []
 
@@ -431,6 +461,9 @@ export function build(p) {
           .normalize()
         quaternion.setFromUnitVectors(up, outward)
         const scale = 0.75 + rng() * 0.5
+        // Tested after every draw above, so dropping one does not shift the
+        // sequence and change the rest of the tree.
+        if (at.y < reach * scale) continue
         matrix.compose(at, quaternion, new THREE.Vector3(scale, scale, scale))
         leaves.push(proto.clone().applyMatrix4(matrix))
       }
@@ -443,6 +476,7 @@ export function build(p) {
 
   if (fruitModel !== 'none' && fruitChance > 0) {
     const proto = fruitPrototype(fruitModel, num(p, 'fruitSize'))
+    const reach = protoReach(proto)
     const fruits = []
     for (const site of sites) {
       if (!site.tip) continue
@@ -453,6 +487,7 @@ export function build(p) {
         fruitModel === 'blossom'
           ? quaternion.setFromUnitVectors(up, site.dir.clone().normalize())
           : quaternion.identity()
+      if (site.end.y < reach) continue
       matrix.compose(site.end, orientation, new THREE.Vector3(1, 1, 1))
       fruits.push(proto.clone().applyMatrix4(matrix))
     }

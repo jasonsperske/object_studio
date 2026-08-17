@@ -32,11 +32,14 @@ Everything in this repository is CC0.
 | `notebook` | A 1995–2008 clamshell laptop | Laptops from before they got thin |
 | `all-in-one` | A 2007–18 machine behind a panel | Modern all-in-ones |
 | `rock` | A stone, pebble to boulder | Rocks, boulders, geodes. Erosion, moss, cracking open |
+| `crt-television` | A 1948–2008 tube television | Any television with a tube: console, portable, tabletop, late black box |
+| `flat-panel-television` | A 1998– flat television | Any flat television: plasma, LCD, OLED, on a stand or a wall |
 
 Pick by what the thing **is**, not by size — a coffee table and a dining table are both `table`,
-and a pebble and a boulder are both `rock`. The computers are the exception: they are split by
-generation because a 1977 machine and a 2013 one share nothing, and each carries only the
-fittings its own years had.
+and a pebble and a boulder are both `rock`. The exceptions are split by technology rather than by
+size: the seven computers, because a 1977 machine and a 2013 one share nothing, and the two
+televisions, because a tube and a panel are not the same object with a thickness dial. Each
+carries only the fittings its own years had.
 
 ## Driving a generator
 
@@ -80,10 +83,17 @@ drive. If a metric comes back `warn` or `error`, adjust the parameters rather th
 Every object in the library agrees on these, so meshes compose:
 
 - **Millimetres.** A 2 m table is `length: 2000`.
-- **+X is depth or run**, **+Y is up**, **+Z is width**, and models are centred on `Z = 0`.
-- **Objects sit on `Y = 0`.** The floor, the desk, the ground — whatever it stands on is zero, so
-  a generated mesh can be placed at a point without hunting for its base.
-- Machines face **+X**, which is the direction the standard view looks from.
+- **+Y is up**, and **objects sit on `Y = 0`.** The floor, the desk, the ground — whatever it
+  stands on is zero, so a generated mesh can be placed at a point without hunting for its base.
+- **Anything with a front faces `+Z`** — a television, a computer, a chair, a shelf unit, a
+  staircase. `+Z` is where the studio's Front view looks from, so the front view shows the front:
+  the face of a set, the open side of a shelf, the bottom of a flight looking up it. Depth runs
+  back along `-Z` from that face, width runs along `X`, and the model is centred on `X = 0`.
+- **Anything without a front runs along `+X`** — a table's length lies along it — with width on
+  `+Z`, centred on `Z = 0`. The Front view then gives the long side, which is the useful view of a
+  table.
+- Two objects placed at the origin therefore face the same way, and a chair drawn beside a table
+  looks across its long side rather than along it.
 - `build` returns `Part[]` — `{ name, geometry, color }`. Names survive into OBJ groups and glTF
   nodes, so a caller can address the moss on a rock or the keys on a keyboard separately.
 

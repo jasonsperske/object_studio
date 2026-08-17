@@ -3,9 +3,11 @@
 // This file is the object definition — edit it and the viewer rebuilds live.
 // In scope: THREE, and the studio helpers (box, slab, post, tube, boardProfile,
 // extrudeProfile, merge, triangleCount, num, str, bool, formatLength). Also
-// `studio`, which holds all of them. Geometry is in millimetres; +X is the run,
-// +Y is up, +Z is width centred on zero. formatLength renders a millimetre
-// length in whatever unit the reader picked in Settings.
+// `studio`, which holds all of them. Geometry is in millimetres. The flight is
+// drawn ascending along +X and turned at the end to ascend away along -Z, which
+// puts the Front view at the bottom of it looking up; width then runs along X
+// centred on zero, +Y is up and the floor is Y = 0. formatLength renders a
+// millimetre length in whatever unit the reader picked in Settings.
 
 export const meta = {
   order: 1,
@@ -188,6 +190,19 @@ export const params = [
     group: 'Handrail',
   },
   {
+    id: 'railMount',
+    label: 'Mounted on',
+    type: 'select',
+    options: [
+      { value: 'treads', label: 'The treads — balusters stand on the steps' },
+      { value: 'stringer', label: 'The stringers — balusters stand on the string' },
+    ],
+    default: 'treads',
+    group: 'Handrail',
+    visibleWhen: (p) => str(p, 'handrail') !== 'none' && str(p, 'stringers') !== 'none',
+    help: 'On the treads the balusters sit inside the flight and take width off it. On the stringers they stand outside it, on the top edge of the string, and the clear width is the whole width.',
+  },
+  {
     id: 'railHeight',
     label: 'Rail height',
     type: 'number',
@@ -261,7 +276,10 @@ function layout(p) {
     treadCount: Math.max(treadCount, 1),
     width: num(p, 'width'),
     nosing: num(p, 'nosing'),
-    treadThickness: num(p, 'treadThickness'),
+    // A tread sits with its top at the step and its underside a thickness
+    // below, so a board thicker than the rise would hang through the step under
+    // it — and the bottom one through the floor. The rise is the ceiling on it.
+    treadThickness: Math.min(num(p, 'treadThickness'), rise),
   }
 }
 
@@ -284,7 +302,9 @@ function stringerShape(style, steps, going, rise, depth, treadThickness) {
   const bottomAtStart = topAtStart - depth
 
   const shape = new THREE.Shape()
-  shape.moveTo(0, Math.max(bottomAtStart, 0))
+  // Drawn from the bottom of the string's floor cut, which is the floor itself
+  // whichever side of it the sloping underside would otherwise start on.
+  shape.moveTo(0, 0)
 
   if (style === 'cut') {
     // Notches are cut one tread thickness low so the treads sit on them.
@@ -299,11 +319,17 @@ function stringerShape(style, steps, going, rise, depth, treadThickness) {
   }
 
   shape.lineTo(totalRun, topAtEnd - depth)
+  // Back down the underside to the floor. A deep string reaches the floor part
+  // way along the flight and is squared off there; a shallow one — one whose
+  // underside would still be in mid-air at the bottom step — runs its full
+  // length and is then cut straight down to the floor.
   if (bottomAtStart < 0) {
     const meetsFloorAt = -bottomAtStart / slope
     if (meetsFloorAt < totalRun) shape.lineTo(meetsFloorAt, 0)
-    shape.lineTo(0, 0)
+  } else if (bottomAtStart > 0) {
+    shape.lineTo(0, bottomAtStart)
   }
+  shape.lineTo(0, 0)
   shape.closePath()
   return shape
 }
@@ -364,10 +390,25 @@ export function build(p) {
     const balusterDia = num(p, 'balusterDiameter')
     const perStep = Math.max(1, Math.round(num(p, 'balustersPerStep')))
     const sides = railSides === 'both' ? [1, -1] : railSides === 'left' ? [1] : [-1]
-    const railZOffset = L.width / 2 - Math.max(balusterDia, railDia) / 2 - 15
+    // On the string rather than on the steps, if there is a string to put it
+    // on: the rail moves out over the stringer and the balusters stand on its
+    // top edge instead of on the treads, which is how a housed string is done
+    // and which leaves the whole width clear between the rails.
+    const stringerT = num(p, 'stringerThickness')
+    const onStringer = str(p, 'railMount') === 'stringer' && stringerStyle !== 'none'
+    const railZOffset = onStringer
+      ? L.width / 2 + stringerT / 2
+      : L.width / 2 - Math.max(balusterDia, railDia) / 2 - 15
 
     // Height of the nosing line at a given run position.
     const nosingLineY = (x) => L.rise + ((x + L.nosing) * L.rise) / L.going
+    // Top edge of the stringer under a baluster. A closed string runs straight
+    // up the pitch, so it is read off the run; a cut one steps, so the baluster
+    // stands in the notch its own tread sits in.
+    const stringerTopY = (i, x) =>
+      stringerStyle === 'closed'
+        ? L.rise + num(p, 'stringerDepth') * 0.35 + (L.rise / L.going) * x
+        : i * L.rise - L.treadThickness
     const xStart = -L.nosing
     const xEnd = (L.treadCount - 1) * L.going
 
@@ -389,7 +430,7 @@ export function build(p) {
           for (let j = 0; j < perStep; j++) {
             const x = (i - 1) * L.going - L.nosing + ((j + 0.5) * L.going) / perStep
             if (x > xEnd) continue
-            const base = i * L.rise
+            const base = onStringer ? stringerTopY(i, x) : i * L.rise
             const top = nosingLineY(x) + railHeight - railDia / 2
             if (top > base) balusters.push(post(balusterDia, top - base, x, base, z, 12))
           }
@@ -403,7 +444,13 @@ export function build(p) {
     }
   }
 
-  return parts
+  // Drawn ascending along +X, which is the easy way to write a flight of steps,
+  // and then turned so it ascends away along -Z. The Front view sits at +Z, so
+  // that puts the viewer at the bottom of the flight looking up it — which is
+  // the way you meet a staircase. Width ends up along X, centred on zero.
+  const facing = parts.filter((part) => part.geometry && triangleCount(part.geometry) > 0)
+  for (const part of facing) part.geometry.rotateY(Math.PI / 2)
+  return facing
 }
 
 export function metrics(p) {
@@ -418,7 +465,7 @@ export function metrics(p) {
   const ruleLevel = rule < 550 || rule > 700 ? 'warn' : 'ok'
   const pitchLevel = pitch > 42 ? 'error' : pitch > 37 || pitch < 26 ? 'warn' : 'ok'
 
-  return [
+  const rows = [
     {
       label: 'Riser height',
       value: formatLength(rise),
@@ -446,4 +493,18 @@ export function metrics(p) {
     { label: 'Total run', value: formatLength(L.totalRun) },
     { label: 'Treads drawn', value: `${L.treadCount} of ${L.steps} steps` },
   ]
+
+  // Only worth a row when it actually bit: the tread is normally nowhere near
+  // thick enough for the rise to be a constraint on it.
+  const askedThickness = num(p, 'treadThickness')
+  if (L.treadThickness < askedThickness - 1e-6) {
+    rows.push({
+      label: 'Tread thickness',
+      value: formatLength(L.treadThickness),
+      level: 'warn',
+      note: `Held to the riser height. The ${formatLength(askedThickness)} asked for would hang through the step below it, and the bottom one through the floor.`,
+    })
+  }
+
+  return rows
 }

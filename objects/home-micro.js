@@ -10,8 +10,9 @@
 // depth, and the moulding around them set the rest. A wedge is then a front lip
 // and a slope, which is how the mouldings were specified.
 //
-// Built with the front at -X and turned to face +X at the end, so the keys look
-// at the standard view. +Z is width, +Y is up, the desk is Y = 0.
+// Built with the front at -X and turned at the end to face +Z, so the keys look
+// out of the studio's Front view. Width then runs along X centred on zero, +Y is
+// up, the desk is Y = 0.
 
 export const meta = {
   order: 7,
@@ -391,7 +392,9 @@ export function build(p) {
 
   // Turned to face the standard view, the way the sitter saw it.
   const facing = parts.filter((part) => part.geometry && triangleCount(part.geometry) > 0)
-  for (const part of facing) part.geometry.rotateY(Math.PI)
+  // Swung round from -X to +Z, which is where the Front view looks from, so the
+  // front of the machine is what the front view shows.
+  for (const part of facing) part.geometry.rotateY(Math.PI / 2)
   return facing
 }
 

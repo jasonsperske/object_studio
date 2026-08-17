@@ -16,11 +16,19 @@ flight, use `spiral-staircase` instead.
 else is finish: `edgeStyle` shapes the nosing, `stringers` picks how the sides are closed, and the
 handrail group turns the rail and balusters on and off.
 
+**`railMount` decides what the balusters stand on.** On `treads` they sit on the steps, inside the
+flight, and take width off it — the usual arrangement on a cut string, where the baluster lands on
+the tread end. On `stringer` they stand on the top edge of the string instead, and the rail moves
+out over it, which is how a housed string is done and leaves the whole `width` clear between the
+rails. It needs a string to stand on: with `stringers: 'none'` the setting is ignored and the
+balusters go back on the treads.
+
 ## Worked examples
 
 - **"stairs to the first floor of a house"** → `{ totalRise: 2700, steps: 15, width: 950 }`
 - **"a wide open-tread staircase, no risers"** → `{ width: 1400, risers: false, stringers: 'cut', topTread: true }`
 - **"steep loft stairs"** → `{ totalRise: 2900, steps: 12, going: 220, width: 700, handrail: 'both' }`
+- **"balusters on the string, not the steps"** → `{ railMount: 'stringer' }`
 
 ## Check the metrics
 
@@ -32,6 +40,9 @@ particular project.
 ## What it will not do
 
 No winders, no landings, no curved flights, and no cut string with brackets. One straight run.
+
+It is built facing the studio's Front view: the flight ascends away along `-Z`, so the front view
+puts you at the bottom looking up it, and `width` runs along X centred on zero.
 
 ## Parameters
 
@@ -75,6 +86,7 @@ No winders, no landings, no curved flights, and no cut string with brackets. One
 | Parameter | Type | Range | Default | Notes |
 | --- | --- | --- | --- | --- |
 | `handrail` | select | `none`, `left`, `right`, `both` | `"right"` |  |
+| `railMount` | select | `treads`, `stringer` | `"treads"` | On the treads the balusters sit inside the flight and take width off it. On the stringers they stand outside it, on the top edge of the string, and the clear width is the whole width. Only used in some combinations. |
 | `railHeight` | number | 600–1200 mm, step 5 | `900` | Vertical distance above the nosing line. Only used in some combinations. |
 | `railDiameter` | number | 20–90 mm, step 1 | `48` | Only used in some combinations. |
 | `balusters` | boolean | `true`, `false` | `true` | Only used in some combinations. |
