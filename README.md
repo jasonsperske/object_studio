@@ -172,6 +172,7 @@ you'd run.
 | **Gaming tower** | 2002–12. Black ATX, a double-height graphics card, a windowed side panel and the fans |
 | **Notebook** | 1995–2008. The thick clamshell, sized by panel and keyboard, with a swappable drive bay and a PC Card slot |
 | **All-in-one** | 2007–18. The machine behind the panel — bezel, chin, a slot-loading drive and a stand |
+| **Rock** | Pebble to boulder on one slider — fracture planes worn down by erosion, sedimentary bedding, a geode that splits open on its crystals, and moss on whatever faces the sky |
 
 The table is built out of a single plan outline: the moulded edge and the apron are cross-sections
 swept around it, the inlay band and the leg positions are the outline offset inwards, and the
@@ -205,6 +206,16 @@ notebook, an all-in-one — the size comes from whatever really drove it: the ke
 number of columns, the panel and the palm rest, the panel and the chin. The sizes are reported
 rather than set, with a note saying where each came from, and the metrics say when more drives have
 been asked for than there are openings to take them.
+
+The rock is one function: for every direction out of its middle there is a distance to its
+surface. Freshly broken, that distance is the nearest of the flat planes it fractured along, which
+is what makes new stone angular; erosion pulls it toward a smooth blob, corners first, and takes
+the fine pitting off as it goes. Everything else is that same function asked a different question —
+the cross-section where it splits is the radius sampled round a circle, a geode is a second smaller
+surface facing inwards, and moss is the triangles that face the sky, lifted a millimetre off it.
+Cracking one open hinges the halves on the line where each meets the ground, so they lie cut-face
+up without passing through each other. It weighs itself by integrating that radius and multiplying
+by the density of the stone, and tells you whether that is one hand, two people or a machine.
 
 The tree declares presets for a pine, oak, silver birch, apple, cherry blossom and weeping willow
 in its own source. Its randomness is seeded, so a given seed always rebuilds the same tree, and growth stops
