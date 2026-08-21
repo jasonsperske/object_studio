@@ -41,6 +41,13 @@ way a 1960s tube was. At 0 it is flat and square, the way the last of them were.
 - **"hide the controls behind a flap"** → `{ flap: true }` — drawn hanging open, so you see both
 - **"an ornate cabinet, like a radiogram"** → `{ cabinet: 'console', ornament: 5, legs: 'cabriole', grille: 'fret', doors: 'closed' }`
 
+## What the tapered back does
+
+`taperBack` draws the sides and the top of the moulding in toward the neck; the bottom stays flat,
+because the set has to stand on something. Everything that lands on the cabinet follows that in —
+the feet under it, the aerial base and the carry handle on top of it, the vents and sockets out of
+the back — so a deep taper moves them rather than leaving them hanging beside it.
+
 ## Check the metrics
 
 **Reads as** is the one to watch. Every choice here belongs to some stretch of the tube's sixty
@@ -78,7 +85,7 @@ and the yoke are room in the case rather than modelled parts.
 | `bezel` | number | 8–140 mm, step 1 | `40` | Moulding between the glass and the edge of the cabinet. |
 | `radius` | number | 0–90 mm, step 1 | `18` |  |
 | `depthAllowance` | number | 20–320 mm, step 5 | `70` | The neck, the yoke and the chassis, and air round all three. |
-| `taperBack` | boolean | `true`, `false` | `true` | The moulded back drawn in toward the neck. A console hides the same tube in a square box. Only used in some combinations. |
+| `taperBack` | boolean | `true`, `false` | `true` | The moulded back drawn in toward the neck — the sides and the top come in, the bottom stays flat because the set has to stand on it. A console hides the same tube in a square box. Only used in some combinations. |
 | `vents` | boolean | `true`, `false` | `true` |  |
 | `badge` | boolean | `true`, `false` | `true` |  |
 | `handle` | boolean | `true`, `false` | `true` | Only used in some combinations. |

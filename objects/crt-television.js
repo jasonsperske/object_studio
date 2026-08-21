@@ -166,7 +166,7 @@ export const params = [
     default: true,
     group: 'Cabinet',
     visibleWhen: (p) => str(p, 'cabinet') !== 'console',
-    help: 'The moulded back drawn in toward the neck. A console hides the same tube in a square box.',
+    help: 'The moulded back drawn in toward the neck — the sides and the top come in, the bottom stays flat because the set has to stand on it. A console hides the same tube in a square box.',
   },
   { id: 'vents', label: 'Vents in the back', type: 'boolean', default: true, group: 'Cabinet' },
   { id: 'badge', label: 'Badge', type: 'boolean', default: true, group: 'Cabinet' },
@@ -531,6 +531,40 @@ function shift(points, dx, dz) {
 }
 
 /**
+ * The walls between two outlines of the same point count, one at each depth.
+ *
+ * `sweep` works by offsetting a single outline, and an offset deep enough to
+ * draw a back in collapses the rounded corners of it: the rim the walls end on
+ * and the cap laid over that rim then disagree by a couple of centimetres.
+ * Lofting between outlines that were each drawn in their own right keeps the
+ * two the same shape by construction. Both must come straight from `rect` — a
+ * `plan` hulls what it is given and is free to start the ring elsewhere, which
+ * twists the loft.
+ */
+function loft(a, ya, b, yb) {
+  const n = Math.min(a.length, b.length)
+  const position = []
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n
+    // Wound the way `sweep` winds it, top rim first, which puts the normals on
+    // the outside.
+    const quad = [
+      { x: a[i].x, y: ya, z: a[i].z },
+      { x: a[j].x, y: ya, z: a[j].z },
+      { x: b[j].x, y: yb, z: b[j].z },
+      { x: b[i].x, y: yb, z: b[i].z },
+    ]
+    for (const [u, v, w] of [[0, 1, 2], [0, 2, 3]]) {
+      for (const q of [quad[u], quad[v], quad[w]]) position.push(q.x, q.y, q.z)
+    }
+  }
+  const g = new THREE.BufferGeometry()
+  g.setAttribute('position', new THREE.Float32BufferAttribute(position, 3))
+  g.computeVertexNormals()
+  return g
+}
+
+/**
  * Stands a plan-built solid on its face. Everything the studio sweeps is built
  * in plan and grows upwards; a screen, a bezel or a cabinet front is that tipped
  * forward, so the outline's own x becomes height and the sweep's own y becomes
@@ -779,21 +813,37 @@ export function build(p) {
   // Built lying down in plan — the outline's x is the height of the front, its
   // z the width — and then stood on its face. The section is walked front to
   // back, so drawing the back in is one inset at the far end of it.
-  const faceOutline = plan(rect(H, W, radius))
   const taper = bool(p, 'taperBack') && !L.console_
   const backInset = taper ? Math.min(Math.min(H, W) * 0.26, D * 0.45) : 0
-  const section = taper
-    ? [
-        { inset: 0, y: D },
-        { inset: 0, y: D * 0.6 },
-        { inset: backInset * 0.5, y: D * 0.28 },
-        { inset: backInset, y: 0 },
-      ]
-    : [
-        { inset: 0, y: D },
-        { inset: 0, y: 0 },
-      ]
-  const backOutline = hull(faceOutline.offset(backInset))
+  // How far the moulding has drawn in, at a depth measured back from the front.
+  // The sides and the top come in; the bottom does not, because the set has to
+  // stand on it. Everything that lands on the cabinet asks this — the feet under
+  // it, the aerial and the handle on top of it, the sockets out of the back —
+  // or it ends up hanging in the air beside a tapered back.
+  const drawIn = (fromFront) => {
+    if (!taper) return 0
+    const y = D - Math.max(0, Math.min(D, fromFront))
+    if (y >= D * 0.6) return 0
+    if (y >= D * 0.28) return (backInset * 0.5 * (D * 0.6 - y)) / (D * 0.6 - D * 0.28)
+    return backInset * 0.5 + (backInset * 0.5 * (D * 0.28 - y)) / (D * 0.28)
+  }
+  const insetAt = (worldX) => drawIn(worldX - xFront)
+  const topAt = (worldX) => lift + H - insetAt(worldX)
+  const halfWidthAt = (worldX) => W / 2 - insetAt(worldX)
+
+  // A rim of the cabinet at a given draw-in: the bottom edge stays put and
+  // everything else comes in around it.
+  const rim = (inset) =>
+    inset < 0.5
+      ? rect(H, W, radius)
+      : shift(
+          rect(Math.max(40, H - inset), Math.max(40, W - inset * 2), Math.max(1.5, radius - inset * 0.4)),
+          -inset / 2,
+          0,
+        )
+  const frontRim = rim(0)
+  const midRim = rim(backInset * 0.5)
+  const backRim = rim(backInset)
   // The front face is the bezel: the whole outline with the screen cut out of it.
   const aperture = shift(rect(crt.h + 8, crt.w + 8, crt.h * (0.03 + 0.17 * curve) + 6), screenY - lift - H / 2, screenZ)
   const screenOutline = shift(rect(crt.h, crt.w, crt.h * (0.03 + 0.17 * curve)), screenY - lift - H / 2, screenZ)
@@ -809,9 +859,11 @@ export function build(p) {
     stand(
       merge(
         [
-          sweep(faceOutline, section, false),
-          face([faceOutline.pts, aperture], D, true),
-          face([backOutline], 0, false),
+          loft(frontRim, D, frontRim, D * 0.6),
+          loft(frontRim, D * 0.6, midRim, D * 0.28),
+          loft(midRim, D * 0.28, backRim, 0),
+          face([frontRim, aperture], D, true),
+          face([backRim], 0, false),
         ].filter(Boolean),
       ),
     ),
@@ -825,26 +877,37 @@ export function build(p) {
   // is the same surface with the sag taken out of it.
   const rimY = D - 10
   const bulge = 3 + 20 * curve
-  const screenPlan = plan(screenOutline)
-  // Only the outer half of the face is pulled in: offset a rectangle much
-  // further than that and the contours collapse toward a line, which reads as a
-  // hip roof rather than as glass. The middle stays flat, which is what the
-  // middle of a tube face is anyway.
-  const reach = screenPlan.inradius * 0.5
-  const dome = []
-  const steps = 7
-  for (let i = 0; i <= steps; i++) {
-    const u = i / steps
-    dome.push({ inset: reach * (1 - u), y: rimY + bulge * (1 - u * u) })
-  }
-  dome.push({ inset: 0, y: rimY - 7 })
-  glass.push(
-    stand(
-      merge(
-        [sweep(screenPlan, dome, false), face([hull(screenPlan.offset(reach))], rimY + bulge, true)].filter(Boolean),
+  const screenR = crt.h * (0.03 + 0.17 * curve)
+  // Each contour of the dome is drawn as a rectangle in its own right rather
+  // than offset off the rim. Offsetting a rounded rectangle this far collapses
+  // its corners, and the cap over the middle then belongs to a different shape
+  // from the walls under it — which is the extra, oddly-angled facets that used
+  // to sit across the glass.
+  const reach = Math.min(crt.h, crt.w) * 0.24
+  const steps = 6
+  const contour = (t) =>
+    shift(
+      rect(
+        Math.max(20, crt.h - t * 2),
+        Math.max(20, crt.w - t * 2),
+        Math.max(1.5, screenR - t * 0.5),
       ),
-    ),
-  )
+      screenY - lift - H / 2,
+      screenZ,
+    )
+  const layers = []
+  for (let i = 0; i <= steps; i++) {
+    const u = i / steps // nought at the rim, one in the middle
+    layers.push({ pts: contour(reach * u), y: rimY + bulge * (1 - (1 - u) * (1 - u)) })
+  }
+  const dome = []
+  for (let i = layers.length - 1; i > 0; i--) {
+    dome.push(loft(layers[i].pts, layers[i].y, layers[i - 1].pts, layers[i - 1].y))
+  }
+  // The lip of the glass, turning back into the moulding.
+  dome.push(loft(layers[0].pts, layers[0].y, layers[0].pts, rimY - 7))
+  dome.push(face([layers[layers.length - 1].pts], layers[layers.length - 1].y, true))
+  glass.push(stand(merge(dome.filter(Boolean))))
   // The dark ring between the glass and the moulding, and the lip of the
   // aperture above it — walked back to front, which turns its normals inward so
   // you can see into the recess rather than through it.
@@ -867,10 +930,26 @@ export function build(p) {
   const grilleStyle = str(p, 'grille')
   const pad = Math.min(14, bezel * 0.4)
 
+  // Where the dials down the side actually land, worked out before the grille
+  // goes in so that the grille can start below the last of them. Knobs above
+  // the speaker was the whole arrangement; knobs on top of it is not.
+  const dialYs = []
+  if (controls === 'sideDials') {
+    const size = num(p, 'dialSize')
+    const count = Math.round(num(p, 'dials'))
+    const top = screenY + crt.h / 2 + bezel - pad - size * 0.7
+    for (let i = 0; i < count; i++) {
+      const y = top - i * size * 1.5
+      if (y < lift + L.bottomBand + size * 0.7) break
+      dialYs.push(y)
+    }
+  }
+
   if (L.sideSpeaker) {
     // Under the dials if they are there too, and the full height of the band
     // if they are not.
-    const top = L.controls === 'sideDials' ? screenY + crt.h / 2 - L.sideBand * 0.4 : screenY + crt.h / 2 + bezel - pad
+    const clear = dialYs.length ? dialYs[dialYs.length - 1] - num(p, 'dialSize') * 0.85 : Infinity
+    const top = Math.min(clear, screenY + crt.h / 2 + bezel - pad)
     const g = grillePanel(grilleStyle, fx, lift + L.bottomBand + pad, top, L.bandZ + pad, L.bandZ + L.sideBand - pad)
     cloth.push(...g.void)
     bars.push(...g.bars)
@@ -894,16 +973,13 @@ export function build(p) {
 
   if (controls === 'sideDials') {
     const size = num(p, 'dialSize')
-    const count = Math.round(num(p, 'dials'))
     const z = L.bandZ + L.sideBand / 2
-    const top = screenY + crt.h / 2 + bezel - pad - size * 0.7
-    const pitch = size * 1.5
-    for (let i = 0; i < count; i++) {
-      const y = top - i * pitch
-      if (y < lift + L.bottomBand + size * 0.7) break
+    for (const y of dialYs) {
       const k = knob(size, fx, y, z)
       knobs.push(k.body, k.mark)
-      dark.push(drum(size * 1.35, 3, fx + 3, y, z, 20))
+      // A whisker proud of the front, or its face and the front of the cabinet
+      // are in the same plane and flicker against one another.
+      dark.push(drum(size * 1.35, 3, fx + 2, y, z, 20))
     }
   } else if (controls === 'frontDials') {
     const size = num(p, 'dialSize')
@@ -916,7 +992,7 @@ export function build(p) {
       if (z > W / 2 - L.margin - size * 0.7) break
       const k = knob(size, fx, y, z)
       knobs.push(k.body, k.mark)
-      dark.push(drum(size * 1.35, 3, fx + 3, y, z, 20))
+      dark.push(drum(size * 1.35, 3, fx + 2, y, z, 20))
     }
   } else if (controls === 'pushButtons' || controls === 'discreet') {
     const count = Math.round(num(p, 'buttons'))
@@ -1036,43 +1112,47 @@ export function build(p) {
       }
     }
   } else if (L.cabinet === 'blackBox') {
-    // The late set stands on a moulded pedestal rather than on feet.
+    // The late set stands on a moulded pedestal rather than on feet. Capped top
+    // and bottom, and drawn between two rims of its own so the foot of it and
+    // the cap under it are the same shape.
+    const deck = rect(D * 0.66, W * 0.5, 24)
+    const foot = rect(D * 0.66 - 28, W * 0.5 - 28, 10)
     shell.push(
       merge(
         [
-          sweep(
-            plan(rect(D * 0.66, W * 0.5, 24)),
-            [
-              { inset: 0, y: lift + 4 },
-              { inset: 0, y: 10 },
-              { inset: 14, y: 0 },
-            ],
-            false,
-          ),
-          face([hull(plan(rect(D * 0.66, W * 0.5, 24)).offset(14))], 0, false),
+          loft(deck, lift + 4, deck, 10),
+          loft(deck, 10, foot, 0),
+          face([deck], lift + 4, true),
+          face([foot], 0, false),
         ].filter(Boolean),
       ),
     )
   } else {
     for (const sx of [-1, 1]) {
       for (const sz of [-1, 1]) {
-        // Kept well inside the footprint: the back of a moulded case draws in
-        // toward the neck, and a foot out at the corner would stand clear of it.
-        legs.push(box(34, lift, 34, sx * D * 0.3 - 17, 0, sz * W * 0.34 - 17))
+        // The bottom of the case stays flat, but its sides draw in toward the
+        // neck, so a foot out at the back corner has to come in with them.
+        const fxp = sx * D * 0.3
+        const room = Math.max(40, halfWidthAt(fxp) - 26)
+        legs.push(box(34, lift, 34, fxp - 17, 0, sz * Math.min(W * 0.34, room) - 17))
       }
     }
   }
 
   // --- Handle, badge, vents -------------------------------------------------
   if (L.cabinet === 'portable' && bool(p, 'handle')) {
-    const top = lift + H
+    // Both legs stand on the top of the cabinet, which slopes away toward the
+    // back on a tapered case: an arm drawn to one height leaves its back leg in
+    // the air.
     const reachX = Math.min(D * 0.55, 170)
     const rise = Math.max(60, W * 0.12)
     const from = xFront + D * 0.16
-    const a = new THREE.Vector3(from, top - 4, 0)
-    const b = new THREE.Vector3(from, top + rise, 0)
-    const c = new THREE.Vector3(from + reachX, top + rise, 0)
-    const d2 = new THREE.Vector3(from + reachX, top - 4, 0)
+    const to = Math.min(from + reachX, xBack - 26)
+    const crest = Math.max(topAt(from), topAt(to)) + rise
+    const a = new THREE.Vector3(from, topAt(from) - 6, 0)
+    const b = new THREE.Vector3(from, crest, 0)
+    const c = new THREE.Vector3(to, crest, 0)
+    const d2 = new THREE.Vector3(to, topAt(to) - 6, 0)
     const arm = merge([tube(16, a, b, 10), tube(16, b, c, 10), tube(16, c, d2, 10)])
     arm.scale(1, 1, 2.2)
     trim.push(arm)
@@ -1085,15 +1165,20 @@ export function build(p) {
   }
 
   if (bool(p, 'vents')) {
-    const slotW = Math.max(60, (W - backInset * 2) * 0.55)
-    const rows = Math.min(10, Math.floor((H - backInset * 2) / 26))
+    // What the taper leaves at the back is what these have to fit inside — and
+    // they stand a whisker proud of it, or a slot cut flush is no slot at all.
+    const halfW = Math.max(40, W / 2 - backInset - 14)
+    const low = lift + 22
+    const high = lift + H - backInset - 22
+    const slotW = Math.min(halfW * 2, Math.max(60, W * 0.55))
     const slots = []
-    for (let i = 0; i < rows; i++) {
-      slots.push(box(5, 6, slotW, xBack - 5, lift + H * 0.4 + i * 22, -slotW / 2))
+    for (let y = low + (high - low) * 0.45; y < high && slots.length < 10; y += 22) {
+      slots.push(box(5, 6, slotW, xBack - 4, y, -slotW / 2))
     }
     // And the sockets the aerial and the mains went into.
-    slots.push(box(8, 26, 26, xBack - 6, lift + H * 0.18, -60))
-    slots.push(box(8, 22, 34, xBack - 6, lift + H * 0.18, 26))
+    const socketY = Math.max(low, Math.min(high - 30, lift + H * 0.18))
+    slots.push(box(8, 26, 26, xBack - 5, socketY, Math.max(-halfW + 8, -60)))
+    slots.push(box(8, 22, 34, xBack - 5, socketY, Math.min(halfW - 42, 26)))
     dark.push(merge(slots))
   }
 
@@ -1102,8 +1187,10 @@ export function build(p) {
   if (aerial !== 'none') {
     const length = num(p, 'aerialLength')
     const spread = (num(p, 'aerialSpread') * Math.PI) / 180
-    const baseY = lift + H
     const baseX = xBack - Math.min(70, D * 0.2)
+    // On the top of the cabinet at that depth, not on the top it would have had
+    // if the back had never been drawn in.
+    const baseY = topAt(baseX)
     metal.push(box(46, 16, 78, baseX - 23, baseY - 3, -39))
     const rod = (sz) => {
       const lean = (24 * Math.PI) / 180
