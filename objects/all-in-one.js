@@ -104,7 +104,7 @@ export const params = [
       { value: 'none', label: 'None — on a wall mount' },
     ],
   },
-  { id: 'standHeight', label: 'How high it holds it', type: 'number', min: 40, max: 260, step: 5, default: 120, unit: 'mm', group: 'Stand', visibleWhen: (p) => str(p, 'stand') !== 'none' },
+  { id: 'standHeight', label: 'How high it holds it', type: 'number', min: 40, max: 260, step: 5, default: 120, unit: 'mm', group: 'Stand', visibleWhen: (p) => str(p, 'stand') === 'foot' || str(p, 'stand') === 'arm', help: 'A foot or an arm lifts the panel. An easel does not — it rests on the desk and the leg props it.' },
   { id: 'tilt', label: 'Tilt', type: 'number', min: -5, max: 25, step: 1, default: 8, unit: '°', group: 'Stand' },
 
   // --- Desk ---------------------------------------------------------------
@@ -212,10 +212,35 @@ export function build(p) {
   const radius = num(p, 'radius')
   const thickness = num(p, 'thickness')
   const standKind = str(p, 'stand')
-  const standHeight = standKind === 'none' ? 0 : num(p, 'standHeight')
+  // A kickstand rests the panel's own bottom edge on the desk; a foot or an arm
+  // lifts it clear.
+  const standHeight = standKind === 'foot' || standKind === 'arm' ? num(p, 'standHeight') : 0
   // A wall mount does not tilt; anything on a stand does.
   const tilt = str(p, 'stand') === 'none' ? 0 : (num(p, 'tilt') * Math.PI) / 180
   const optical = str(p, 'optical')
+
+  // Leaning the panel back drops its back edge, so it is lifted by that as well
+  // as by the stand.
+  const lean = Math.max(0, thickness * Math.sin(tilt))
+  // Where a point on the back of the panel ends up once the panel has been leant
+  // back and lifted. The stand has to meet it there rather than where it was
+  // drawn, or it comes out through the glass.
+  const onPanel = (x, y) =>
+    new THREE.Vector3(
+      x * Math.cos(tilt) + y * Math.sin(tilt),
+      -x * Math.sin(tilt) + y * Math.cos(tilt) + standHeight + lean,
+      0,
+    )
+  // How much of the middle of the back the stand takes, worked out before the
+  // fittings so they can keep out of its way.
+  const standWidth =
+    standKind === 'foot'
+      ? Math.max(60, W * 0.12)
+      : standKind === 'arm'
+        ? Math.max(70, W * 0.1)
+        : standKind === 'easel'
+          ? Math.max(80, W * 0.36)
+          : 0
 
   const shell = []
   const front = []
@@ -230,21 +255,26 @@ export function build(p) {
   // panel-shaped thing here is made: the outline's own x becomes height.
   const faceOutline = plan(rect(H, W, radius))
   const aperture = ring(rect(screenH, screenW, Math.max(2, radius * 0.3)))
+  // Plan y runs from the back of the machine at nought to the front at the full
+  // thickness, because standing the slab on its face turns the outline over.
+  const taperInset = Math.min(H, W) * 0.14
   const body = bool(p, 'taper')
-    ? // Thick in the middle, thinning to the edge, the way a moulded back does.
+    ? // Full size at the glass and drawn in toward the back, the way a moulded
+      // back does it. Walked front to back, which is what puts the normals on
+      // the outside of it.
       merge(
         [
           sweep(
             faceOutline,
             [
-              { inset: 0, y: 0 },
-              { inset: 0, y: thickness * 0.35 },
-              { inset: Math.min(H, W) * 0.14, y: thickness },
+              { inset: 0, y: thickness },
+              { inset: 0, y: thickness * 0.6 },
+              { inset: taperInset, y: 0 },
             ],
             false,
           ),
-          face([hull(faceOutline.offset(Math.min(H, W) * 0.14))], thickness, true),
-          face([faceOutline.pts], 0, false),
+          face([faceOutline.pts], thickness, true),
+          face([hull(faceOutline.offset(taperInset))], 0, false),
         ].filter(Boolean),
       )
     : profiledBoard(faceOutline, 0, thickness, 'rounded', Math.min(radius, thickness / 2))
@@ -255,8 +285,13 @@ export function build(p) {
   // The glass over the front, and the panel behind it.
   front.push(plate(rect(H, W, radius), -1.2, 1.2, radius * 0.5, H / 2))
   glass.push(plate(rect(screenH, screenW, Math.max(2, radius * 0.3)), -2, 1.4, 0, size.screenCentre))
-  // A dark surround printed on the back of the glass, which is how they did it.
-  dark.push(plate(rect(screenH + 10, screenW + 10, Math.max(2, radius * 0.3)), -0.8, 0.8, 0, size.screenCentre))
+  // A dark surround printed on the back of the glass, which is how they did it —
+  // never wider than the bezel it is printed on, or it laps over the edge of a
+  // machine with hardly any bezel at all.
+  const printed = Math.min(10, bezel * 1.6)
+  dark.push(
+    plate(rect(screenH + printed, screenW + printed, Math.max(2, radius * 0.3)), -0.8, 0.8, 0, size.screenCentre),
+  )
 
   if (bool(p, 'webcam')) {
     dark.push(socket(7, 2, -2.6, H - bezel / 2, 0))
@@ -272,26 +307,41 @@ export function build(p) {
   if (bool(p, 'speakerGrille')) {
     const grille = []
     for (let i = 0; i < 22; i++) {
-      grille.push(box(3, 3, 8, thickness * 0.2, 4, -W * 0.32 + i * (W * 0.64) / 21))
+      grille.push(box(10, 3, 8, thickness * 0.35, -1, -W * 0.32 + i * (W * 0.64) / 21))
     }
     dark.push(merge(grille))
   }
 
   // --- Fittings in the side ------------------------------------------------
+  // A disc goes in with its face parallel to the screen, so the slot is a slit
+  // running up the side rather than across the machine — which is all the side
+  // has room for anyway, the machine being forty millimetres thick.
+  const sideX = thickness * 0.25
   if (optical !== 'none') {
     const y = size.screenCentre - screenH * 0.1
     if (optical === 'slot') {
-      dark.push(box(4, 4, 128, thickness * 0.45, y, W / 2 - 2))
+      dark.push(box(5, 128, 4, sideX, y - 64, W / 2 - 2))
     } else {
-      dark.push(box(12, 18, 140, thickness * 0.3, y, W / 2 - 3))
+      dark.push(box(thickness * 0.4, 140, 3, sideX * 0.6, y - 70, W / 2 - 1))
+      dark.push(box(5, 132, 4, sideX, y - 66, W / 2 - 2))
     }
   }
   if (bool(p, 'cardReader')) {
-    dark.push(box(4, 4, 32, thickness * 0.45, chin + screenH * 0.2, W / 2 - 2))
+    dark.push(box(5, 30, 4, sideX, chin + screenH * 0.2, W / 2 - 2))
   }
-  // Ports across the back, low down where the board is.
-  for (let i = 0; i < Math.round(num(p, 'ports')); i++) {
-    dark.push(box(10, 14, 5, thickness - 11, chin * 0.5, -W * 0.2 + i * 16))
+  // Ports across the back, low down where the board is — and on the back, which
+  // a tapered case draws in, so they have to be inside what it draws in to.
+  // They run off to one side as well: the middle of the back is the stand's,
+  // and a neck or an arm lands right where a row through the centre would be.
+  const portY = bool(p, 'taper')
+    ? Math.min(Math.max(chin * 0.5, taperInset + 16), H - taperInset - 30)
+    : chin * 0.5
+  const portCount = Math.round(num(p, 'ports'))
+  const portEdge = (bool(p, 'taper') ? taperInset : radius) + 12
+  const portRight = standWidth ? -(standWidth / 2 + 14) : W * 0.16
+  const portStep = Math.min(16, (portRight + W / 2 - portEdge) / portCount)
+  for (let i = 0; i < portCount; i++) {
+    dark.push(box(10, 14, 5, thickness - 9, portY, portRight - (i + 1) * portStep))
   }
 
   // --- Tilt the panel, then stand it up ------------------------------------
@@ -300,9 +350,6 @@ export function build(p) {
   // onto the stand, which stands up straight underneath it.
   const panelParts = [...shell, ...front, ...dark, ...glass, ...lamps]
   for (const part of parts) panelParts.push(part.geometry)
-  // Leaning it back drops its back edge, so it is lifted by that as well as by
-  // the stand.
-  const lean = Math.max(0, thickness * Math.sin(tilt))
   for (const g of panelParts) {
     if (!g) continue
     g.rotateZ(-tilt)
@@ -310,35 +357,38 @@ export function build(p) {
   }
 
   if (standKind === 'foot') {
-    const neckWidth = Math.max(60, W * 0.12)
-    shell.push(box(28, standHeight + lean + 20, neckWidth, thickness - 4, 0, -neckWidth / 2))
+    const neckWidth = standWidth
+    const neck = onPanel(thickness - 8, chin * 0.5)
+    shell.push(box(28, neck.y, neckWidth, neck.x - 14, 0, -neckWidth / 2))
     shell.push(
       profiledBoard(rect(Math.max(150, H * 0.42), Math.max(180, W * 0.34), 12), 0, 12, 'rounded', 5).translate(
-        thickness + 40,
+        neck.x,
         0,
         0,
       ),
     )
   } else if (standKind === 'arm') {
-    const armWidth = Math.max(70, W * 0.1)
+    const armWidth = standWidth
     // A hinged arm off a slab, holding the panel out in front of its foot.
-    shell.push(box(150, 22, armWidth, thickness - 4, standHeight + lean - 22, -armWidth / 2))
-    shell.push(box(26, standHeight + lean, armWidth, thickness + 124, 0, -armWidth / 2))
+    const joint = onPanel(thickness - 6, chin * 0.4 + 12)
+    shell.push(box(150, 22, armWidth, joint.x, joint.y - 22, -armWidth / 2))
+    shell.push(box(26, joint.y - 11, armWidth, joint.x + 124, 0, -armWidth / 2))
     shell.push(
       profiledBoard(rect(Math.max(160, H * 0.4), Math.max(200, W * 0.36), 14), 0, 14, 'rounded', 6).translate(
-        thickness + 120,
+        joint.x + 120,
         0,
         0,
       ),
     )
   } else if (standKind === 'easel') {
-    // A leg folded out of the back, reaching the desk behind the machine. It is
-    // built thin and then spread across the width, so that standing it at an
-    // angle cannot push a corner of it through the desk.
-    const legWidth = Math.max(80, W * 0.36)
+    // A leg folded out of the back, reaching the desk behind the machine, with
+    // the panel's own bottom edge on the desk in front of it. Built thin and
+    // then spread across the width, so that standing it at an angle cannot push
+    // a corner of it through the desk.
+    const legWidth = standWidth
     const thin = 18
-    const top = new THREE.Vector3(thickness - 4, standHeight + lean + H * 0.55, 0)
-    const foot = new THREE.Vector3(thickness + standHeight * 1.1 + 60, thin * 0.6, 0)
+    const top = onPanel(thickness - 4, H * 0.55)
+    const foot = new THREE.Vector3(top.x + H * 0.34 + 40, thin * 0.6, 0)
     const leg = strut(foot, top, thin, thin * 0.8, 4, Math.PI / 4)
     leg.scale(1, 1, legWidth / thin)
     shell.push(leg)
@@ -377,14 +427,24 @@ export function build(p) {
 
 export function metrics(p) {
   const size = panelSize(p)
-  const standHeight = str(p, 'stand') === 'none' ? 0 : num(p, 'standHeight')
+  const stand = str(p, 'stand')
+  const standHeight = stand === 'foot' || stand === 'arm' ? num(p, 'standHeight') : 0
   const thickness = num(p, 'thickness')
   const optical = str(p, 'optical')
 
   // Sitting at a 750 desk, the eye is about 400 mm above it.
   const centre = standHeight + size.screenCentre
   const eyeLevel = 400
-  const level = centre > eyeLevel + 160 ? 'warn' : centre < eyeLevel - 120 ? 'warn' : 'ok'
+  // A wall mount hangs wherever it is hung, so there is nothing to warn about;
+  // a kickstand sits on the desk and is meant to be low.
+  const level =
+    stand === 'none'
+      ? 'ok'
+      : centre > eyeLevel + 160
+        ? 'warn'
+        : stand !== 'easel' && centre < eyeLevel - 120
+          ? 'warn'
+          : 'ok'
   const bezelShare = ((size.W * size.H - size.screenW * size.screenH) / (size.W * size.H)) * 100
   const opticalNeeds = optical === 'tray' ? 26 : optical === 'slot' ? 18 : 0
 
@@ -403,7 +463,10 @@ export function metrics(p) {
     },
     {
       label: 'Screen centre',
-      value: `${formatLength(centre)} above the desk`,
+      value:
+        stand === 'none'
+          ? `${formatLength(size.screenCentre)} up the machine — it hangs where you hang it`
+          : `${formatLength(centre)} above the desk`,
       level,
       note: level === 'ok' ? undefined : 'Eye level at a 750 desk is about 400 mm above it.',
     },
@@ -416,7 +479,7 @@ export function metrics(p) {
           ? `A ${optical}-loading drive wants about ${formatLength(opticalNeeds + 12)} of thickness to hide in.`
           : undefined,
     },
-    { label: 'Desk taken', value: `${((size.W * (thickness + (str(p, 'stand') === 'none' ? 0 : 180))) / 1e6).toFixed(2)} m²` },
+    { label: 'Desk taken', value: `${((size.W * (thickness + (stand === 'none' ? 0 : 180))) / 1e6).toFixed(2)} m²` },
   ]
 }
 

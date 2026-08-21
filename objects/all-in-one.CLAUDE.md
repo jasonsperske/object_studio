@@ -11,9 +11,16 @@ the optical drive off. For a tube with a computer in it, use `integrated-micro`.
 ## What matters most
 
 **The panel is the whole specification.** `panel`, `aspect`, `bezel` and `chin` give you the
-outline, and nothing else changes the size. `thickness` and `taper` shape the back, `stand` picks
-a foot, an arm, an easel leg or nothing, and `finish` does the rest — white plastic and a deep chin
-reads as 2007, aluminium and a thin bezel as 2015.
+outline, and nothing else changes the size. `thickness` and `taper` shape the back — a tapered one
+is full size at the glass and drawn in toward the back — `stand` picks a foot, an arm, an easel leg
+or nothing, and `finish` does the rest: white plastic and a deep chin reads as 2007, aluminium and
+a thin bezel as 2015.
+
+**The stands do different things.** A `foot` or an `arm` lifts the panel, so `standHeight` says how
+far. An `easel` is a kickstand: the panel's own bottom edge rests on the desk and the leg props it
+from behind, so `standHeight` does not apply and the screen sits low — which is what a machine like
+that is. `tilt` leans the panel back about its bottom edge, and whichever stand is fitted follows
+it there.
 
 ## Worked examples
 
@@ -25,12 +32,16 @@ reads as 2007, aluminium and a thin bezel as 2015.
 ## Check the metrics
 
 It reports the screen-to-body ratio and warns when the thing is mostly bezel and chin, and it
-checks that a slot- or tray-loading drive actually fits the thickness you asked for.
+checks that a slot- or tray-loading drive actually fits the thickness you asked for. Screen centre
+is measured off the desk for anything on a stand; on a wall mount it just tells you where the
+middle of the screen is up the machine, since the wall decides the rest.
 
 ## What it will not do
 
 No touchscreen hinge, no articulated arm that folds flat, no ports worth counting. A wall mount is
-modelled as no stand rather than as a bracket.
+modelled as no stand rather than as a bracket. The optical slot runs up the side rather than across
+the machine, because that is the way a disc goes into one of these and the only way a forty-
+millimetre edge has room for it.
 
 ## Parameters
 
@@ -70,7 +81,7 @@ modelled as no stand rather than as a bracket.
 | Parameter | Type | Range | Default | Notes |
 | --- | --- | --- | --- | --- |
 | `stand` | select | `foot`, `arm`, `easel`, `none` | `"foot"` |  |
-| `standHeight` | number | 40–260 mm, step 5 | `120` | Only used in some combinations. |
+| `standHeight` | number | 40–260 mm, step 5 | `120` | A foot or an arm lifts the panel. An easel does not — it rests on the desk and the leg props it. Only used in some combinations. |
 | `tilt` | number | -5–25 °, step 1 | `8` |  |
 
 **Desk**
