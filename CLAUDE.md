@@ -34,12 +34,13 @@ Everything in this repository is CC0.
 | `rock` | A stone, pebble to boulder | Rocks, boulders, geodes. Erosion, moss, cracking open |
 | `crt-television` | A 1948–2008 tube television | Any television with a tube: console, portable, tabletop, late black box |
 | `flat-panel-television` | A 1998– flat television | Any flat television: plasma, LCD, OLED, on a stand or a wall |
+| `gear` | A toothed wheel | Any gear, sprocket, ratchet wheel or toothed pulley |
 
 Pick by what the thing **is**, not by size — a coffee table and a dining table are both `table`,
-and a pebble and a boulder are both `rock`. The exceptions are split by technology rather than by
-size: the seven computers, because a 1977 machine and a 2013 one share nothing, and the two
-televisions, because a tube and a panel are not the same object with a thickness dial. Each
-carries only the fittings its own years had.
+a pebble and a boulder are both `rock`, and a clock wheel and a mill gear are both `gear`. The
+exceptions are split by technology rather than by size: the seven computers, because a 1977 machine
+and a 2013 one share nothing, and the two televisions, because a tube and a panel are not the same
+object with a thickness dial. Each carries only the fittings its own years had.
 
 ## Driving a generator
 

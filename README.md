@@ -244,6 +244,7 @@ you'd run.
 | **Rock** | Pebble to boulder on one slider — fracture planes worn down by erosion, sedimentary bedding, a geode that splits open on its crystals, and moss on whatever faces the sky |
 | **CRT television** | 1948–2008. Sized by its tube, in a console on turned or cabriole legs, a moulded box, a portable with a handle or a late black box — with the dials, push-buttons or nothing-at-all its own years had |
 | **Flat panel television** | 1998–. Sized by its panel, with plasma, LCD or OLED setting how thin it can honestly be; slab, tapered or stepped backs, a curved screen, and a pedestal, feet, a plate, an easel or a wall |
+| **Gear** | Cut from a module and a tooth count: six tooth shapes from involute to ratchet, spur, helical, herringbone, double helical or stepped across the face, external or internal, on a solid blank, a web, spokes or lightening holes, with a hub, a shaped bore and a flange |
 
 The table is built out of a single plan outline: the moulded edge and the apron are cross-sections
 swept around it, the inlay band and the leg positions are the outline offset inwards, and the
@@ -290,6 +291,20 @@ when they do not: a widescreen tube on turned legs, or a 40 mm bezel round a 21:
 set is where the decades actually show, and they show in two dials — what it is housed in, and
 where the controls are. Dials down the side above a speaker grille, a row of tuning push-buttons
 behind a flap, or four small buttons under the glass and the handset on the floor.
+
+The gear is drawn the way a gear is specified: a module, a tooth count and a pressure angle, with
+every diameter falling out of those and reported rather than set. One tooth is generated as a flat
+outline — a true involute, a clockmaker's epicycloid, or a cast, moulded, round or sawtooth
+section — repeated round the circle and pushed through the face width. Everything else on it is a
+ring pushed through the same thickness: the rim under the root, the web or the spokes, the hub, the
+flange on the face. That leaves only one thing that varies along the axis, and it is the same
+operation in every case — the section is turned as it goes. Turn it steadily and the teeth rake
+into a helix; reverse the turn halfway and they meet in a V; put a groove at the apex and it is a
+double helical; hold the turn and step it instead and the wheel is a stack of staggered spur
+stages. The metrics are where the engineering is: undercut on a small pinion and the profile shift
+that clears it, the tip land on a tooth running to a point, the contact ratio of a pair, whether a
+helix advances far enough across the face to be worth cutting, and how much rim is left under the
+root.
 
 The rock is one function: for every direction out of its middle there is a distance to its
 surface. Freshly broken, that distance is the nearest of the flat planes it fractured along, which
