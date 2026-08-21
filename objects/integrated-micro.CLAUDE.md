@@ -13,14 +13,28 @@ wrong decade and want `all-in-one`.
 
 **The case is sized by the tube.** `tube` is the diagonal in inches and drives the whole box;
 `margin` is the moulding around it. `storage` picks what is built in — nothing, a cassette deck,
-or 5¼" floppies — and `drivePlace` puts it beside or below the screen. `keyboard` decides whether
-the keys are on a shelf moulded into the front or on a lead.
+or 5¼" floppies — and `drivePlace` puts it beside the tube, stacked up the right, or below it in
+a row across the front. `keyboard` decides whether the keys are on a shelf moulded into the front
+or on a lead.
+
+**The front is a recess.** The moulding stands proud all the way round and a dark mask panel sits
+back inside it, carrying the tube and the drive bays; `tilt` leans the tube back within that
+recess, and the moulding is made deeper to take whatever lean you ask for. So a big `tilt` on a
+big tube buys you a noticeably deeper front, which is exactly what it bought the people who
+moulded these.
 
 ## Worked examples
 
 - **"an early all-in-one with a green screen"** → the `Green-screen trinity` preset
 - **"a business micro with twin floppies"** → `{ tube: 12, storage: 'floppy', floppies: 2, keyboard: 'separate' }`
+- **"the screen and two drives side by side"** → `{ storage: 'floppy', drivePlace: 'beside' }`
 - **"a small classroom computer"** → `{ tube: 7, storage: 'none', keyboard: 'shelf', keyPitch: 15 }`
+
+## Read the metrics
+
+**Screen centre** reports how far below eye level the tube sits, at a 750 desk. Every one of these
+machines was below it — that is what they were — so it only warns past about 30°, where you would
+be craning down at the thing. More moulding under the tube, or drives below it, is what lifts it.
 
 ## What it will not do
 
@@ -38,7 +52,7 @@ these machines had one port at the back and nothing else.
 | `phosphor` | select | `green`, `amber`, `white`, `blue` | `"green"` |  |
 | `screenOn` | boolean | `true`, `false` | `true` |  |
 | `hood` | boolean | `true`, `false` | `true` | The brow moulded over the tube to keep the strip lights off it. |
-| `tilt` | number | 0–16 °, step 0.5 | `6` | How far the screen face leans back. |
+| `tilt` | number | 0–16 °, step 0.5 | `6` | How far the tube leans back inside the recess. The moulding gets deeper to take it. |
 
 **Case**
 
