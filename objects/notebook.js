@@ -30,6 +30,13 @@ const FINISH = {
 
 const COLOR = { dark: 0x1e2124, port: 0x24272b, lamp: 0x4ad06a, screenOff: 0x232629 }
 
+// How far in from the back edge the hinge line sits, and how far the closed lid
+// rides above the deck so the keys have somewhere to go.
+const HINGE_SETBACK = 12
+// How deep the keys sit below the deck, which is what lets a shut lid lie on
+// the deck rather than on the keycaps.
+const KEY_WELL = 4
+
 // Panels: the diagonal and the shape of it, which changed halfway through.
 const ASPECT = {
   fourThree: { w: 0.8, h: 0.6, label: '4:3' },
@@ -53,7 +60,7 @@ export const params = [
     ],
   },
   { id: 'lidBezel', label: 'Lid bezel', type: 'number', min: 8, max: 40, step: 1, default: 20, unit: 'mm', group: 'Panel' },
-  { id: 'lidAngle', label: 'Lid angle', type: 'number', min: 0, max: 135, step: 1, default: 105, unit: '°', group: 'Panel' },
+  { id: 'lidAngle', label: 'Lid angle', type: 'number', min: 0, max: 135, step: 1, default: 105, unit: '°', group: 'Panel', help: 'Measured off the deck, the way a hinge is: nought shuts it, ninety stands it up, past that it leans back.' },
   { id: 'screenOn', label: 'Switched on', type: 'boolean', default: true, group: 'Panel' },
   { id: 'latch', label: 'Lid latch', type: 'boolean', default: true, group: 'Panel', help: 'The catch and the button that let it go. Later ones did without.' },
 
@@ -130,23 +137,28 @@ function footprint(p) {
   const rows = Math.round(num(p, 'keyRows'))
   const keyWidth = 15.5 * pitch
   const keyDepth = rows * pitch
+  const lidH = screenH + bezel * 2
   const W = Math.max(screenW + bezel * 2, keyWidth + 30)
-  const D = keyDepth + num(p, 'palmrest') + 30
-  return { W, D, screenW, screenH, bezel, pitch, rows, keyWidth, keyDepth, aspect }
+  // The lid folds down onto the base, so the base cannot be shallower than the
+  // lid is tall — the two halves have to meet. Whatever the panel asks for over
+  // and above the keyboard goes into the palm rest, which is where it went on
+  // the real ones. `palmrest` is therefore a minimum rather than a measurement.
+  const D = Math.max(keyDepth + num(p, 'palmrest') + 30, lidH + HINGE_SETBACK)
+  return { W, D, screenW, screenH, lidH, bezel, pitch, rows, keyWidth, keyDepth, aspect }
 }
 
 // ---------------------------------------------------------------------------
 // Shapes
 // ---------------------------------------------------------------------------
 
-function rect(depth, width, radius) {
+function rect(depth, width, radius, cx = 0, cz = 0) {
   const d = depth / 2
   const w = width / 2
   const corners = [
-    { x: d, z: -w },
-    { x: d, z: w },
-    { x: -d, z: w },
-    { x: -d, z: -w },
+    { x: cx + d, z: cz - w },
+    { x: cx + d, z: cz + w },
+    { x: cx - d, z: cz + w },
+    { x: cx - d, z: cz - w },
   ]
   const r = Math.max(0, Math.min(radius, d - 1, w - 1))
   return r < 1 ? ring(corners) : roundCorners(corners, r, 4)
@@ -185,6 +197,10 @@ export function build(p) {
   const front = -D / 2
   const back = D / 2
 
+  // What the shut lid has to clear: the keycaps stand a millimetre out of their
+  // well, and a trackball rather more. Raised as things are put on the deck.
+  let deckClear = 2.5
+
   const shell = []
   const deck = []
   const keys = []
@@ -201,6 +217,8 @@ export function build(p) {
   const frontThickness = Math.max(12, thickness - 10 - bulge)
   const heightAt = (x) => frontThickness + ((x - front) / D) * (thickness + bulge - frontThickness)
   const baseOutline = plan(rect(D, W, radius))
+  const keyCentre = back - size.keyDepth / 2 - 26
+  const wellOutline = plan(rect(size.keyDepth + 14, size.keyWidth + 14, 5, keyCentre, 0))
   const body = sweep(
     baseOutline,
     (i) => [
@@ -209,14 +227,21 @@ export function build(p) {
     ],
     false,
   )
-  const top = face([baseOutline.pts], 0, true)
-  if (top) {
-    const slope = (thickness + bulge - frontThickness) / D
-    top.applyMatrix4(
-      new THREE.Matrix4().set(1, 0, 0, 0, slope, 1, 0, frontThickness - slope * front, 0, 0, 1, 0, 0, 0, 0, 1),
-    )
-    shell.push(top)
+  // The deck is a face with the key well cut out of it, sheared up onto the
+  // wedge; the well's walls and floor go up with it.
+  const slope = (thickness + bulge - frontThickness) / D
+  const onWedge = (g) => {
+    if (g) {
+      g.applyMatrix4(
+        new THREE.Matrix4().set(1, 0, 0, 0, slope, 1, 0, frontThickness - slope * front, 0, 0, 1, 0, 0, 0, 0, 1),
+      )
+    }
+    return g
   }
+  shell.push(onWedge(face([baseOutline.pts, wellOutline.pts], 0, true)))
+  // Walked bottom to top, which turns the wall's normals inward.
+  shell.push(onWedge(sweep(wellOutline, [{ inset: 0, y: -KEY_WELL }, { inset: 0, y: 0 }], false)))
+  shell.push(onWedge(face([wellOutline.pts], -KEY_WELL, true)))
   shell.push(body, face([baseOutline.pts], 0, false))
 
   // The keyboard well, sunk into the deck.
@@ -226,27 +251,14 @@ export function build(p) {
     geometry.translate(x, heightAt(x) - sink, z)
     return geometry
   }
-  const keyCentre = back - size.keyDepth / 2 - 26
-  const well = sweep(
-    plan(rect(size.keyDepth + 12, size.keyWidth + 12, 4)),
-    [
-      { inset: 0, y: 0 },
-      { inset: 0, y: -3 },
-      { inset: 4, y: -3 },
-      { inset: 4, y: 0 },
-    ],
-    true,
-  )
-  if (well) deck.push(onDeck(well, keyCentre, 0))
-
   // --- Keys ---------------------------------------------------------------
   const block = []
   for (let r = 0; r < rows; r++) {
     const x = -size.keyDepth / 2 + r * pitch
     if (r === 0) {
-      block.push(box(pitch * 0.86, 4, pitch * 5.5, x, 0, -pitch * 2.75))
+      block.push(box(pitch * 0.86, KEY_WELL + 1, pitch * 5.5, x, 0, -pitch * 2.75))
       for (const side of [-1, 1]) {
-        block.push(box(pitch * 0.86, 4, pitch * 1.3, x, 0, side * pitch * 3.6))
+        block.push(box(pitch * 0.86, KEY_WELL + 1, pitch * 1.3, x, 0, side * pitch * 3.6))
       }
       continue
     }
@@ -255,18 +267,24 @@ export function build(p) {
     for (let c = 0; c < 15; c++) {
       const z = -size.keyWidth / 2 + c * pitch + ((rows - r) % 3) * pitch * 0.2
       if (z + pitch > size.keyWidth / 2) continue
-      block.push(box(capDepth, 4, pitch * 0.86, x, 0, z))
+      block.push(box(capDepth, KEY_WELL + 1, pitch * 0.86, x, 0, z))
       if ((pointing === 'stick' || pointing === 'both') && r === 3 && c === 6) {
-        dark.push(onDeck(post(6, 5, x + pitch * 0.5, 0, z + pitch * 0.5, 8), keyCentre, 0, -1.5))
+        dark.push(onDeck(post(6, KEY_WELL + 1, x + pitch * 0.5, 0, z + pitch * 0.5, 8), keyCentre, 0, KEY_WELL))
       }
     }
   }
-  keys.push(onDeck(merge(block), keyCentre, 0, 1))
+  keys.push(onDeck(merge(block), keyCentre, 0, KEY_WELL))
 
   // --- Pointing device and palm rest --------------------------------------
-  const palmCentre = front + num(p, 'palmrest') / 2 + 12
+  //
+  // Measured off the deck that is actually there rather than the palm rest that
+  // was asked for: a big panel makes the base deeper than the keyboard needs,
+  // and the pointing device belongs in the middle of what that leaves.
+  const keyFront = keyCentre - size.keyDepth / 2
+  const palmDepth = keyFront - front - 8
+  const palmCentre = front + 8 + palmDepth / 2
   if (pointing === 'trackpad' || pointing === 'both') {
-    const padDepth = Math.min(52, Math.max(24, num(p, 'palmrest') * 0.6))
+    const padDepth = Math.min(56, Math.max(24, palmDepth * 0.5))
     deck.push(onDeck(sweep(
       plan(rect(padDepth, padDepth * 1.6, 4)),
       [
@@ -281,10 +299,27 @@ export function build(p) {
       deck.push(onDeck(box(12, 3, padDepth * 0.7, -padDepth / 2 - 14, -1, side * padDepth * 0.36 - padDepth * 0.35), palmCentre, 0))
     }
   } else if (pointing === 'trackball') {
-    const ball = new THREE.SphereGeometry(15, 14, 10)
-    dark.push(onDeck(ball, palmCentre + 8, 0, -6))
+    // Sunk in its socket with a few millimetres of ball standing proud, and
+    // kept clear of both the space bar and the shut lid.
+    const r = Math.min(15, Math.max(9, palmDepth * 0.24))
+    const proud = 4
+    deckClear = Math.max(deckClear, proud + 1.5)
+    const ballX = Math.min(palmCentre + r * 0.6, keyFront - r - 8)
+    const socketRing = sweep(
+      plan(rect(r * 2.5, r * 2.5, r * 1.2)),
+      [
+        { inset: 0, y: 0 },
+        { inset: 0, y: -2.5 },
+        { inset: 3, y: -2.5 },
+        { inset: 3, y: 0 },
+      ],
+      true,
+    )
+    if (socketRing) deck.push(onDeck(socketRing, ballX, 0))
+    const ball = new THREE.SphereGeometry(r, 16, 12)
+    dark.push(onDeck(ball, ballX, 0, r - proud))
     for (const side of [-1, 1]) {
-      deck.push(onDeck(box(14, 3, 34, -14, -1, side * 22 - 17), palmCentre + 8, 0))
+      deck.push(onDeck(box(14, 3, r * 2.2, -r * 1.5 - 16, -1, side * r * 1.5 - r * 1.1), ballX, 0))
     }
   }
 
@@ -308,10 +343,18 @@ export function build(p) {
   }
 
   // --- The bay in the side ------------------------------------------------
-  const bayHeight = Math.min(Math.max(12, thickness - 12), 30)
   if (bay !== 'none') {
     const width = bay === 'floppy' ? 110 : 132
-    const x = back - 90 - width / 2
+    // A drive is as long as it is; what moves is where it sits. Kept inside the
+    // side it comes out of, rather than hanging off the front of a machine too
+    // shallow to hold it.
+    const x = Math.min(
+      Math.max(back - 70 - width / 2, front + width / 2 + 10),
+      back - width / 2 - 24,
+    )
+    // And under the deck: the base is a wedge, so it is the shallow end of the
+    // fascia that decides how tall the fascia can be.
+    const bayHeight = Math.min(30, Math.max(9, heightAt(x - width / 2) - 9))
     const fascia = []
     fascia.push(box(width, bayHeight, 3, x - width / 2, 6, -W / 2 - 2))
     if (bay === 'cd' || bay === 'dvd') {
@@ -343,15 +386,18 @@ export function build(p) {
   // --- Lid ----------------------------------------------------------------
   const lidThickness = Math.max(8, thickness * 0.42)
   const lidW = W
-  const lidH = screenH + bezel * 2
+  const lidH = size.lidH
   const angle = (num(p, 'lidAngle') * Math.PI) / 180
   const lidShell = plate(rect(lidH, lidW, radius), 0, lidThickness, radius * 0.6, lidH / 2)
   const lidScreen = plate(rect(screenH, screenW, radius * 0.4), -1.5, 2.5, 0, lidH / 2)
-  const hinge = { x: back - 12, y: heightAt(back - 12) }
+  // The hinge line, lifted clear of the deck so a shut lid has the keys under
+  // it rather than through it.
+  const hinge = { x: back - HINGE_SETBACK, y: heightAt(back - HINGE_SETBACK) + deckClear }
   for (const g of [lidShell, lidScreen]) {
-    // Stood up on the hinge line and then laid back by the lid angle.
+    // Laid flat down the deck first — which is shut — and then opened by the
+    // angle asked for, so the deck's own rake carries into the lid.
     g.rotateZ(-Math.PI / 2)
-    g.rotateZ(angle)
+    g.rotateZ(Math.PI + deckSlope - angle)
     g.translate(hinge.x, hinge.y, 0)
   }
   shell.push(lidShell)
@@ -385,7 +431,9 @@ export function metrics(p) {
   const pitch = num(p, 'keyPitch')
 
   const closed = thickness + bulge + Math.max(8, thickness * 0.42)
-  const bayNeeds = bay === 'cd' || bay === 'dvd' ? 30 : bay === 'floppy' ? 24 : 0
+  // A slim optical drive is 12.7 mm; the fascia and the chassis round it take
+  // it to about twenty-two.
+  const bayNeeds = bay === 'cd' || bay === 'dvd' ? 22 : bay === 'floppy' ? 20 : 0
   const bayLevel = bayNeeds > thickness - 12 ? 'warn' : 'ok'
   const pitchLevel = pitch >= 18.5 ? 'ok' : pitch >= 16.5 ? 'warn' : 'error'
 
@@ -395,7 +443,7 @@ export function metrics(p) {
     {
       label: 'Footprint',
       value: `${formatLength(size.W)} × ${formatLength(size.D)}`,
-      note: 'Width from the panel or the keyboard, whichever is wider; depth from the keys and the palm rest.',
+      note: 'Width from the panel or the keyboard, whichever is wider; depth from the lid, or the keys and the palm rest if they want more.',
     },
     { label: 'Closed', value: `${formatLength(closed)} thick`, note: bulge ? 'Including the battery under the back.' : undefined },
     { label: 'Panel', value: `${num(p, 'panel')}″ ${size.aspect.label} — ${formatLength(size.screenW)} × ${formatLength(size.screenH)}` },
