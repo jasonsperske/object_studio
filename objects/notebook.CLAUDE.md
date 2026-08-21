@@ -16,6 +16,12 @@ keyboard**: `panel` and `aspect` set the width and how far back the lid goes, `k
 in the side — floppy, CD, DVD, a second battery or nothing — and `pointing` picks a trackball, a
 stick, a trackpad or both.
 
+**The two halves have to meet.** The base is never shallower than the lid is tall, because the lid
+folds onto it, so `palmrest` is a minimum rather than a measurement: ask for a big panel and the
+palm rest is what grows. `lidAngle` is measured off the deck the way a hinge is — **0 shuts it**,
+90 stands it up, and past that it leans back — and the deck's own rake carries into the lid, so a
+machine with the battery under the back opens from a tilted deck rather than a flat one.
+
 ## Worked examples
 
 - **"a mid-90s laptop"** → the `1995 luggable` preset
@@ -26,13 +32,14 @@ stick, a trackpad or both.
 ## Check the metrics
 
 It reports the key pitch as a percentage of full size and warns below about 18 mm, and it checks
-that the bay you asked for fits the thickness you asked for — a DVD wants about 30 mm of base.
-It also estimates the bulk in litres and kilograms.
+that the bay you asked for fits the thickness you asked for — a slim optical drive and the chassis
+round it want about 22 mm of base. It also gives the closed thickness and estimates the bulk in
+litres and kilograms.
 
 ## What it will not do
 
-No docking station, no ports beyond a token few, no closed-lid state that hides the keyboard
-properly. `lidAngle: 0` shuts it, but the machine is not modelled as a sealed object.
+No docking station and no ports beyond a token few. Shut, the lid lies on the deck a couple of
+millimetres clear of the keycaps — the seam a real one has — rather than sealing against it.
 
 ## Parameters
 
@@ -44,7 +51,7 @@ properly. `lidAngle: 0` shuts it, but the machine is not modelled as a sealed ob
 | `panel` | number | 8–17 ″, step 0.1 | `14.1` | Diagonal. This is what the width of the machine comes from. |
 | `aspect` | select | `fourThree`, `sixteenTen`, `sixteenNine` | `"fourThree"` |  |
 | `lidBezel` | number | 8–40 mm, step 1 | `20` |  |
-| `lidAngle` | number | 0–135 °, step 1 | `105` |  |
+| `lidAngle` | number | 0–135 °, step 1 | `105` | Measured off the deck, the way a hinge is: nought shuts it, ninety stands it up, past that it leans back. |
 | `screenOn` | boolean | `true`, `false` | `true` |  |
 | `latch` | boolean | `true`, `false` | `true` | The catch and the button that let it go. Later ones did without. |
 
