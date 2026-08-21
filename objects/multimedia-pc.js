@@ -47,8 +47,19 @@ const FINISH = {
   charcoal: { shell: 0x44464b, bezel: 0x3b3d42, trim: 0x9aa0a6 },
 }
 
+// What was either side of the monitor, and how big each of them was. The pair
+// in the box sat a drum on a base with the knobs on it; the towers were plastic
+// columns; the monitors were something somebody chose, with a mesh disc and a
+// row of controls under it.
+const SPEAKER = {
+  compact: { w: 106, d: 118, h: 152, label: 'the pair in the box' },
+  tower: { w: 92, d: 108, h: 264, label: 'plastic towers' },
+  monitors: { w: 134, d: 168, h: 212, label: 'powered studio monitors' },
+}
+
 const COLOR = {
   metal: 0xa9b0b6,
+  cloth: 0x8b8f93,
   isa: 0x1f5c3a,
   pci: 0xf0ece0,
   board: 0x2f6b45,
@@ -104,7 +115,20 @@ export const params = [
   { id: 'feet', label: 'Feet', type: 'boolean', default: true, group: 'Case' },
 
   // --- Desk ---------------------------------------------------------------
-  { id: 'speakers', label: 'Speakers', type: 'boolean', default: true, group: 'Desk', help: 'The pair that came in the box, one either side of the monitor.' },
+  {
+    id: 'speakers',
+    label: 'Speakers',
+    type: 'select',
+    default: 'compact',
+    group: 'Desk',
+    help: 'One either side of the monitor. What they are says as much about the machine as the case does.',
+    options: [
+      { value: 'none', label: 'None' },
+      { value: 'compact', label: 'The pair in the box — a drum on a base, knobs on one of them' },
+      { value: 'tower', label: 'Plastic towers, standing either side of the monitor' },
+      { value: 'monitors', label: 'Powered monitors — a mesh disc and a row of controls' },
+    ],
+  },
   {
     id: 'display',
     label: 'Monitor',
@@ -198,6 +222,146 @@ function fascia(kind, height, width, relief) {
   return { plastic, detail: merge(detail) }
 }
 
+/**
+ * The walls between two outlines of the same point count, one at each depth.
+ *
+ * `sweep` cannot do this job: it works by offsetting a single outline, and an
+ * offset deep enough to make a funnel collapses the rounded corners of it. The
+ * rim the walls then end on and the cap laid over that rim disagree by better
+ * than a centimetre, which is two faces fighting over the back of the monitor.
+ * Lofting between two outlines that were drawn separately keeps them the same
+ * shape by construction.
+ */
+function loft(a, ya, b, yb) {
+  const n = Math.min(a.length, b.length)
+  const position = []
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n
+    // Wound the way `sweep` winds it — top rim first — which is what puts the
+    // normals on the outside.
+    const quad = [
+      { x: a[i].x, y: ya, z: a[i].z },
+      { x: a[j].x, y: ya, z: a[j].z },
+      { x: b[j].x, y: yb, z: b[j].z },
+      { x: b[i].x, y: yb, z: b[i].z },
+    ]
+    for (const [u, v, w] of [[0, 1, 2], [0, 2, 3]]) {
+      for (const q of [quad[u], quad[v], quad[w]]) position.push(q.x, q.y, q.z)
+    }
+  }
+  const g = new THREE.BufferGeometry()
+  g.setAttribute('position', new THREE.Float32BufferAttribute(position, 3))
+  g.computeVertexNormals()
+  return g
+}
+
+/** A circle as a plan outline, for a round grille. */
+function circle(diameter, steps = 24) {
+  const pts = []
+  for (let i = 0; i < steps; i++) {
+    const a = (Math.PI * 2 * i) / steps
+    pts.push({ x: (Math.cos(a) * diameter) / 2, z: (Math.sin(a) * diameter) / 2 })
+  }
+  return ring(pts)
+}
+
+/** What a chosen monitor measures, which is what the desk is laid out around. */
+function displaySize(display) {
+  if (display === 'none') return null
+  const inches = display === 'crt14' ? 14 : display === 'crt17' ? 17 : 15
+  const diagonal = inches * 25.4
+  const screenW = diagonal * 0.79
+  const screenH = diagonal * 0.59
+  const surround = 26
+  return {
+    screenW,
+    screenH,
+    caseW: screenW + surround * 2,
+    caseH: screenH + surround * 2,
+    depth: Math.max(340, screenW * 0.95),
+  }
+}
+
+/**
+ * A speaker, built about the origin with its grille facing -X and standing on
+ * the desk. `controls` puts the knobs on this one — on a cheap pair they were
+ * on one of the two and the other was the slave, on a lead.
+ */
+function speaker(kind, controls) {
+  const size = SPEAKER[kind]
+  const shell = []
+  const cloth = []
+  const dark = []
+  const knobs = []
+  const lamps = []
+  const front = -size.d / 2
+
+  if (kind === 'compact') {
+    // A base with the knobs on it, and a rounded drum leaning back off it.
+    const baseH = 46
+    shell.push(profiledBoard(rect(size.d, size.w, 12), 0, baseH, 'rounded', 8))
+    const headH = size.h - baseH + 14
+    const headD = size.d * 0.58
+    const head = plate(rect(headH, size.w - 8, 22), -headD, headD, 12, 0)
+    const cover = plate(rect(headH - 28, size.w - 34, 16), -headD - 1.2, 1.6, 0, 0)
+    const lean = (10 * Math.PI) / 180
+    for (const g of [head, cover]) {
+      g.rotateZ(-lean)
+      g.translate(size.d * 0.05, baseH - 10 + headH / 2, 0)
+    }
+    shell.push(head)
+    cloth.push(cover)
+    if (controls) {
+      knobs.push(socket(24, 9, front - 6, baseH - 20, -size.w * 0.28))
+      for (let i = 0; i < 2; i++) {
+        knobs.push(socket(15, 7, front - 5, baseH - 22, size.w * 0.04 + i * 26))
+      }
+      lamps.push(box(4, 5, 5, front - 3, baseH - 20, -size.w * 0.05))
+    }
+  } else if (kind === 'tower') {
+    shell.push(profiledBoard(rect(size.d, size.w, 10), 0, size.h, 'rounded', 7))
+    cloth.push(plate(rect(size.h - 46, size.w - 14, 8), front - 1.2, 1.6, 0, size.h / 2))
+    // A tweeter up the top and a woofer down the bottom, behind the cloth.
+    dark.push(socket(32, 3, front - 3.4, size.h * 0.76, 0))
+    dark.push(socket(64, 3, front - 3.4, size.h * 0.34, 0))
+    if (controls) {
+      knobs.push(socket(18, 8, front - 5, 30, size.w * 0.16))
+      lamps.push(box(4, 5, 5, front - 3, 30, -size.w * 0.18))
+    }
+  } else {
+    // A cabinet with a moulded ring round the driver and the mesh sunk inside
+    // it, and the controls in a strip along the bottom.
+    shell.push(profiledBoard(rect(size.d, size.w, 12), 0, size.h, 'rounded', 9))
+    const dia = Math.min(size.w - 26, size.h * 0.5)
+    const cy = size.h * 0.58
+    const surround = sweep(
+      plan(circle(dia + 20)),
+      [
+        { inset: 0, y: 7 },
+        { inset: 0, y: 0 },
+        { inset: 10, y: 0 },
+        { inset: 10, y: 7 },
+      ],
+      true,
+    )
+    if (surround) {
+      faceForward(surround)
+      surround.translate(front, cy, 0)
+      shell.push(surround)
+    }
+    cloth.push(socket(dia + 6, 4, front - 4, cy, 0))
+    dark.push(socket(dia * 0.3, 2, front - 5, cy, 0))
+    const strip = 34
+    dark.push(box(4, strip, size.w - 18, front - 1, 9, -(size.w - 18) / 2))
+    for (let i = 0; i < 3; i++) {
+      knobs.push(socket(13, 7, front - 6, 9 + strip * 0.6, -size.w * 0.3 + i * 18))
+    }
+    lamps.push(box(4, 5, 5, front - 4, 9 + strip * 0.6, size.w * 0.06))
+    knobs.push(box(6, 13, 18, front - 5, 9 + strip * 0.3, size.w * 0.18))
+  }
+  return { shell, cloth, dark, knobs, lamps }
+}
+
 /** A desktop keyboard of the period, built about the origin. */
 function keyboard(pitch) {
   const columns = 17
@@ -263,6 +427,8 @@ export function build(p) {
   const slotsMetal = []
   const lamps = []
   const glass = []
+  const speakerShell = []
+  const cloth = []
   const parts = []
 
   // --- Case ---------------------------------------------------------------
@@ -385,8 +551,16 @@ export function build(p) {
   // the monitor rather than under it. Everything after this is desk furniture
   // and stays where it is.
   const display = str(p, 'display')
+  const monitor = displaySize(display)
+  const speakerKind = str(p, 'speakers')
+  const spk = SPEAKER[speakerKind] ?? null
+  // The desk is laid out from the middle: the monitor, a speaker either side of
+  // it, and the tower beyond the lot rather than through any of it.
+  const deskHalf = monitor ? monitor.caseW / 2 : 150
+  const speakerZ = spk ? deskHalf + 30 + spk.w / 2 : 0
+  const deskEdge = spk ? speakerZ + spk.w / 2 : deskHalf
   const stand = bool(p, 'feet') ? 5 : 0
-  const towerZ = display === 'none' ? 0 : -(W / 2 + 250)
+  const towerZ = !monitor && !spk ? 0 : -(W / 2 + deskEdge + 60)
   for (const list of [shell, bezel, detail, dark, metal, boards, slotsMetal, lamps]) {
     for (const g of list) if (g) g.translate(0, stand, towerZ)
   }
@@ -399,35 +573,34 @@ export function build(p) {
     }
   }
 
-  if (display !== 'none') {
-    const inches = display === 'crt14' ? 14 : display === 'crt17' ? 17 : 15
-    const diagonal = inches * 25.4
-    const screenW = diagonal * 0.79
-    const screenH = diagonal * 0.59
-    const surroundWidth = 26
-    const caseW = screenW + surroundWidth * 2
-    const caseH = screenH + surroundWidth * 2
-    const depth = Math.max(340, screenW * 0.95)
+  const monitorFront = front + 40
+  if (monitor) {
+    const { screenW, screenH, caseW, caseH, depth } = monitor
     const stand = 40
-    const monitorFront = front + 40
 
-    const faceOutline = plan(rect(caseH, caseW, 16))
+    // The case, and the funnel behind it drawn in to the neck. Both rims are
+    // drawn as outlines in their own right, so the walls and the cap over them
+    // are the same shape.
+    // Both rims are drawn as outlines in their own right, straight from `rect`
+    // rather than through `plan`: the two have to correspond point for point,
+    // and `plan` hulls what it is given, which is free to start the ring
+    // somewhere else and twist the loft.
+    const corner = 16
     const neck = Math.min(caseH, caseW) * 0.26
+    const frontRim = rect(caseH, caseW, corner)
+    const backRim = rect(
+      Math.max(60, caseH - neck * 2),
+      Math.max(60, caseW - neck * 2),
+      Math.max(2, corner - neck * 0.25),
+    )
     const aperture = ring(rect(screenH, screenW, 12)).slice().reverse()
     const body = faceForward(
       merge(
         [
-          sweep(
-            faceOutline,
-            [
-              { inset: 0, y: depth },
-              { inset: 0, y: depth * 0.62 },
-              { inset: neck, y: 0 },
-            ],
-            false,
-          ),
-          face([faceOutline.pts, aperture], depth, true),
-          face([hull(faceOutline.offset(neck))], 0, false),
+          loft(frontRim, depth, frontRim, depth * 0.62),
+          loft(frontRim, depth * 0.62, backRim, 0),
+          face([frontRim, aperture], depth, true),
+          face([backRim], 0, false),
         ].filter(Boolean),
       ),
     )
@@ -439,12 +612,30 @@ export function build(p) {
     for (let i = 0; i < 5; i++) {
       detail.push(box(6, 8, 14, monitorFront - 5, stand + 12, -caseW * 0.3 + i * 22))
     }
-    if (bool(p, 'speakers')) {
-      for (const side of [-1, 1]) {
-        const z = side * (caseW / 2 + 60)
-        const speakerOutline = rect(110, 96, 8)
-        detail.push(profiledBoard(speakerOutline, 0, 190, 'rounded', 6).translate(monitorFront + 60, 0, z))
-        dark.push(socket(70, 4, monitorFront + 54, 120, z))
+  }
+
+  if (spk) {
+    for (const side of [-1, 1]) {
+      // A cheap pair had the knobs on one of them; powered monitors each had
+      // their own.
+      const piece = speaker(speakerKind, side > 0 || speakerKind === 'monitors')
+      const at = new THREE.Matrix4().makeTranslation(
+        monitorFront + 40 + spk.d / 2,
+        0,
+        side * speakerZ,
+      )
+      for (const [list, into] of [
+        [piece.shell, speakerShell],
+        [piece.cloth, cloth],
+        [piece.dark, dark],
+        [piece.knobs, detail],
+        [piece.lamps, lamps],
+      ]) {
+        for (const g of list) {
+          if (!g) continue
+          g.applyMatrix4(at)
+          into.push(g)
+        }
       }
     }
   }
@@ -472,6 +663,8 @@ export function build(p) {
   add('slot-brackets', slotsMetal, COLOR.metal)
   add('chassis', metal, COLOR.metal)
   add('boards', boards, COLOR.board)
+  add('speakers', speakerShell, finish.shell)
+  add('speaker grilles', cloth, COLOR.cloth)
   add('lamps', lamps, COLOR.power)
   add('screen', glass, bool(p, 'screenOn') ? 0x9fb8d8 : COLOR.screen)
 
@@ -524,6 +717,13 @@ export function metrics(p) {
     },
     { label: 'Floor taken', value: `${((W * D) / 1e6).toFixed(2)} m²` },
   ]
+  const spk = SPEAKER[str(p, 'speakers')]
+  if (spk) {
+    rows.push({
+      label: 'Speakers',
+      value: `${spk.label} — ${formatLength(spk.w)} × ${formatLength(spk.d)} × ${formatLength(spk.h)} each`,
+    })
+  }
   return rows
 }
 
@@ -532,7 +732,7 @@ export const presets = [
     name: '1995 multimedia bundle',
     params: {
       board: 'babyAt', isaCards: 2, pciCards: 1, bays525: 2, optical: 1, bays35: 1,
-      floppy: true, hardDisks: 1, finish: 'beige', speakers: true, display: 'crt14',
+      floppy: true, hardDisks: 1, finish: 'beige', speakers: 'compact', display: 'crt14',
       keyboard: true, resetButton: true,
     },
   },
@@ -540,7 +740,7 @@ export const presets = [
     name: '1997 office ATX',
     params: {
       board: 'atx', isaCards: 1, pciCards: 2, bays525: 2, optical: 1, bays35: 1,
-      floppy: true, hardDisks: 1, finish: 'putty', speakers: false, display: 'crt15',
+      floppy: true, hardDisks: 1, finish: 'putty', speakers: 'tower', display: 'crt15',
       keyboard: true,
     },
   },
@@ -548,7 +748,7 @@ export const presets = [
     name: '1999 CD-burner tower',
     params: {
       board: 'atx', isaCards: 1, pciCards: 4, bays525: 3, optical: 2, tapeDrive: false,
-      bays35: 1, floppy: true, hardDisks: 2, finish: 'white', speakers: true,
+      bays35: 1, floppy: true, hardDisks: 2, finish: 'white', speakers: 'monitors',
       display: 'crt17', screenOn: true, keyboard: true,
     },
   },
@@ -556,7 +756,7 @@ export const presets = [
     name: '2000 small footprint',
     params: {
       board: 'microAtx', isaCards: 0, pciCards: 2, bays525: 1, optical: 1, bays35: 1,
-      floppy: true, hardDisks: 1, finish: 'putty', speakers: false, display: 'crt15',
+      floppy: true, hardDisks: 1, finish: 'putty', speakers: 'none', display: 'crt15',
       keyboard: true, badge: false,
     },
   },
@@ -565,7 +765,7 @@ export const presets = [
     params: {
       board: 'atx', isaCards: 2, pciCards: 3, bays525: 3, optical: 1, tapeDrive: true,
       bays35: 2, floppy: true, hardDisks: 3, finish: 'beige', cutaway: true,
-      speakers: false, display: 'none', keyboard: false,
+      speakers: 'none', display: 'none', keyboard: false,
     },
   },
 ]
