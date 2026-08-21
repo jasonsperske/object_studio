@@ -12,9 +12,15 @@ earlier is `multimedia-pc`.
 ## What matters most
 
 `board` sets the footprint and the slot count; `graphicsCard` is on by default and takes two of
-those slots. `bays525` and `hardDisks` drive the height. `window`, `frontMesh`, `finish` and the
-three fan toggles carry most of the character — a windowed black case with three 140 mm fans reads
-as a gaming machine without any other change.
+those slots. `bays525` and `hardDisks` drive the height, and so does `rearFan`: the exhaust goes
+above the port block, and on a full-size board a 140 mm fan is what makes a mid-tower as tall as
+it is. `window`, `frontMesh`, `finish` and the three fan toggles carry most of the character — a
+windowed black case with three 140 mm fans reads as a gaming machine without any other change.
+
+**The window is an opening.** Turning it on puts the innards in — board, cards, cooler, supply and
+drives — because there is now something to see through it. It is in the left-hand panel, the one
+you take off, so it shows from the Left view rather than the default three-quarter one. `cutaway`
+takes that panel off altogether.
 
 ## Worked examples
 
@@ -31,8 +37,8 @@ at all.
 
 ## What it will not do
 
-No liquid cooling, no RGB lighting, no cable management to look at. The window is a flat panel, not
-tinted glass.
+No liquid cooling, no RGB lighting, no cable management to look at. The window is an opening with
+an acrylic rim round it, not a tinted pane — the studio has no transparency to give it.
 
 ## Parameters
 
