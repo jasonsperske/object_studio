@@ -131,12 +131,16 @@ export const params = [
 // Size
 // ---------------------------------------------------------------------------
 
-function caseSize(board, bays525, cardReader, hardDisks) {
+function caseSize(board, bays525, cardReader, hardDisks, exhaust = 0) {
   const stack = bays525 * BAY.ext525.h + (cardReader ? BAY.ext35.h : 0) + hardDisks * BAY.int35.h
+  // The back panel has to take the slots, the port block above them and the
+  // exhaust fan above that. On a full-size board with a big fan that is what
+  // decides the height, which is why a mid-tower is the height it is.
+  const backRun = board.slots * SLOT_PITCH + 56 + (exhaust ? exhaust + 16 : 0)
   return {
     W: CARD_HEIGHT + 88,
     D: board.d + 130,
-    H: Math.max(board.h + 70, stack + 90) + PSU_HEIGHT + 24,
+    H: Math.max(board.h + 70, stack + 90, backRun) + PSU_HEIGHT + 24,
     stack,
   }
 }
@@ -213,9 +217,15 @@ function fascia(kind, height, width, relief) {
     detail.push(box(relief + 2, 3, width * 0.84, -relief - 1, height * 0.06, -width * 0.42))
     detail.push(box(relief + 2, 4, 10, -relief - 1, -height * 0.3, width * 0.3))
   } else if (kind === 'reader') {
+    // Four card slots in a row across the fascia, with a socket at the end of
+    // them: all of it inside the opening, which is 25.4 mm and no more.
+    const slotW = Math.min(17, width * 0.17)
+    const pitch = slotW + 5
+    const run = 4 * pitch - 5
     for (let i = 0; i < 4; i++) {
-      detail.push(box(relief + 2, 3, 16, -relief - 1, -height * 0.24 + i * 6, -width * 0.4 + i * 22))
+      detail.push(box(relief + 1.5, 3.5, slotW, -relief - 0.75, -1.75, -width * 0.44 + i * pitch))
     }
+    detail.push(box(relief + 1.5, 6, 14, -relief - 0.75, -3, -width * 0.44 + run + 12))
   } else if (kind === 'controller') {
     detail.push(box(relief + 2, height * 0.44, width * 0.42, -relief - 1, -height * 0.1, -width * 0.44))
     for (let i = 0; i < 4; i++) {
@@ -225,6 +235,19 @@ function fascia(kind, height, width, relief) {
     detail.push(box(relief + 0.5, height * 0.5, width * 0.86, -relief - 0.25, -height * 0.25, -width * 0.43))
   }
   return { plastic, detail: merge(detail) }
+}
+
+/** What a chosen display measures, which is what the tower has to stand clear of. */
+function displaySize(display) {
+  if (display === 'none') return null
+  const crt = display === 'crt19'
+  const inches = display === 'wide27' ? 27 : display === 'wide22' ? 22 : 19
+  const diagonal = inches * 25.4
+  const wide = !crt && display !== 'wide19'
+  const screenW = diagonal * (wide ? 0.872 : 0.79)
+  const screenH = diagonal * (wide ? 0.49 : 0.59)
+  const surround = crt ? 26 : 16
+  return { crt, screenW, screenH, caseW: screenW + surround * 2, caseH: screenH + surround * 2 }
 }
 
 function keyboard(pitch) {
@@ -274,12 +297,18 @@ export function build(p) {
   const otherCards = Math.round(num(p, 'cards'))
   const fanSize = num(p, 'fanSize')
 
-  const { W, D, H } = caseSize(board, bays525, cardReader, hardDisks)
+  const { W, D, H } = caseSize(board, bays525, cardReader, hardDisks, bool(p, 'rearFan') ? fanSize : 0)
   const front = -D / 2
   const back = D / 2
   const wall = 2.5
   const radius = 4
   const OPEN = -1
+
+  // A window is an opening in the near panel, so what is behind it has to be
+  // there to be seen: the innards go in for a window as well as for a panel
+  // taken right off.
+  const windowed = !cutaway && bool(p, 'window')
+  const inside = cutaway || windowed
 
   const shell = []
   const bezel = []
@@ -298,11 +327,24 @@ export function build(p) {
   shell.push(profiledBoard(outline, H - wall * 2, wall * 2, 'chamfer', 2))
   for (const side of [-1, 1]) {
     if (cutaway && side === OPEN) continue
-    if (side === OPEN && bool(p, 'window')) {
-      // A window cut in the near panel, with acrylic in it.
-      const frame = box(D, H, wall * 2, front, 0, side * (W / 2))
-      shell.push(frame)
-      glassy.push(box(1.5, H * 0.62, D * 0.66, front + D * 0.2, H * 0.2, side * (W / 2) + 0.5))
+    if (side === OPEN && windowed) {
+      // The panel is built as four bars round the opening, and the acrylic is
+      // the rim standing in it. The panel lies in the X–Y plane, so the pane's
+      // thickness runs along Z with everything else in the wall.
+      const z = side * (W / 2)
+      const x0 = Math.max(front + 30, back - 80 - board.d)
+      const x1 = back - 24
+      const y0 = Math.max(30, wall * 2 + PSU_HEIGHT + 14)
+      const y1 = Math.min(H - 30, y0 + board.h + 40)
+      shell.push(box(D, y0, wall * 2, front, 0, z))
+      shell.push(box(D, H - y1, wall * 2, front, y1, z))
+      shell.push(box(x0 - front, y1 - y0, wall * 2, front, y0, z))
+      shell.push(box(back - x1, y1 - y0, wall * 2, x1, y0, z))
+      const rim = 4
+      glassy.push(box(x1 - x0, rim, wall * 2, x0, y0, z))
+      glassy.push(box(x1 - x0, rim, wall * 2, x0, y1 - rim, z))
+      glassy.push(box(rim, y1 - y0 - rim * 2, wall * 2, x0, y0 + rim, z))
+      glassy.push(box(rim, y1 - y0 - rim * 2, wall * 2, x1 - rim, y0 + rim, z))
       continue
     }
     shell.push(box(D, H, wall * 2, front, 0, side * (W / 2) - (side > 0 ? wall * 2 : 0)))
@@ -338,7 +380,7 @@ export function build(p) {
     piece.detail.applyMatrix4(at)
     bezel.push(piece.plastic)
     dark.push(piece.detail)
-    if (cutaway && kind !== 'blank') {
+    if (inside && kind !== 'blank') {
       metal.push(box(opening.big ? 180 : 130, opening.h - 4, opening.w - 8, front + 14, opening.y - (opening.h - 4) / 2, -(opening.w - 8) / 2))
     }
   }
@@ -367,20 +409,31 @@ export function build(p) {
 
   // --- Back ---------------------------------------------------------------
   const slotBase = wall * 2 + PSU_HEIGHT + 24
-  const slotZ = OPEN * (W / 2 - 30)
   const slotsUsed = Math.min(board.slots, (graphics ? 2 : 0) + otherCards)
+  // The board stands against the far wall and the brackets lie in its plane, so
+  // an opening runs from that wall inwards, a card's height across the panel.
+  const mbZ = -OPEN * (W / 2 - 16)
+  const bracketZ = OPEN > 0 ? mbZ : mbZ - CARD_HEIGHT
+  // Everything on the back stands a whisker proud of the panel. Anything left
+  // behind it is inside the case, which is to say invisible.
+  const outer = back - wall * 2 + 1
   for (let i = 0; i < board.slots; i++) {
-    metal.push(box(wall * 2, 18, SLOT_PITCH - 2, back - wall * 4, slotBase + i * SLOT_PITCH, slotZ - 9))
+    const y = slotBase + i * SLOT_PITCH
+    metal.push(box(wall * 2, SLOT_PITCH - 2, CARD_HEIGHT, outer, y, bracketZ))
     if (i < slotsUsed) {
-      dark.push(box(4, 9, 24, back - wall * 5, slotBase + i * SLOT_PITCH + 4, slotZ - 12))
+      // The card's own connectors, out through the opening it fills.
+      dark.push(box(5, SLOT_PITCH - 8, CARD_HEIGHT * 0.44, outer + 0.5, y + 3, bracketZ + CARD_HEIGHT * 0.28))
     }
   }
-  // The port block, and the supply down at the floor of the case.
-  dark.push(box(5, 44, 160, back - wall * 2 - 4, slotBase + board.slots * SLOT_PITCH + 12, -80))
-  dark.push(box(6, 30, 26, back - wall * 2 - 5, wall * 2 + 24, W / 2 - 60))
+  // The port block sits straight above the slots, in the plane of the board.
+  dark.push(box(5, 44, 160, outer, slotBase + board.slots * SLOT_PITCH + 6, mbZ - 160))
+  dark.push(box(6, 30, 26, outer - 1, wall * 2 + 24, -mbZ + 20))
   if (bool(p, 'rearFan')) {
     const g = fan(fanSize)
-    g.translate(back - wall * 2 - 4, slotBase + board.slots * SLOT_PITCH + 12 + fanSize / 2 + 6, W / 2 - fanSize / 2 - 24)
+    // Up at the top of the panel, clear of the ports, which is where the case
+    // was made tall enough to take it. It sits in the panel rather than behind
+    // it, or the blades would be buried in five millimetres of steel.
+    g.translate(back - 1, H - wall * 2 - 10 - fanSize / 2, W / 2 - fanSize / 2 - 24)
     detail.push(g)
   }
   if (bool(p, 'frontFan')) {
@@ -391,12 +444,12 @@ export function build(p) {
   if (bool(p, 'topFan')) {
     const g = fan(fanSize)
     g.rotateZ(Math.PI / 2)
-    g.translate(back - 140, H - wall * 2 - 4, 0)
+    g.translate(back - 140, H - 1, 0)
     detail.push(g)
   }
 
   // --- Innards ------------------------------------------------------------
-  if (cutaway) {
+  if (inside) {
     const mbZ = -OPEN * (W / 2 - 16)
     const stand = (thickness, gap = 5) => (OPEN > 0 ? mbZ + gap : mbZ - gap - thickness)
     boards.push(box(board.d, board.h, 1.6, back - 46 - board.d, slotBase - 14, mbZ))
@@ -429,8 +482,12 @@ export function build(p) {
   }
 
   // --- Stand it where it goes ---------------------------------------------
+  //
+  // Beside the monitor rather than through it: how far over depends on how wide
+  // the monitor is, which is the whole point of asking for a 27-inch one.
   const display = str(p, 'display')
-  const towerZ = display === 'none' ? 0 : -(W / 2 + 300)
+  const monitor = displaySize(display)
+  const towerZ = monitor ? -(W / 2 + monitor.caseW / 2 + 90) : 0
   const stand = 12
   for (const list of [shell, bezel, detail, dark, metal, boards, glassy, lamps]) {
     for (const g of list) if (g) g.translate(0, stand, towerZ)
@@ -443,16 +500,8 @@ export function build(p) {
   }
 
   // --- Desk ---------------------------------------------------------------
-  if (display !== 'none') {
-    const crt = display === 'crt19'
-    const inches = display === 'wide27' ? 27 : display === 'wide22' ? 22 : 19
-    const diagonal = inches * 25.4
-    const wide = !crt && display !== 'wide19'
-    const screenW = diagonal * (wide ? 0.872 : 0.79)
-    const screenH = diagonal * (wide ? 0.49 : 0.59)
-    const surround = crt ? 26 : 16
-    const caseW = screenW + surround * 2
-    const caseH = screenH + surround * 2
+  if (monitor) {
+    const { crt, screenW, screenH, caseW, caseH } = monitor
     const monitorFront = front + 60
 
     if (crt) {
@@ -520,7 +569,7 @@ export function metrics(p) {
   const bays525 = Math.round(num(p, 'bays525'))
   const cardReader = bool(p, 'cardReader')
   const hardDisks = Math.round(num(p, 'hardDisks'))
-  const { W, D, H, stack } = caseSize(board, bays525, cardReader, hardDisks)
+  const { W, D, H, stack } = caseSize(board, bays525, cardReader, hardDisks, bool(p, 'rearFan') ? num(p, 'fanSize') : 0)
 
   const graphics = bool(p, 'graphicsCard')
   const otherCards = Math.round(num(p, 'cards'))
