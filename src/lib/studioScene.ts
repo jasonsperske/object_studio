@@ -113,13 +113,15 @@ export class StudioScene {
     for (const part of parts) {
       const material = new THREE.MeshStandardMaterial({
         color: part.color ?? 0xb9bec7,
+        map: part.map ?? null,
+        alphaTest: part.map ? 0.01 : 0, transparent: Boolean(part.map), depthWrite: !part.map,
         roughness: 0.68,
         metalness: 0.05,
         wireframe: this.display.wireframe,
       })
       const mesh = new THREE.Mesh(part.geometry, material)
       mesh.name = part.name
-      mesh.castShadow = true
+      mesh.castShadow = !part.map
       mesh.receiveShadow = true
       this.modelGroup.add(mesh)
 
@@ -131,7 +133,8 @@ export class StudioScene {
           opacity: this.theme.edgeOpacity,
         }),
       )
-      edges.visible = this.display.edges
+      edges.userData.surface = Boolean(part.map)
+      edges.visible = this.display.edges && !part.map
       this.edgeGroup.add(edges)
     }
 
@@ -344,9 +347,9 @@ export class StudioScene {
     for (const child of this.modelGroup.children) {
       const material = (child as THREE.Mesh).material as THREE.MeshStandardMaterial
       material.wireframe = options.wireframe
-      ;(child as THREE.Mesh).castShadow = options.shadows
+      ;(child as THREE.Mesh).castShadow = options.shadows && !material.map
     }
-    for (const child of this.edgeGroup.children) child.visible = options.edges
+    for (const child of this.edgeGroup.children) child.visible = options.edges && !child.userData.surface
     this.grid.visible = options.grid
     this.ground.visible = options.shadows
     this.sun.castShadow = options.shadows

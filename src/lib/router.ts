@@ -1,3 +1,4 @@
+import { normalizeLod, type LodOptions } from './lod'
 import type { Params } from '../types'
 
 /**
@@ -13,7 +14,7 @@ import type { Params } from '../types'
 
 const BASE = import.meta.env.BASE_URL.replace(/\/+$/, '')
 
-export type Route = { kind: 'gallery' } | { kind: 'object'; objectId: string; params: Params | null }
+export type Route = { kind: 'gallery' } | { kind: 'object'; objectId: string; params: Params | null; lod?: LodOptions }
 
 // --- base64url ------------------------------------------------------------
 
@@ -34,6 +35,7 @@ interface HashPayload {
   /** Only present in v1 links, which carried the object id in the hash. */
   objectId?: string
   params: Params
+  lod?: LodOptions
 }
 
 function decodeHash(hash: string): HashPayload | null {
@@ -42,20 +44,22 @@ function decodeHash(hash: string): HashPayload | null {
   try {
     const parsed = JSON.parse(fromBase64Url(raw.slice(2))) as {
       objectId?: unknown
+      lod?: LodOptions
       params?: unknown
     }
     if (!parsed?.params || typeof parsed.params !== 'object') return null
     return {
       objectId: typeof parsed.objectId === 'string' ? parsed.objectId : undefined,
       params: parsed.params as Params,
+      lod: normalizeLod(parsed.lod),
     }
   } catch {
     return null
   }
 }
 
-export function encodeParams(params: Params): string {
-  return toBase64Url(JSON.stringify({ v: 2, params }))
+export function encodeParams(params: Params, lod?: LodOptions): string {
+  return toBase64Url(JSON.stringify({ v: 2, params, ...(lod && lod.detail < 100 ? { lod } : {}) }))
 }
 
 // --- parsing --------------------------------------------------------------
@@ -68,10 +72,10 @@ export function parseLocation(): Route {
 
   if (!segment) {
     // A v1 link — /#m={objectId + params} — still resolves to its object.
-    if (hash?.objectId) return { kind: 'object', objectId: hash.objectId, params: hash.params }
+    if (hash?.objectId) return { kind: 'object', objectId: hash.objectId, params: hash.params, lod: hash.lod }
     return { kind: 'gallery' }
   }
-  return { kind: 'object', objectId: decodeURIComponent(segment), params: hash?.params ?? null }
+  return { kind: 'object', objectId: decodeURIComponent(segment), params: hash?.params ?? null, lod: hash?.lod }
 }
 
 // --- building -------------------------------------------------------------
@@ -84,9 +88,9 @@ export function galleryUrl(): string {
  * `/{objectId}` for defaults, `/{objectId}/#m=…` once properties are attached.
  * Both spellings parse, so the trailing slash is cosmetic.
  */
-export function objectUrl(objectId: string, params?: Params | null): string {
+export function objectUrl(objectId: string, params?: Params | null, lod?: LodOptions): string {
   const path = `${BASE}/${encodeURIComponent(objectId)}`
-  return params ? `${path}/#m=${encodeParams(params)}` : path
+  return params || (lod && lod.detail < 100) ? `${path}/#m=${encodeParams(params ?? {}, lod)}` : path
 }
 
 /** Adds a history entry — used when moving between objects. */

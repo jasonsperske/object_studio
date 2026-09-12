@@ -305,6 +305,7 @@ export default function App() {
           definition={entry.definition}
           compileError={entry.error}
           initialParams={route.params}
+          initialLod={route.lod}
           initialPane={createdId === entry.id ? 'source' : 'viewer'}
           source={sources[entry.id] ?? ''}
           savedSource={savedSources[entry.id] ?? ''}

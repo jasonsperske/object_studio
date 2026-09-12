@@ -215,7 +215,7 @@ export function build(p) {
   // Sparse deterministic paint chips around exposed edges, as in the photos.
   let seed=750;function rand(){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296}
   for(let i=0;i<390;i++) {let x,y,z;if(i<170){x=(rand()-.5)*380;y=rand()<.5?7+rand()*5:181+rand()*5;z=i<170&&y<20?4:23}else if(i<270){x=(rand()<.5?-1:1)*(184+rand()*7);y=12+rand()*485;z=6}else{x=(rand()-.5)*365;y=185+rand()*305;z=5.1}const r=.35+rand()*1.4;const g=new THREE.CircleGeometry(r,5);g.scale(1,.45+rand(),1);g.rotateZ(rand()*6);g.translate(x,y,z);add('Worn paint flecks',g,i%3?0x8b8c77:0xb3ac90)}
-  for(const {name,color,gs} of groups.values()) {parts.push({name,color,geometry:merge(gs)});gs.forEach(g=>g.dispose())}
+  for(const {name,color,gs} of groups.values()) {parts.push({name,color,geometry:merge(gs),...(name==='Engraved ivory legends'?{lod:{surface:'z'}}:{})});gs.forEach(g=>g.dispose())}
   return parts;
 }
 

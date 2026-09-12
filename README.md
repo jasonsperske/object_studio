@@ -187,6 +187,65 @@ body. An explicit `return { params, build, metrics }` works too.
   centred on `Z = 0`. The Front view is then the long side
 - Dimensions are millimetres
 
+## Level of detail
+
+Open an object’s **Detail** tab to reduce its output geometry. The default, **100%**,
+uses the original parts and buffers without simplification or baking. Lower values
+increase reduction strength; they are not a target percentage of triangles. The panel
+shows the actual original/output counts and reduction percentage.
+
+Two strategies are available:
+
+- **Geometry only:** spatially cluster vertices while protecting open boundaries,
+  disconnected pieces and part bounds. Marked surface lettering remains geometry.
+- **Geometry + surface textures:** additionally rasterize explicitly marked flat
+  details, such as the field radio’s lettering, onto transparent planes. This keeps
+  the appearance with fewer triangles, at the cost of texture memory and resolution.
+
+**Shape tolerance** sets the largest clustering cell as a percentage of each part’s
+bounding-box diagonal (reached at 0% detail). Lower tolerance preserves contours more
+closely. **Preserve original surface shading** retains the generator’s normals;
+unchecking it produces flat triangle shading. **Texture resolution** controls the
+longest edge of each baked layer, from 256 to 2048 pixels. Reduction is conservative:
+some already-simple parts cannot safely lose triangles, and coarse settings may visibly
+change small contours. This is a preview/export optimization, not a watertight remesher.
+
+Detail settings travel with share links, saved presets and parameter JSON. The gallery
+continues to render original geometry. Updates are coalesced and cancellable between
+parts; the original remains available and **Restore full detail** is immediate.
+
+**glTF and GLB** embed the baked images. **STL, OBJ and PLY** retain simplified structural
+geometry but restore the original geometry for texture-baked details, so text does not
+become solid rectangles. The export panel reports the triangle count for that format.
+PNG captures the displayed level of detail.
+
+### Marking details for texture baking
+
+Generators may add `lod: { surface: 'z' }` to a part containing flat, front-facing XY
+triangles. The field radio marks its ivory legends this way. Each distinct Z layer is
+baked separately; up to 16 layers per marked part are supported. Unsupported or mixed
+nonplanar geometry is preserved. Decoration is never selected by guessing from its name.
+
+```js
+return [{ name: 'Lettering', geometry: letters, color: 0xd6cfab,
+  lod: { surface: 'z' } }]
+```
+
+Raised lettering, relief and curved surface features remain geometry in this first
+implementation. There is no displacement/normal-map baking: flat printed labels do not
+need it, and displacement would require a separately defined support surface and relief
+range. Baked parts use `map: THREE.Texture`, understood by the viewer and glTF/GLB exports.
+Sources remain the original procedural definitions; reduction never rewrites them.
+
+### Checking the reducer
+
+`npm run test:lod` runs geometry, cancellation, settings and GLB packing checks, including
+bounds/finite-coordinate checks for all default objects. For actual canvas and export
+checks, run the dev server and open `/tools/lod-check.html`. The browser harness checks
+transparent glyph holes, embedded glTF/GLB images and the STL fallback, and renders the
+full-detail radio beside its texture-assisted reduction. This harness is not included
+in the production site.
+
 ## Editing and saving
 
 The **Source** button in the right-hand panel opens a CodeMirror editor on the current object.

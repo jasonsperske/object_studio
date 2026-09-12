@@ -1,9 +1,11 @@
+import type { LodOptions } from './lod'
 import type { Params } from '../types'
 
 /** A saved configuration: which object, and the parameters it was built with. */
 export interface Recipe {
   objectId: string
   params: Params
+  lod?: LodOptions
   name?: string
   /** Bumped if the recipe format ever changes. */
   v?: number

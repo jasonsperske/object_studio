@@ -29,7 +29,6 @@ const Viewport = forwardRef<ViewportHandle, Props>(function Viewport(
 ) {
   const containerRef = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<StudioScene | null>(null)
-  const previousParts = useRef<Part[]>([])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -45,12 +44,6 @@ const Viewport = forwardRef<ViewportHandle, Props>(function Viewport(
     const scene = sceneRef.current
     if (!scene) return
     scene.setParts(parts)
-    // Free the previous build's buffers, which the scene no longer references.
-    // The identity check matters under StrictMode, where effects re-run with
-    // the same parts array and would otherwise dispose the live geometry.
-    const previous = previousParts.current
-    previousParts.current = parts
-    if (previous !== parts) for (const part of previous) part.geometry.dispose()
   }, [parts])
 
   useEffect(() => {
