@@ -3,6 +3,7 @@ import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
 import { OBJExporter } from 'three/examples/jsm/exporters/OBJExporter.js'
 import { PLYExporter } from 'three/examples/jsm/exporters/PLYExporter.js'
 import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js'
+import { packGlb } from './glb'
 import type { Part } from '../types'
 
 export type ExportFormat = 'stl' | 'stl-ascii' | 'obj' | 'ply' | 'gltf' | 'glb' | 'json'
@@ -34,7 +35,7 @@ function sceneForExport(parts: Part[], scale: number): THREE.Group {
   for (const part of parts) {
     const geometry = part.geometry.clone()
     if (scale !== 1) geometry.scale(scale, scale, scale)
-    const material = new THREE.MeshStandardMaterial({ color: part.color ?? 0xcccccc })
+    const material = new THREE.MeshStandardMaterial({ color: part.color ?? 0xcccccc, map: part.map ?? null, alphaTest: part.map ? 0.01 : 0, transparent: Boolean(part.map), depthWrite: !part.map })
     const mesh = new THREE.Mesh(geometry, material)
     mesh.name = part.name
     group.add(mesh)
@@ -55,13 +56,13 @@ function disposeScene(group: THREE.Group) {
   })
 }
 
-function gltfParse(group: THREE.Group, binary: boolean): Promise<ArrayBuffer | object> {
+function gltfParse(group: THREE.Group): Promise<object> {
   return new Promise((resolve, reject) => {
     new GLTFExporter().parse(
       group,
-      (result) => resolve(result as ArrayBuffer | object),
+      (result) => resolve(result as object),
       (error) => reject(error),
-      { binary },
+      { binary: false },
     )
   })
 }
@@ -105,11 +106,11 @@ export async function exportModel(
         return { blob: new Blob([data ?? ''], { type: 'application/octet-stream' }), extension: 'ply' }
       }
       case 'glb': {
-        const buffer = (await gltfParse(group, true)) as ArrayBuffer
+        const buffer = packGlb(await gltfParse(group))
         return { blob: new Blob([buffer], { type: 'model/gltf-binary' }), extension: 'glb' }
       }
       case 'gltf': {
-        const json = await gltfParse(group, false)
+        const json = await gltfParse(group)
         return {
           blob: new Blob([JSON.stringify(json, null, 2)], { type: 'model/gltf+json' }),
           extension: 'gltf',

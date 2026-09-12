@@ -39,6 +39,9 @@ jobs:
       - name: Check the agent docs are current
         run: npm run agent-bundle -- --check
 
+      - name: Check level-of-detail reduction
+        run: npm run test:lod
+
       - name: Typecheck
         run: npx tsc -b --noEmit
 

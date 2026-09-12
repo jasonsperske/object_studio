@@ -1302,3 +1302,13 @@ button.icon.danger:hover {
   color: var(--muted);
   line-height: 1.4;
 }
+
+/* Level of detail is an output setting, separate from object dimensions. */
+.lod-panel .field { margin-bottom: 20px; }
+.lod-panel .field-label, .lod-endpoints { display: flex; justify-content: space-between; gap: 12px; }
+.lod-endpoints { color: var(--muted); font-size: 11px; }
+.lod-panel input[type="range"] { width: 100%; accent-color: var(--accent); }
+.lod-stats { display: flex; flex-direction: column; gap: 7px; padding: 14px; margin: 16px 0; background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius); }
+.lod-stats span { color: var(--muted); font-size: 12px; }
+.lod-checkbox { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.lod-progress { position: absolute; right: 14px; bottom: 40px; padding: 8px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); font-size: 12px; }

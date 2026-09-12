@@ -1,3 +1,4 @@
+import type { LodOptions } from '../lib/lod'
 import { useRef, useState } from 'react'
 import type { SavedItem } from '../lib/persistence'
 import type { ObjectPreset, Params } from '../types'
@@ -10,7 +11,7 @@ interface Props {
   saved: SavedItem[]
   writable: boolean
   suggestedName: string
-  onApply: (params: Params) => void
+  onApply: (params: Params, lod?: LodOptions) => void
   onSave: (name: string) => void
   onDelete: (id: string) => void
   onImport: (items: SavedItem[]) => void
@@ -113,7 +114,7 @@ export default function PresetsPanel({
           <ul className="saved-list">
             {saved.map((item) => (
               <li key={item.id}>
-                <button type="button" className="saved-load" onClick={() => onApply(item.params)}>
+                <button type="button" className="saved-load" onClick={() => onApply(item.params, item.lod)}>
                   <span className="saved-name">{item.name}</span>
                   <span className="saved-meta">{new Date(item.savedAt).toLocaleDateString()}</span>
                 </button>

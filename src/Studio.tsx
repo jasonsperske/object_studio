@@ -1,5 +1,8 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
+import LodPanel from './components/LodPanel'
+import { useLod } from './hooks/useLod'
+import { normalizeLod, disposeLodParts, type LodOptions } from './lib/lod'
 import ExportPanel from './components/ExportPanel'
 import GearIcon from './components/GearIcon'
 import PresetsPanel from './components/PresetsPanel'
@@ -20,13 +23,14 @@ import type { DisplayOptions, Projection, ViewName } from './lib/studioScene'
 import type { ObjectDefinition, ParamValue, Params, Part } from './types'
 import { defaultParams } from './types'
 
-type Tab = 'properties' | 'presets' | 'export'
+type Tab = 'properties' | 'detail' | 'presets' | 'export'
 type Pane = 'viewer' | 'source'
 
 export interface StudioProps {
   objectId: string
   definition: ObjectDefinition | null
   compileError: string | null
+  initialLod?: LodOptions
   initialParams: Params | null
   /** Which pane to open on — 'source' for an object just created. */
   initialPane: Pane
@@ -84,6 +88,7 @@ export default function Studio({
   definition,
   compileError,
   initialParams,
+  initialLod,
   initialPane,
   source,
   savedSource,
@@ -105,6 +110,7 @@ export default function Studio({
   notify,
 }: StudioProps) {
   const [params, setParams] = useState<Params>(() => initialParams ?? {})
+  const [lodOptions, setLodOptions] = useState(() => normalizeLod(initialLod))
   const [tab, setTab] = useState<Tab>('properties')
   const [pane, setPane] = useState<Pane>(initialPane)
   const [projection, setProjection] = useState<Projection>('perspective')
@@ -147,7 +153,12 @@ export default function Studio({
       return { parts: [], error: err instanceof Error ? err.message : String(err) }
     }
   }, [deferred])
-  const parts = built.parts
+  // Studio owns source buffers; the LOD hook owns only its derived resources.
+  useEffect(() => () => disposeLodParts(built.parts), [built.parts])
+  const lod = useLod(built.parts, lodOptions)
+  const parts = lod.parts
+  const originalTriangles = useMemo(() => built.parts.reduce((n,p) => n+triangleCount(p.geometry),0), [built.parts])
+  const meshTriangles = useMemo(() => lod.meshParts.reduce((n,p) => n+triangleCount(p.geometry),0), [lod.meshParts])
   const viewerError = compileError ?? built.error
 
   // Depends on the unit too: object metrics format their own lengths, so a unit
@@ -174,8 +185,8 @@ export default function Studio({
   }, [parts])
 
   const recipe: Recipe = useMemo(
-    () => ({ objectId, params: effectiveParams }),
-    [objectId, effectiveParams],
+    () => ({ objectId, params: effectiveParams, lod: lodOptions }),
+    [objectId, effectiveParams, lodOptions],
   )
 
   // Keep the address bar in step. Defaults stay on the clean /{objectId} form;
@@ -183,11 +194,11 @@ export default function Studio({
   useEffect(() => {
     if (!definition) return
     replaceUrl(
-      isDefault(definition, effectiveParams)
+      isDefault(definition, effectiveParams) && lodOptions.detail === 100
         ? objectUrl(objectId)
-        : objectUrl(objectId, effectiveParams),
+        : objectUrl(objectId, effectiveParams, lodOptions),
     )
-  }, [definition, objectId, effectiveParams])
+  }, [definition, objectId, effectiveParams, lodOptions])
 
   const updateParam = useCallback((id: string, value: ParamValue) => {
     setParams((current) => ({ ...current, [id]: value }))
@@ -196,8 +207,9 @@ export default function Studio({
   // Presets only ever belong to the object on screen, so applying one is just
   // a change of properties — merged over defaults, since a preset lists only
   // what it changes.
-  const applyPreset = useCallback((preset: Params) => {
+  const applyPreset = useCallback((preset: Params, detail?: LodOptions) => {
     setParams(preset)
+    setLodOptions(normalizeLod(detail))
     setFitToken((token) => token + 1)
   }, [])
 
@@ -205,7 +217,10 @@ export default function Studio({
 
   const handleExport = useCallback(
     async (format: ExportFormat, unit: Unit, filename: string) => {
-      const result = await exportModel(parts, format, unit, {
+      if (lod.busy || model !== deferred) throw new Error('Wait for the model update to finish.')
+      if (lod.error) throw new Error('Detail reduction failed. Restore full detail before exporting.')
+      const outputParts = format === 'gltf' || format === 'glb' ? parts : lod.meshParts
+      const result = await exportModel(outputParts, format, unit, {
         ...recipe,
         object: definition?.name ?? objectId,
         units: 'mm',
@@ -213,7 +228,7 @@ export default function Studio({
       download(result.blob, `${filename}.${result.extension}`)
       notify(`Downloaded ${filename}.${result.extension}`)
     },
-    [parts, recipe, definition, objectId, notify],
+    [parts, lod.busy, lod.error, lod.meshParts, model, deferred, recipe, definition, objectId, notify],
   )
 
   const copyLink = useCallback(async () => {
@@ -301,7 +316,7 @@ export default function Studio({
         <h1 className="object-name">{definition?.name ?? objectId}</h1>
 
         <nav className="tabs" role="tablist">
-          {(['properties', 'presets', 'export'] as Tab[]).map((id) => (
+          {(['properties', 'detail', 'presets', 'export'] as Tab[]).map((id) => (
             <button
               key={id}
               type="button"
@@ -344,6 +359,10 @@ export default function Studio({
                   source editor to fix it.
                 </p>
               ))}
+            {tab === 'detail' && <LodPanel options={lodOptions} onChange={setLodOptions}
+              originalTriangles={originalTriangles} triangles={stats.triangles}
+              eligibleParts={built.parts.filter(p=>p.lod?.surface).length}
+              bakedParts={lod.bakedParts} textureBytes={lod.textureBytes} busy={lod.busy} error={lod.error} />}
             {tab === 'presets' && (
               <PresetsPanel
                 objectId={objectId}
@@ -371,6 +390,9 @@ export default function Studio({
                 onCopyLink={copyLink}
                 onSnapshot={savePng}
                 triangles={stats.triangles}
+                meshTriangles={meshTriangles}
+                hasTextures={lod.bakedParts > 0}
+                updating={lod.busy || model !== deferred}
               />
             )}
           </div>
@@ -427,6 +449,7 @@ export default function Studio({
               display={display}
               fitToken={deferred.fitToken}
             />
+            {lod.busy && <div className="lod-progress" role="status">Updating level of detail…</div>}
             {viewerError && (
               <div className="build-error">
                 <strong>{compileError ? 'Source error' : 'Build failed'}</strong> {viewerError}

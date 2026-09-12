@@ -8,6 +8,9 @@ interface Props {
   onExport: (format: ExportFormat, unit: Unit, filename: string) => Promise<void>
   onCopyLink: () => void
   onSnapshot: () => void
+  meshTriangles: number
+  hasTextures: boolean
+  updating: boolean
   triangles: number
 }
 
@@ -20,6 +23,9 @@ export default function ExportPanel({
   onCopyLink,
   onSnapshot,
   triangles,
+  meshTriangles,
+  hasTextures,
+  updating,
 }: Props) {
   const [format, setFormat] = useState<ExportFormat>('stl')
   const [unit, setUnit] = useState<Unit>(defaultUnit)
@@ -89,8 +95,8 @@ export default function ExportPanel({
         </span>
       </label>
 
-      <button type="button" className="primary full" onClick={run} disabled={busy}>
-        {busy ? 'Exporting…' : `Download ${selected.label}`}
+      <button type="button" className="primary full" onClick={run} disabled={busy || updating}>
+        {updating ? 'Updating detail…' : busy ? 'Exporting…' : `Download ${selected.label}`}
       </button>
       {error && <p className="error">{error}</p>}
 
@@ -104,8 +110,8 @@ export default function ExportPanel({
       </div>
 
       <p className="param-help">
-        Mesh contains {triangles.toLocaleString()} triangles. Curved profiles are tessellated, so
-        raise the profile size for smoother nosings.
+        {(format === 'gltf' || format === 'glb' ? triangles : meshTriangles).toLocaleString()} triangles at the current detail setting.
+        {hasTextures && ' glTF/GLB retain surface textures. STL, OBJ and PLY restore baked lettering to geometry while keeping other mesh reductions.'}
       </p>
     </div>
   )
