@@ -675,3 +675,74 @@ export function strut(
   g.translate((base.x + tip.x) / 2, (base.y + tip.y) / 2, (base.z + tip.z) / 2)
   return g
 }
+
+/** Smooth walls joining corresponding, independently authored contours. Rings
+ * are ordered top/front to bottom/back. Caps stay separate for crisp seams. */
+export function loftRings(layers: { pts: PlanPoint[]; y: number }[]): THREE.BufferGeometry {
+  if (layers.length < 2) throw new Error('loftRings needs at least two contours')
+  const n = layers[0].pts.length
+  if (n < 3 || layers.some(l => l.pts.length !== n)) throw new Error('loftRings contours must have matching point counts')
+  const positions: number[] = [], indices: number[] = []
+  for (const layer of layers) for (const p of layer.pts) positions.push(p.x, layer.y, p.z)
+  for (let j = 0; j < layers.length - 1; j++) for (let i = 0; i < n; i++) {
+    const a = j * n + i, b = j * n + (i + 1) % n, c = b + n, d = a + n
+    // Square end corners contain coincident samples so they can correspond
+    // to a rounded ring. Do not emit their collapsed triangles.
+    for (const tri of [[a, b, c], [a, c, d]]) {
+      const u = new THREE.Vector3().fromArray(positions, tri[0] * 3)
+      const v = new THREE.Vector3().fromArray(positions, tri[1] * 3).sub(u)
+      const w = new THREE.Vector3().fromArray(positions, tri[2] * 3).sub(u)
+      if (v.cross(w).lengthSq() > 1e-16) indices.push(...tri)
+    }
+  }
+  const g = new THREE.BufferGeometry()
+  g.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
+  g.setIndex(indices)
+  g.computeVertexNormals()
+  return g
+}
+
+/** Rounded rectangle with fixed correspondence, even for a square corner.
+ * Independent radii avoid the inverted arcs caused by deep polygon offsets. */
+export function roundedRect(depth: number, width: number, radius: number, steps = 12): PlanPoint[] {
+  const r = Math.max(0, Math.min(radius, depth / 2, width / 2))
+  const pts: PlanPoint[] = []
+  for (let c = 0; c < 4; c++) {
+    const x = (c === 0 || c === 3 ? 1 : -1) * (depth / 2 - r)
+    const z = (c < 2 ? 1 : -1) * (width / 2 - r)
+    for (let i = 0; i <= steps; i++) {
+      const a = (c + i / steps) * Math.PI / 2
+      pts.push({ x: x + r * Math.cos(a), z: z + r * Math.sin(a) })
+    }
+  }
+  return pts
+}
+
+/** Capped moulded enclosure in XZ, front at y=thickness, rear at y=0.
+ * Optional aperture uses the same plan coordinates as the front contour. */
+export function roundedHousing(depth: number, width: number, thickness: number, radius: number,
+  inset = 0, aperture?: PlanPoint[]): THREE.BufferGeometry {
+  const draw = Math.max(0, Math.min(inset, Math.min(depth, width) * .4))
+  const bevel = Math.max(0, Math.min(radius * .25, thickness * .1, 4))
+  const section = (shrink: number, y: number, r: number) => ({
+    pts: roundedRect(depth - shrink * 2, width - shrink * 2, r), y,
+  })
+  const layers = bevel > 0 ? [
+    section(bevel, thickness, Math.max(0, radius - bevel)),
+    section(bevel * .3, thickness - bevel * .3, radius - bevel * .3),
+    section(0, thickness - bevel, radius),
+    section(0, thickness * .65, radius),
+    section(draw * .22, thickness * .43, radius * .92),
+    section(draw * .70, thickness * .20, radius * .78),
+    section(draw, bevel, radius * .65),
+    section(draw + bevel * .3, bevel * .3, Math.max(0, radius * .65 - bevel * .3)),
+    section(draw + bevel, 0, Math.max(0, radius * .65 - bevel)),
+  ] : [section(0, thickness, 0), section(draw, 0, 0)]
+  // Square corners use four vertices rather than coincident arc samples.
+  if (radius <= 0) for (const l of layers) l.pts = ring(l.pts)
+  return merge([
+    loftRings(layers),
+    face(aperture ? [layers[0].pts, aperture] : [layers[0].pts], thickness, true),
+    face([layers[layers.length - 1].pts], 0, false),
+  ].filter(Boolean) as THREE.BufferGeometry[])
+}

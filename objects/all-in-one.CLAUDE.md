@@ -43,6 +43,18 @@ modelled as no stand rather than as a bracket. The optical slot runs up the side
 the machine, because that is the way a disc goes into one of these and the only way a forty-
 millimetre edge has room for it.
 
+## Rounded geometry compatibility
+
+Tapered and untapered panel housings use independent rounded sections with smooth normals and matching rear caps. Screen placement, whole-panel tilt and stand layout are retained.
+
+Thin screen, grille and fascia plates follow their exact sampled outlines, with
+separate caps instead of deep edge-profile offsets.
+
+Parameter IDs, defaults, presets and existing named parts are unchanged. External
+consumers should use the current `src/lib/compile.ts` helper scope, including
+`roundedRect`, `loftRings` and `roundedHousing` from `src/lib/geometry.ts`.
+These are procedural geometry helpers; no textures or external assets are required.
+
 ## Parameters
 
 <!-- generated: parameters -->

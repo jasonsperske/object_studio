@@ -41,6 +41,18 @@ litres and kilograms.
 No docking station and no ports beyond a token few. Shut, the lid lies on the deck a couple of
 millimetres clear of the keycaps — the seam a real one has — rather than sealing against it.
 
+## Rounded geometry compatibility
+
+The display lid uses independent rounded sections with smooth normals and matching rear caps. The hinge transform and display placement are retained; rounded outlines use twelve segments per corner.
+
+Thin screen, grille and fascia plates follow their exact sampled outlines, with
+separate caps instead of deep edge-profile offsets.
+
+Parameter IDs, defaults, presets and existing named parts are unchanged. External
+consumers should use the current `src/lib/compile.ts` helper scope, including
+`roundedRect`, `loftRings` and `roundedHousing` from `src/lib/geometry.ts`.
+These are procedural geometry helpers; no textures or external assets are required.
+
 ## Parameters
 
 <!-- generated: parameters -->

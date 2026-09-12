@@ -159,7 +159,7 @@ function rect(depth, width, radius) {
     { x: -d, z: -w },
   ]
   const r = Math.max(0, Math.min(radius, d - 1, w - 1))
-  return r < 1 ? ring(corners) : roundCorners(corners, r, 4)
+  return r < 1 ? ring(corners) : roundCorners(corners, r, 12)
 }
 
 function faceForward(geometry) {
@@ -168,7 +168,13 @@ function faceForward(geometry) {
 }
 
 function plate(outline, x, thickness, radius, y, z = 0) {
-  const g = faceForward(profiledBoard(outline, 0, thickness, radius > 0 ? 'rounded' : 'square', radius))
+  // Thin face sheets need their exact contour, not a deep edge-profile offset
+  // that can fold over the tiny screen corners and overlap the face cap.
+  const pts = ring(outline)
+  const g = faceForward(merge([
+    loftRings([{ pts, y: thickness }, { pts, y: 0 }]),
+    face([pts], thickness, true), face([pts], 0, false),
+  ].filter(Boolean)))
   g.translate(x + thickness, y, z)
   return g
 }
@@ -506,25 +512,16 @@ export function build(p) {
 
     if (crt) {
       const depth = Math.max(400, screenW * 0.95)
-      const faceOutline = plan(rect(caseH, caseW, 14))
-      const neck = Math.min(caseH, caseW) * 0.26
-      const aperture = ring(rect(screenH, screenW, 10)).slice().reverse()
-      const body = faceForward(
-        merge(
-          [
-            sweep(faceOutline, [{ inset: 0, y: depth }, { inset: 0, y: depth * 0.62 }, { inset: neck, y: 0 }], false),
-            face([faceOutline.pts, aperture], depth, true),
-            face([hull(faceOutline.offset(neck))], 0, false),
-          ].filter(Boolean),
-        ),
-      )
+      const aperture = rect(screenH, screenW, 10)
+      const body = faceForward(roundedHousing(caseH, caseW, depth, 20,
+        Math.min(caseH, caseW) * 0.17, aperture))
       body.translate(monitorFront + depth, 46 + caseH / 2, 0)
       shell.push(body)
       screen.push(plate(rect(screenH, screenW, 10), monitorFront - 0.5, 4, 0, 46 + caseH / 2))
       shell.push(profiledBoard(rect(depth * 0.6, caseW * 0.78, 10), 0, 46, 'rounded', 8).translate(monitorFront + depth * 0.45, 0, 0))
     } else {
       const neck = Math.max(120, screenH * 0.42)
-      shell.push(plate(rect(caseH, caseW, 8), monitorFront, 46, 6, neck + caseH / 2))
+      shell.push(faceForward(roundedHousing(caseH, caseW, 46, 8, 12)).translate(monitorFront + 46, neck + caseH / 2, 0))
       screen.push(plate(rect(screenH, screenW, 6), monitorFront - 0.5, 4, 0, neck + caseH / 2))
       shell.push(box(50, neck, caseW * 0.12, monitorFront + 40, 0, -caseW * 0.06))
       shell.push(profiledBoard(rect(190, 260, 10), 0, 14, 'rounded', 5).translate(monitorFront + 60, 0, 0))

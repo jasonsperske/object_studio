@@ -161,7 +161,7 @@ function rect(depth, width, radius, cx = 0, cz = 0) {
     { x: cx - d, z: cz - w },
   ]
   const r = Math.max(0, Math.min(radius, d - 1, w - 1))
-  return r < 1 ? ring(corners) : roundCorners(corners, r, 4)
+  return r < 1 ? ring(corners) : roundCorners(corners, r, 12)
 }
 
 function faceForward(geometry) {
@@ -170,7 +170,13 @@ function faceForward(geometry) {
 }
 
 function plate(outline, x, thickness, radius, y, z = 0) {
-  const g = faceForward(profiledBoard(outline, 0, thickness, radius > 0 ? 'rounded' : 'square', radius))
+  // Thin face sheets need their exact contour, not a deep edge-profile offset
+  // that can fold over the tiny screen corners and overlap the face cap.
+  const pts = ring(outline)
+  const g = faceForward(merge([
+    loftRings([{ pts, y: thickness }, { pts, y: 0 }]),
+    face([pts], thickness, true), face([pts], 0, false),
+  ].filter(Boolean)))
   g.translate(x + thickness, y, z)
   return g
 }
@@ -388,7 +394,7 @@ export function build(p) {
   const lidW = W
   const lidH = size.lidH
   const angle = (num(p, 'lidAngle') * Math.PI) / 180
-  const lidShell = plate(rect(lidH, lidW, radius), 0, lidThickness, radius * 0.6, lidH / 2)
+  const lidShell = faceForward(roundedHousing(lidH, lidW, lidThickness, radius)).translate(lidThickness, lidH / 2, 0)
   const lidScreen = plate(rect(screenH, screenW, radius * 0.4), -1.5, 2.5, 0, lidH / 2)
   // The hinge line, lifted clear of the deck so a shut lid has the keys under
   // it rather than through it.

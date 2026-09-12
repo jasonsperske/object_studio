@@ -1,4 +1,4 @@
-// AT desktop, 1984–1993.
+// AT desktop, 1981–1993.
 //
 // The beige box the monitor sat on. Its size was not a styling decision: the
 // board standard set the footprint, the card height set how tall the lid had to
@@ -17,11 +17,12 @@ export const meta = {
   order: 9,
   name: 'AT desktop',
   description:
-    'The 1984–93 desktop with the monitor on top — case sized from the board standard, the card height and the drive bays, with full-height or half-height 5¼" openings and ISA cards.',
+    'The 1981–93 desktop with the monitor on top — case sized from the board standard, the card height and the drive bays, with full-height or half-height 5¼" openings and ISA cards.',
 }
 
 // Board standards, in millimetres, as the specifications had them in inches.
 const BOARD = {
+  pc: { label: 'IBM PC 5150', w: 216, d: 279.4, slots: 5, bus: '8-bit ISA' },
   xt: { label: 'PC/XT', w: 216, d: 330, slots: 8, bus: '8-bit ISA' },
   at: { label: 'AT', w: 305, d: 351, slots: 8, bus: '16-bit ISA' },
   babyAt: { label: 'Baby-AT', w: 216, d: 330, slots: 8, bus: '16-bit ISA' },
@@ -64,6 +65,7 @@ export const params = [
     group: 'Board',
     help: 'The standard the case is built around. Everything else follows from it.',
     options: [
+      { value: 'pc', label: 'IBM PC 5150 — 216 × 279.4 mm, five 8-bit slots' },
       { value: 'xt', label: 'PC/XT — 216 × 330 mm, 8-bit slots' },
       { value: 'at', label: 'AT — 305 × 351 mm, 16-bit slots' },
       { value: 'babyAt', label: 'Baby-AT — 216 × 330 mm, 16-bit slots' },
@@ -86,7 +88,7 @@ export const params = [
       { value: 'half', label: 'Half height — 41.3 mm' },
     ],
   },
-  { id: 'bayColumns', label: 'Bay columns', type: 'int', min: 1, max: 2, step: 1, default: 2, group: 'Drives', help: 'Side by side across the front. Each column widens the case by 158 mm.' },
+  { id: 'bayColumns', label: 'Bay columns', type: 'int', min: 1, max: 2, step: 1, default: 2, group: 'Drives', help: 'Side by side across the front. Each column widens the case by 160 mm.' },
   { id: 'floppies', label: '5¼" floppy drives', type: 'int', min: 0, max: 4, step: 1, default: 2, group: 'Drives' },
   { id: 'smallFloppy', label: '3½" floppy drive', type: 'boolean', default: false, group: 'Drives', help: 'The later fitment, in a frame that filled a 5¼" opening.' },
   { id: 'hardDisk', label: 'Hard disk', type: 'boolean', default: true, group: 'Drives', help: 'In a bay of its own, with a lamp on the front and no opening.' },
@@ -140,6 +142,7 @@ export const params = [
  */
 function caseSize(board, bay, columns) {
   const bayRows = bay === BAY.full ? 1 : 2
+  if (board === BOARD.pc) return { W: 508 + (columns - 2) * 160, D: 410, H: 152.4, bayRows }
   const overlap = Math.min(90, board.w * 0.3)
   return {
     W: board.w + columns * (bay.w + 14) + 44 - overlap,
@@ -213,9 +216,9 @@ function fascia(kind, height, relief) {
 }
 
 /** The big AT keyboard, built about the origin, front row nearest -X. */
-function keyboard(pitch) {
+function keyboard(pitch, originalPC = false) {
   const columns = 17
-  const rows = 6
+  const rows = originalPC ? 5 : 6
   const width = (columns + 5.2) * pitch
   const depth = rows * pitch + 14
   const shellHeight = 34
@@ -235,8 +238,10 @@ function keyboard(pitch) {
       }
       continue
     }
+    if (originalPC) for (let c = 0; c < 2; c++) keys.push(box(pitch * .82, 8, pitch * .84, x, shellHeight, -width / 2 + c * pitch))
     for (let c = 0; c < columns; c++) {
       const z = -width / 2 + c * pitch + ((rows - r) % 3) * pitch * 0.25
+      if (originalPC && c < 2) continue
       if (z + pitch > width / 2 - pitch * 5.4) continue
       keys.push(box(pitch * 0.82, 8, pitch * 0.84, x, shellHeight, z))
     }
@@ -245,6 +250,96 @@ function keyboard(pitch) {
     }
   }
   return { shell: merge(shell.filter(Boolean)), keys: merge(keys) }
+}
+
+/** Matched rounded-rectangle rings, in monitor-local XY, front normal +Z.
+ * Rebuild every section at its own size: large polygon offsets invert small
+ * corner arcs. Shared indexed vertices smooth the arcs without faceting. */
+function monitorRing(width, height, radius) {
+  const points = [], steps = 12
+  const r = Math.min(radius, width / 2, height / 2)
+  for (let corner = 0; corner < 4; corner++) {
+    const a = corner * Math.PI / 2
+    const cx = (corner === 0 || corner === 3 ? 1 : -1) * (width / 2 - r)
+    const cy = (corner < 2 ? 1 : -1) * (height / 2 - r)
+    for (let i = 0; i <= steps; i++) {
+      const angle = a + i * Math.PI / (2 * steps)
+      points.push([cx + r * Math.cos(angle), cy + r * Math.sin(angle)])
+    }
+  }
+  return points
+}
+
+function monitorLoft(sections, inward = false) {
+  const positions = [], indices = []
+  const rings = sections.map(s => monitorRing(s.w, s.h, s.r))
+  const n = rings[0].length
+  rings.forEach((ring, j) => ring.forEach(([x, y]) => positions.push(x, y, -sections[j].d)))
+  for (let j = 0; j < sections.length - 1; j++) for (let i = 0; i < n; i++) {
+    const a = j * n + i, b = j * n + (i + 1) % n, c = b + n, d = a + n
+    indices.push(...(inward ? [a, b, c, a, c, d] : [a, c, b, a, d, c]))
+  }
+  const geometry = new THREE.BufferGeometry()
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
+  geometry.setIndex(indices)
+  geometry.computeVertexNormals()
+  return geometry
+}
+
+function monitorFace(width, height, radius, depth, hole, back = false) {
+  const contour = monitorRing(width, height, radius).map(([x, y]) => new THREE.Vector2(x, y))
+  const shape = new THREE.Shape(contour)
+  if (hole) shape.holes.push(new THREE.Path(monitorRing(hole.w, hole.h, hole.r).reverse().map(([x, y]) => new THREE.Vector2(x, y))))
+  const geometry = new THREE.ShapeGeometry(shape)
+  if (back) geometry.rotateY(Math.PI)
+  geometry.translate(0, 0, -depth)
+  return geometry
+}
+
+/** Raised DIP packages remain meshes; copper, pads and silk bake to textures.
+ * Coordinates in this helper start in XY with the populated face towards +Z. */
+function circuit(parts, name, width, height, transform, surface, motherboard) {
+  const traces = [], pads = [], silk = [], chips = [], pins = []
+  const patch = (list, x, y, w, h, z = 0) => {
+    const g = new THREE.PlaneGeometry(w, h)
+    g.translate(x + w / 2, y + h / 2, z)
+    list.push(g)
+  }
+  const rows = motherboard ? 4 : 2
+  const cols = motherboard ? 9 : 7
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const x = 8 + c * (width - 22) / cols
+    const y = 10 + r * (height - 26) / rows
+    chips.push(box(16, 7, 3, x, y, 0.2))
+    for (let pin = 0; pin < 7; pin++) {
+      for (const side of [-1, 1]) {
+        const py = side < 0 ? y - 2 : y + 7
+        patch(pads, x + pin * 2.2, py, 1.2, 2, 0.04)
+        pins.push(box(0.7, 2, 0.7, x + pin * 2.2, py, 0.2))
+      }
+    }
+    patch(traces, x + 2, y - 5, 0.55, 3, 0.02)
+    patch(traces, x + 2, y - 5, (width - 22) / cols - 2, 0.55, 0.02)
+    patch(traces, x + 19, y - 5, 0.55, 16, 0.02)
+    patch(silk, x - 1, y - 1, 18, 0.4, 0.06)
+    patch(silk, x - 1, y + 8, 18, 0.4, 0.06)
+    patch(silk, x - 1, y - 1, 0.4, 9, 0.06)
+  }
+  if (motherboard) {
+    // Larger processor/ROM packages along the clear front edge.
+    for (let i = 0; i < 3; i++) chips.push(box(36, 10, 4, 15 + i * 52, height - 18, 0.2))
+  } else {
+    for (let i = 0; i < 31; i++) patch(pads, 12 + i * 2.54, 0, 1.5, 5, 0.04)
+  }
+  for (const [suffix, list, color, bake] of [
+    ['traces', traces, 0x73935b, true], ['pads', pads, 0xc4a85b, true],
+    ['silkscreen', silk, 0xd8dfbd, true], ['chips', chips, 0x202328, false],
+    ['pins', pins, 0xa9adb0, false],
+  ]) {
+    const geometry = merge(list)
+    transform(geometry)
+    parts.push({ name: name + '-' + suffix, geometry, color, ...(bake ? { lod: { surface } } : {}) })
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -257,7 +352,7 @@ export function build(p) {
   const columns = Math.round(num(p, 'bayColumns'))
   const finish = FINISH[str(p, 'finish')] ?? FINISH.oatmeal
   const cutaway = bool(p, 'cutaway')
-  const slots = Math.round(num(p, 'slots'))
+  const slots = Math.min(board.slots, Math.round(num(p, 'slots')))
   const cards = Math.min(Math.round(num(p, 'cards')), slots)
 
   // --- Size, from the board and the bays out ------------------------------
@@ -265,7 +360,8 @@ export function build(p) {
   const front = -D / 2
   const back = D / 2
   const wall = 2.5
-  const radius = 8
+  const radius = 2
+  const originalPC = board === BOARD.pc
 
   const shell = []
   const bezel = []
@@ -280,14 +376,14 @@ export function build(p) {
   //
   // Panels rather than a solid, so taking the lid off is a matter of not
   // drawing two of them.
-  const outline = rect(D, W, radius)
-  shell.push(profiledBoard(outline, 0, wall * 2, 'rounded', 4))
   if (!cutaway) {
-    shell.push(profiledBoard(outline, H - wall * 2, wall * 2, 'rounded', 4))
-    shell.push(box(D, H, wall * 2, front, 0, -W / 2))
+    // An opaque closed unit needs no inner panel faces or hidden hardware.
+    shell.push(box(D, H, W, front, 0, -W / 2))
+  } else {
+    shell.push(box(D, wall * 2, W, front, 0, -W / 2))
+    shell.push(box(D, H, wall * 2, front, 0, W / 2 - wall * 2))
+    shell.push(box(wall * 2, H, W, back - wall * 2, 0, -W / 2))
   }
-  shell.push(box(D, H, wall * 2, front, 0, W / 2 - wall * 2))
-  shell.push(box(wall * 2, H, W, back - wall * 2, 0, -W / 2))
 
   // --- Front bezel and drives ---------------------------------------------
   const bezelDepth = 14
@@ -313,16 +409,16 @@ export function build(p) {
   if (bool(p, 'tapeDrive')) fitted.push('tape')
   while (fitted.length < openings.length) fitted.push('blank')
 
-  let seated = 0
   openings.forEach((opening, i) => {
     const kind = fitted[i] ?? 'blank'
-    if (kind !== 'blank') seated++
     const piece = fascia(kind, bay.h - 3, relief)
     const at = new THREE.Matrix4().makeTranslation(front - bezelDepth, opening.y, opening.z)
     piece.plastic.applyMatrix4(at)
     piece.detail.applyMatrix4(at)
-    bezel.push(piece.plastic)
-    dark.push(piece.detail)
+    if (originalPC) dark.push(piece.plastic)
+    else bezel.push(piece.plastic)
+    if (originalPC) detail.push(piece.detail)
+    else dark.push(piece.detail)
     if (cutaway && kind !== 'blank') {
       metal.push(
         box(
@@ -339,8 +435,8 @@ export function build(p) {
 
   // Switch, lock, lamps and badge on the clear part of the bezel.
   const panelZ = -W / 2 + 60
-  detail.push(box(relief + 5, 20, 40, front - bezelDepth - relief - 3, H * 0.3, panelZ - 20))
-  lamps.push(box(relief + 2, 5, 10, front - bezelDepth - relief, H * 0.3 + 30, panelZ - 5))
+  if (!originalPC) detail.push(box(relief + 5, 20, 40, front - bezelDepth - relief - 3, H * 0.3, panelZ - 20))
+  if (!originalPC) lamps.push(box(relief + 2, 5, 10, front - bezelDepth - relief, H * 0.3 + 30, panelZ - 5))
   if (bool(p, 'hardDisk')) {
     lamps.push(box(relief + 2, 5, 10, front - bezelDepth - relief, H * 0.3 + 30, panelZ + 12))
     if (cutaway) metal.push(box(146, 41.3, 101.6, front + 40, wall * 2 + 6, -W / 2 + 40))
@@ -355,35 +451,65 @@ export function build(p) {
   if (bool(p, 'badge')) {
     parts.push({
       name: 'badge',
-      geometry: box(relief + 1, 16, 76, front - bezelDepth - relief, H * 0.66, W / 2 - 130),
+      geometry: box(relief + 1, 16, 76, front - bezelDepth - relief, H - 26, -W / 2 + 62),
       color: 0x35404f,
     })
   }
+
+  // Recessed ventilation bank and red side-mounted mains paddle.
+  const ventWidth = Math.max(24, bayZone + W / 2 - 34)
+  const vents = []
+  for (let i = 0; i < 10; i++) {
+    const g = new THREE.PlaneGeometry(ventWidth, 2)
+    g.rotateY(-Math.PI / 2)
+    g.translate(front - bezelDepth - 0.1, 24 + i * 7, -W / 2 + 18 + ventWidth / 2)
+    vents.push(g)
+  }
+  parts.push({ name: 'front-vent-slits', geometry: merge(vents), color: COLOR.dark, lod: { surface: 'z' } })
+  parts.push({ name: 'power-switch', geometry: box(24, 27, 5, back - 70, H - 57, W / 2), color: 0xb52d20 })
 
   // --- The back: slots, supply, ports -------------------------------------
   const slotPitch = 20.3
   const slotBase = wall * 2 + 12
   const slotZ = -W / 2 + 34
   for (let i = 0; i < slots; i++) {
-    metal.push(box(wall * 2, Math.min(CARD_HEIGHT + 12, H - slotBase - 8), slotPitch - 2, back - wall * 4, slotBase, slotZ + i * slotPitch))
+    metal.push(box(wall * 2, Math.min(CARD_HEIGHT + 12, H - slotBase - 8), slotPitch - 2, back + 0.1, slotBase, slotZ + i * slotPitch))
     if (i < cards) {
-      dark.push(box(4, 24, 9, back - wall * 5, slotBase + 30, slotZ + i * slotPitch + slotPitch / 2 - 4.5))
+      dark.push(box(4, 24, 9, back + wall * 2 + 0.2, slotBase + 30, slotZ + i * slotPitch + slotPitch / 2 - 4.5))
     }
   }
   // The supply, its fan and the two big sockets in the back of it.
   const psuZ = W / 2 - PSU_WIDTH - 12
-  dark.push(socket(80, 6, back - wall * 2 - 5, H * 0.55, psuZ + 50))
+  dark.push(socket(80, 6, back + 0.2, H * 0.55, psuZ + 50))
   for (const z of [psuZ + 108, psuZ + 134]) {
-    dark.push(box(6, 30, 22, back - wall * 2 - 5, H * 0.24, z - 11))
+    dark.push(box(6, 30, 22, back + 0.2, H * 0.24, z - 11))
   }
+  dark.push(socket(13, 3, back + 0.2, 16, slotZ - 12))
+  if (originalPC) dark.push(socket(13, 3, back + 0.2, 40, slotZ - 12))
   if (cutaway) {
     metal.push(box(150, 86, PSU_WIDTH, back - 160, H - 86 - wall * 2 - 8, psuZ))
-    // The board itself, lying flat with its cards standing off it.
-    boards.push(box(board.d, 1.6, board.w, back - 40 - board.d, slotBase - 8, -W / 2 + 26))
-    for (let i = 0; i < cards; i++) {
-      boards.push(box(280, Math.min(CARD_HEIGHT, H - slotBase - 12), 1.6, back - 24 - 280, slotBase, slotZ + i * slotPitch + slotPitch / 2))
+    const bx = back - 40 - board.d, bz = -W / 2 + 26, by = slotBase - 8
+    boards.push(box(board.d, 1.6, board.w, bx, by, bz))
+    // Local circuit coordinates are (length, width), normal +Z. Each layer is
+    // transformed independently and marked with its FINAL model-space normal.
+    circuit(parts, 'motherboard', board.d - 16, board.w - 16, (g) => {
+      g.rotateX(-Math.PI / 2)
+      g.translate(bx + 8, by + 1.7, bz + board.w - 8)
+    }, 'y', true)
+    for (let i = 0; i < slots; i++) {
+      const z = slotZ + i * slotPitch + slotPitch / 2
+      detail.push(box(84, 7, 7, back - 130, by + 1.6, z - 2.7))
+      if (board.bus === '16-bit ISA') detail.push(box(45, 7, 7, back - 179, by + 1.6, z - 2.7))
+      if (i >= cards) continue
+      const length = Math.min(board.d - 24, 240 + (i % 2) * 30)
+      const height = Math.min(CARD_HEIGHT, H - slotBase - 12)
+      const x = back - 24 - length
+      boards.push(box(length, height, 1.6, x, slotBase, z))
+      circuit(parts, 'card-' + (i + 1), length - 12, height - 12, (g) => {
+        g.translate(x + 6, slotBase + 6, z + 1.7)
+      }, 'x', false)
     }
-    metal.push(box(60, 12, 60, back - 150, slotBase - 6, -W / 2 + 60))
+
   }
 
   // --- Monitor on top -----------------------------------------------------
@@ -401,29 +527,47 @@ export function build(p) {
     const y0 = H + stand
     const monitorFront = front + 26
 
-    const faceOutline = plan(rect(caseH, caseW, 18))
-    const neck = Math.min(caseH, caseW) * 0.26
-    const aperture = ring(rect(screenH, screenW, 14)).slice().reverse()
-    const body = faceForward(
-      merge(
-        [
-          sweep(
-            faceOutline,
-            [
-              { inset: 0, y: depth },
-              { inset: 0, y: depth * 0.6 },
-              { inset: neck, y: 0 },
-            ],
-            false,
-          ),
-          face([faceOutline.pts, aperture], depth, true),
-          face([hull(faceOutline.offset(neck))], 0, false),
-        ].filter(Boolean),
-      ),
-    )
-    body.translate(monitorFront + depth, y0 + caseH / 2, 0)
-    shell.push(body)
-    glass.push(plate(rect(screenH, screenW, 14), monitorFront - 0.5, 4, 0, y0 + caseH / 2))
+    const place = (g) => g.rotateY(-Math.PI / 2).translate(monitorFront, y0 + caseH / 2, 0)
+    const rearW = caseW * 0.66, rearH = caseH * 0.68
+    const sections = [
+      { w: caseW - 8, h: caseH - 8, r: 15, d: 0 },
+      { w: caseW - 2.4, h: caseH - 2.4, r: 18, d: 1.2 },
+      { w: caseW, h: caseH, r: 20, d: 4 },
+      { w: caseW, h: caseH, r: 20, d: 16 },
+      { w: caseW - 1, h: caseH - 1, r: 20, d: depth * 0.37 },
+      { w: caseW - 6, h: caseH - 6, r: 21, d: depth * 0.48 },
+      { w: caseW - 22, h: caseH - 22, r: 23, d: depth * 0.60 },
+      { w: rearW + 24, h: rearH + 24, r: 25, d: depth - 36 },
+      { w: rearW + 9, h: rearH + 9, r: 22, d: depth - 15 },
+      { w: rearW + 3, h: rearH + 3, r: 19, d: depth - 6 },
+      { w: rearW, h: rearH, r: 17, d: depth - 2 },
+      { w: rearW - 4, h: rearH - 4, r: 15, d: depth },
+    ]
+    const aperture = { w: screenW + 10, h: screenH + 10, r: 18 }
+    shell.push(place(merge([
+      monitorLoft(sections),
+      monitorFace(caseW - 8, caseH - 8, 15, 0, aperture),
+      monitorLoft([
+        { ...aperture, d: 0 },
+        { w: screenW + 3, h: screenH + 3, r: 15, d: 5 },
+        { w: screenW, h: screenH, r: 14, d: 9 },
+      ], true),
+      monitorFace(rearW - 4, rearH - 4, 15, depth, null, true),
+    ])))
+    glass.push(place(monitorFace(screenW, screenH, 14, 9)))
+    // Flush rear-panel details remain outside the capped housing.
+    const rearVents = []
+    for (let row = 0; row < 9; row++) for (const side of [-1, 1]) {
+      const vent = new THREE.PlaneGeometry(rearW * 0.34, 2.5)
+      vent.rotateY(Math.PI)
+      vent.translate(side * rearW * 0.22, rearH * 0.30 - row * 6, -depth - 0.15)
+      rearVents.push(place(vent))
+    }
+    parts.push({ name: 'monitor-rear-vents', geometry: merge(rearVents), color: COLOR.dark })
+    const panel = new THREE.PlaneGeometry(rearW * 0.46, 22)
+    panel.rotateY(Math.PI)
+    panel.translate(0, -rearH * 0.30, -depth - 0.2)
+    parts.push({ name: 'monitor-rear-panel', geometry: place(panel), color: finish.trim })
     // A tilt-and-swivel foot, which is what these all sat on.
     shell.push(profiledBoard(rect(depth * 0.6, caseW * 0.8, 12), H, stand, 'rounded', 6).translate(monitorFront + depth * 0.45, 0, 0))
     detail.push(box(30, 10, 60, back - 90, H + 4, -30))
@@ -431,10 +575,10 @@ export function build(p) {
 
   // --- Keyboard -----------------------------------------------------------
   if (bool(p, 'keyboard')) {
-    const kb = keyboard(19.05)
+    const kb = keyboard(19.05, originalPC)
     for (const g of [kb.shell, kb.keys]) g.translate(front - 190, 0, 0)
     parts.push({ name: 'keyboard', geometry: kb.shell, color: finish.bezel })
-    parts.push({ name: 'keycaps', geometry: kb.keys, color: finish.trim })
+    parts.push({ name: 'keycaps', geometry: kb.keys, color: originalPC ? 0xc5baa0 : finish.trim })
   }
 
   const add = (name, list, color) => {
@@ -463,7 +607,7 @@ export function metrics(p) {
   const board = BOARD[str(p, 'board')] ?? BOARD.at
   const bay = BAY[str(p, 'bayHeight')] ?? BAY.half
   const columns = Math.round(num(p, 'bayColumns'))
-  const slots = Math.round(num(p, 'slots'))
+  const slots = Math.min(board.slots, Math.round(num(p, 'slots')))
   const cards = Math.round(num(p, 'cards'))
   const { W, D, H, bayRows } = caseSize(board, bay, columns)
 
@@ -499,6 +643,15 @@ export function metrics(p) {
 }
 
 export const presets = [
+  {
+    name: '1981 IBM PC 5150',
+    params: {
+      board: 'pc', slots: 5, cards: 2, bayHeight: 'full', bayColumns: 2,
+      floppies: 2, smallFloppy: false, hardDisk: false, tapeDrive: false,
+      finish: 'oatmeal', keyLock: false, turboButton: false,
+      display: 'green', monitorSize: 12, keyboard: true,
+    },
+  },
   {
     name: '1983 twin-floppy XT',
     params: {

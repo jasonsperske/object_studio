@@ -513,16 +513,7 @@ function layout(p) {
 
 /** A rounded rectangle in plan: `depth` along x, `width` along z, about the origin. */
 function rect(depth, width, radius) {
-  const d = depth / 2
-  const w = width / 2
-  const corners = [
-    { x: d, z: -w },
-    { x: d, z: w },
-    { x: -d, z: w },
-    { x: -d, z: -w },
-  ]
-  const r = Math.max(0, Math.min(radius, d - 1, w - 1))
-  return r < 1 ? ring(corners) : roundCorners(corners, r, 5)
+  return roundedRect(depth, width, radius)
 }
 
 /** An outline moved bodily in the plan plane. */
@@ -542,26 +533,7 @@ function shift(points, dx, dz) {
  * twists the loft.
  */
 function loft(a, ya, b, yb) {
-  const n = Math.min(a.length, b.length)
-  const position = []
-  for (let i = 0; i < n; i++) {
-    const j = (i + 1) % n
-    // Wound the way `sweep` winds it, top rim first, which puts the normals on
-    // the outside.
-    const quad = [
-      { x: a[i].x, y: ya, z: a[i].z },
-      { x: a[j].x, y: ya, z: a[j].z },
-      { x: b[j].x, y: yb, z: b[j].z },
-      { x: b[i].x, y: yb, z: b[i].z },
-    ]
-    for (const [u, v, w] of [[0, 1, 2], [0, 2, 3]]) {
-      for (const q of [quad[u], quad[v], quad[w]]) position.push(q.x, q.y, q.z)
-    }
-  }
-  const g = new THREE.BufferGeometry()
-  g.setAttribute('position', new THREE.Float32BufferAttribute(position, 3))
-  g.computeVertexNormals()
-  return g
+  return loftRings([{ pts: a, y: ya }, { pts: b, y: yb }])
 }
 
 /**
@@ -859,9 +831,10 @@ export function build(p) {
     stand(
       merge(
         [
-          loft(frontRim, D, frontRim, D * 0.6),
-          loft(frontRim, D * 0.6, midRim, D * 0.28),
-          loft(midRim, D * 0.28, backRim, 0),
+          loftRings([
+            { pts: frontRim, y: D }, { pts: frontRim, y: D * 0.6 },
+            { pts: midRim, y: D * 0.28 }, { pts: backRim, y: 0 },
+          ]),
           face([frontRim, aperture], D, true),
           face([backRim], 0, false),
         ].filter(Boolean),
@@ -901,9 +874,7 @@ export function build(p) {
     layers.push({ pts: contour(reach * u), y: rimY + bulge * (1 - (1 - u) * (1 - u)) })
   }
   const dome = []
-  for (let i = layers.length - 1; i > 0; i--) {
-    dome.push(loft(layers[i].pts, layers[i].y, layers[i - 1].pts, layers[i - 1].y))
-  }
+  dome.push(loftRings(layers.slice().reverse()))
   // The lip of the glass, turning back into the moulding.
   dome.push(loft(layers[0].pts, layers[0].y, layers[0].pts, rimY - 7))
   dome.push(face([layers[layers.length - 1].pts], layers[layers.length - 1].y, true))
