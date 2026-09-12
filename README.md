@@ -152,6 +152,7 @@ Available as bare identifiers (and collected on a `studio` object):
 | `box`, `slab`, `post`, `tube`, `strut` | primitives placed by min-corner or endpoints; `strut` tapers |
 | `boardProfile` | side profile of a board: square, chamfer, rounded, bullnose, cove, ogee |
 | `extrudeProfile` | extrudes a profile across a width, front- or back-facing |
+| `roundedRect`, `loftRings`, `roundedHousing` | matched rounded contours, smooth multi-section walls, capped moulded housings |
 | `ring`, `hull`, `roundCorners` | plan outlines: cleaned and wound, repaired, corners arced |
 | `plan`, `clip`, `contains`, `supportPoint`, `perimeter` | offsetting an outline, cutting it, measuring it |
 | `sweep`, `face`, `profiledBoard` | the solids you make over one |
@@ -221,7 +222,9 @@ PNG captures the displayed level of detail.
 
 ### Marking details for texture baking
 
-Generators may add `lod: { surface: 'z' }` to a part containing flat, front-facing XY
+Generators may mark flat decorations with `lod: { surface: 'x' }`, `'y'`, or `'z'`,
+choosing the positive normal in the returned model coordinates. X/Y support upright
+card and horizontal motherboard details. Use `lod: { surface: 'z' }` to a part containing flat, front-facing XY
 triangles. The field radio marks its ivory legends this way. Each distinct Z layer is
 baked separately; up to 16 layers per marked part are supported. Unsupported or mixed
 nonplanar geometry is preserved. Decoration is never selected by guessing from its name.
@@ -439,3 +442,22 @@ The **3D Studio DOS** theme uses *Web437 IBM VGA 8x16* from
 [The Ultimate Oldschool PC Font Pack](https://int10h.org/oldschool-pc-fonts/) by VileR, licensed
 [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The font is bundled unmodified in
 `src/fonts/` with its licence.
+
+### Rounded enclosure helpers
+
+`roundedRect(depth, width, radius, steps = 12)` returns a counterclockwise XZ
+contour with stable vertex correspondence. `loftRings([{ pts, y }, …])` joins
+matching contours, ordered front/top to rear/bottom, with smooth shared normals.
+Caps are separate so a flat panel keeps its own normal. Unlike polygon offsets,
+independently sized contours do not invert when the rear taper exceeds the radius.
+
+`roundedHousing(depth, width, thickness, radius, inset = 0, aperture?)` returns a
+capped enclosure in XZ, front at `y = thickness`, rear at `y = 0`. `inset` sets the
+rear draw-in; `aperture` optionally cuts a front opening in the same plan coordinates.
+Corners and front/rear edge transitions are sampled independently. Radius zero
+preserves square corners. Inputs use millimetres; transform the result as usual.
+
+These helpers are injected by the current `src/lib/compile.ts`. External consumers
+of updated display/speaker generators must provide them alongside the existing
+helper scope (or update to this compiler); parameter schemas and part names remain
+compatible. Generators still contain no imports or runtime asset dependencies.

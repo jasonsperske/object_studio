@@ -179,7 +179,7 @@ function rect(depth, width, radius) {
     { x: -d, z: -w },
   ]
   const r = Math.max(0, Math.min(radius, d - 1, w - 1))
-  return r < 1 ? ring(corners) : roundCorners(corners, r, 4)
+  return r < 1 ? ring(corners) : roundCorners(corners, r, 12)
 }
 
 function faceForward(geometry) {
@@ -188,7 +188,13 @@ function faceForward(geometry) {
 }
 
 function plate(outline, x, thickness, radius, y, z = 0) {
-  const g = faceForward(profiledBoard(outline, 0, thickness, radius > 0 ? 'rounded' : 'square', radius))
+  // Thin face sheets need their exact contour, not a deep edge-profile offset
+  // that can fold over the tiny screen corners and overlap the face cap.
+  const pts = ring(outline)
+  const g = faceForward(merge([
+    loftRings([{ pts, y: thickness }, { pts, y: 0 }]),
+    face([pts], thickness, true), face([pts], 0, false),
+  ].filter(Boolean)))
   g.translate(x + thickness, y, z)
   return g
 }
@@ -220,39 +226,6 @@ function fascia(kind, height, width, relief) {
     }
   }
   return { plastic, detail: merge(detail) }
-}
-
-/**
- * The walls between two outlines of the same point count, one at each depth.
- *
- * `sweep` cannot do this job: it works by offsetting a single outline, and an
- * offset deep enough to make a funnel collapses the rounded corners of it. The
- * rim the walls then end on and the cap laid over that rim disagree by better
- * than a centimetre, which is two faces fighting over the back of the monitor.
- * Lofting between two outlines that were drawn separately keeps them the same
- * shape by construction.
- */
-function loft(a, ya, b, yb) {
-  const n = Math.min(a.length, b.length)
-  const position = []
-  for (let i = 0; i < n; i++) {
-    const j = (i + 1) % n
-    // Wound the way `sweep` winds it — top rim first — which is what puts the
-    // normals on the outside.
-    const quad = [
-      { x: a[i].x, y: ya, z: a[i].z },
-      { x: a[j].x, y: ya, z: a[j].z },
-      { x: b[j].x, y: yb, z: b[j].z },
-      { x: b[i].x, y: yb, z: b[i].z },
-    ]
-    for (const [u, v, w] of [[0, 1, 2], [0, 2, 3]]) {
-      for (const q of [quad[u], quad[v], quad[w]]) position.push(q.x, q.y, q.z)
-    }
-  }
-  const g = new THREE.BufferGeometry()
-  g.setAttribute('position', new THREE.Float32BufferAttribute(position, 3))
-  g.computeVertexNormals()
-  return g
 }
 
 /** A circle as a plan outline, for a round grille. */
@@ -299,10 +272,10 @@ function speaker(kind, controls) {
   if (kind === 'compact') {
     // A base with the knobs on it, and a rounded drum leaning back off it.
     const baseH = 46
-    shell.push(profiledBoard(rect(size.d, size.w, 12), 0, baseH, 'rounded', 8))
+    shell.push(roundedHousing(size.d, size.w, baseH, 12))
     const headH = size.h - baseH + 14
     const headD = size.d * 0.58
-    const head = plate(rect(headH, size.w - 8, 22), -headD, headD, 12, 0)
+    const head = faceForward(roundedHousing(headH, size.w - 8, headD, 22, 4))
     const cover = plate(rect(headH - 28, size.w - 34, 16), -headD - 1.2, 1.6, 0, 0)
     const lean = (10 * Math.PI) / 180
     for (const g of [head, cover]) {
@@ -319,7 +292,7 @@ function speaker(kind, controls) {
       lamps.push(box(4, 5, 5, front - 3, baseH - 20, -size.w * 0.05))
     }
   } else if (kind === 'tower') {
-    shell.push(profiledBoard(rect(size.d, size.w, 10), 0, size.h, 'rounded', 7))
+    shell.push(roundedHousing(size.d, size.w, size.h, 10))
     cloth.push(plate(rect(size.h - 46, size.w - 14, 8), front - 1.2, 1.6, 0, size.h / 2))
     // A tweeter up the top and a woofer down the bottom, behind the cloth.
     dark.push(socket(32, 3, front - 3.4, size.h * 0.76, 0))
@@ -331,7 +304,7 @@ function speaker(kind, controls) {
   } else {
     // A cabinet with a moulded ring round the driver and the mesh sunk inside
     // it, and the controls in a strip along the bottom.
-    shell.push(profiledBoard(rect(size.d, size.w, 12), 0, size.h, 'rounded', 9))
+    shell.push(roundedHousing(size.d, size.w, size.h, 12))
     const dia = Math.min(size.w - 26, size.h * 0.5)
     const cy = size.h * 0.58
     const surround = sweep(
@@ -578,32 +551,9 @@ export function build(p) {
     const { screenW, screenH, caseW, caseH, depth } = monitor
     const stand = 40
 
-    // The case, and the funnel behind it drawn in to the neck. Both rims are
-    // drawn as outlines in their own right, so the walls and the cap over them
-    // are the same shape.
-    // Both rims are drawn as outlines in their own right, straight from `rect`
-    // rather than through `plan`: the two have to correspond point for point,
-    // and `plan` hulls what it is given, which is free to start the ring
-    // somewhere else and twist the loft.
-    const corner = 16
-    const neck = Math.min(caseH, caseW) * 0.26
-    const frontRim = rect(caseH, caseW, corner)
-    const backRim = rect(
-      Math.max(60, caseH - neck * 2),
-      Math.max(60, caseW - neck * 2),
-      Math.max(2, corner - neck * 0.25),
-    )
-    const aperture = ring(rect(screenH, screenW, 12)).slice().reverse()
-    const body = faceForward(
-      merge(
-        [
-          loft(frontRim, depth, frontRim, depth * 0.62),
-          loft(frontRim, depth * 0.62, backRim, 0),
-          face([frontRim, aperture], depth, true),
-          face([backRim], 0, false),
-        ].filter(Boolean),
-      ),
-    )
+    const aperture = rect(screenH, screenW, 12)
+    const body = faceForward(roundedHousing(caseH, caseW, depth, 20,
+      Math.min(caseH, caseW) * 0.17, aperture))
     body.translate(monitorFront + depth, stand + caseH / 2, 0)
     shell.push(body)
     glass.push(plate(rect(screenH, screenW, 12), monitorFront - 0.5, 4, 0, stand + caseH / 2))

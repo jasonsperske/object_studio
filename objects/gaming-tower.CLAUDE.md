@@ -40,6 +40,18 @@ at all.
 No liquid cooling, no RGB lighting, no cable management to look at. The window is an opening with
 an acrylic rim round it, not a tinted pane — the studio has no transparency to give it.
 
+## Rounded geometry compatibility
+
+Both CRT and flat-panel monitor housings use independently sized rounded sections and smooth normals. CRT rear taper no longer offsets the front corner arcs past their centres; the rear cap matches its rim.
+
+Thin screen, grille and fascia plates follow their exact sampled outlines, with
+separate caps instead of deep edge-profile offsets.
+
+Parameter IDs, defaults, presets and existing named parts are unchanged. External
+consumers should use the current `src/lib/compile.ts` helper scope, including
+`roundedRect`, `loftRings` and `roundedHousing` from `src/lib/geometry.ts`.
+These are procedural geometry helpers; no textures or external assets are required.
+
 ## Parameters
 
 <!-- generated: parameters -->

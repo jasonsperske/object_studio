@@ -149,7 +149,7 @@ function rect(depth, width, radius) {
     { x: -d, z: -w },
   ]
   const r = Math.max(0, Math.min(radius, d - 1, w - 1))
-  return r < 1 ? ring(corners) : roundCorners(corners, r, 4)
+  return r < 1 ? ring(corners) : roundCorners(corners, r, 12)
 }
 
 function faceForward(geometry) {
@@ -158,7 +158,13 @@ function faceForward(geometry) {
 }
 
 function plate(outline, x, thickness, radius, y, z = 0) {
-  const g = faceForward(profiledBoard(outline, 0, thickness, radius > 0 ? 'rounded' : 'square', radius))
+  // Thin face sheets need their exact contour, not a deep edge-profile offset
+  // that can fold over the tiny screen corners and overlap the face cap.
+  const pts = ring(outline)
+  const g = faceForward(merge([
+    loftRings([{ pts, y: thickness }, { pts, y: 0 }]),
+    face([pts], thickness, true), face([pts], 0, false),
+  ].filter(Boolean)))
   g.translate(x + thickness, y, z)
   return g
 }
@@ -253,31 +259,11 @@ export function build(p) {
   //
   // Built lying down in plan and then stood on its face, which is how every
   // panel-shaped thing here is made: the outline's own x becomes height.
-  const faceOutline = plan(rect(H, W, radius))
   const aperture = ring(rect(screenH, screenW, Math.max(2, radius * 0.3)))
   // Plan y runs from the back of the machine at nought to the front at the full
   // thickness, because standing the slab on its face turns the outline over.
   const taperInset = Math.min(H, W) * 0.14
-  const body = bool(p, 'taper')
-    ? // Full size at the glass and drawn in toward the back, the way a moulded
-      // back does it. Walked front to back, which is what puts the normals on
-      // the outside of it.
-      merge(
-        [
-          sweep(
-            faceOutline,
-            [
-              { inset: 0, y: thickness },
-              { inset: 0, y: thickness * 0.6 },
-              { inset: taperInset, y: 0 },
-            ],
-            false,
-          ),
-          face([faceOutline.pts], thickness, true),
-          face([hull(faceOutline.offset(taperInset))], 0, false),
-        ].filter(Boolean),
-      )
-    : profiledBoard(faceOutline, 0, thickness, 'rounded', Math.min(radius, thickness / 2))
+  const body = roundedHousing(H, W, thickness, radius, bool(p, 'taper') ? taperInset : 0)
   faceForward(body)
   body.translate(thickness, H / 2, 0)
   shell.push(body)

@@ -40,6 +40,18 @@ you have asked for more of either than will fit.
 No PCI Express, no graphics card with its own cooler, no front USB — those are `gaming-tower`. The
 tower always stands beside its monitor rather than under the desk.
 
+## Rounded geometry compatibility
+
+The CRT monitor and all three speaker cabinet styles now use independently sized rounded sections and smooth normals. The monitor rear is capped on its actual rim, avoiding offset crossings; grille and control placement is retained.
+
+Thin screen, grille and fascia plates follow their exact sampled outlines, with
+separate caps instead of deep edge-profile offsets.
+
+Parameter IDs, defaults, presets and existing named parts are unchanged. External
+consumers should use the current `src/lib/compile.ts` helper scope, including
+`roundedRect`, `loftRings` and `roundedHousing` from `src/lib/geometry.ts`.
+These are procedural geometry helpers; no textures or external assets are required.
+
 ## Parameters
 
 <!-- generated: parameters -->

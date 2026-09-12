@@ -55,6 +55,18 @@ A curved screen is a single cylindrical bend about a vertical axis; there is no 
 again. The pop-up camera is only ever drawn popped up. Ports are openings in the back, not
 connectors.
 
+## Rounded geometry compatibility
+
+Slab, tapered and stepped housings use independent rounded sections with smooth normals and matching rear caps. The stepped electronics box remains low on the back; panel curvature and stand layout are retained. The soundbar also uses the rounded housing helper.
+
+Thin screen, grille and fascia plates follow their exact sampled outlines, with
+separate caps instead of deep edge-profile offsets.
+
+Parameter IDs, defaults, presets and existing named parts are unchanged. External
+consumers should use the current `src/lib/compile.ts` helper scope, including
+`roundedRect`, `loftRings` and `roundedHousing` from `src/lib/geometry.ts`.
+These are procedural geometry helpers; no textures or external assets are required.
+
 ## Parameters
 
 <!-- generated: parameters -->

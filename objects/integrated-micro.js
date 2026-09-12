@@ -39,7 +39,7 @@ const DARK = 0x22252a
 const LAMP = 0xd4402c
 
 // A full-height 5¼" drive, which is what set the size of every bay here.
-const DRIVE = { w: 146, h: 41.3 }
+const DRIVE = { w: 146, h: 82.5 }
 
 // A tube of a given diagonal, in the 4:3 it always was, and about as deep as
 // it was wide — which is what made these cases the shape they are.
@@ -50,12 +50,12 @@ function tubeSize(inches) {
 
 export const params = [
   // --- Tube ---------------------------------------------------------------
-  { id: 'tube', label: 'Tube', type: 'number', min: 5, max: 15, step: 0.5, default: 9, unit: '″', group: 'Tube', help: 'Diagonal. Nine inches was the usual; twelve made a much bigger box.' },
+  { id: 'tube', label: 'Tube', type: 'number', min: 5, max: 15, step: 0.5, default: 12, unit: '″', group: 'Tube', help: 'Diagonal. The default twelve-inch tube follows the TRS-80 Model III-inspired configuration.' },
   {
     id: 'phosphor',
     label: 'Phosphor',
     type: 'select',
-    default: 'green',
+    default: 'white',
     group: 'Tube',
     options: [
       { value: 'green', label: 'Green — P1, the common one' },
@@ -65,17 +65,17 @@ export const params = [
     ],
   },
   { id: 'screenOn', label: 'Switched on', type: 'boolean', default: true, group: 'Tube' },
-  { id: 'hood', label: 'Screen hood', type: 'boolean', default: true, group: 'Tube', help: 'The brow moulded over the tube to keep the strip lights off it.' },
-  { id: 'tilt', label: 'Screen tilt', type: 'number', min: 0, max: 16, step: 0.5, default: 6, unit: '°', group: 'Tube', help: 'How far the tube leans back inside the recess. The moulding gets deeper to take it.' },
+  { id: 'hood', label: 'Screen hood', type: 'boolean', default: false, group: 'Tube', help: 'The brow moulded over the tube to keep the strip lights off it.' },
+  { id: 'tilt', label: 'Screen tilt', type: 'number', min: 0, max: 16, step: 0.5, default: 4, unit: '°', group: 'Tube', help: 'How far the tube leans back inside the recess. The moulding gets deeper to take it.' },
 
   // --- Case ---------------------------------------------------------------
-  { id: 'margin', label: 'Moulding around the tube', type: 'number', min: 20, max: 140, step: 2, default: 62, unit: 'mm', group: 'Case' },
-  { id: 'radius', label: 'Corner radius', type: 'number', min: 0, max: 70, step: 1, default: 22, unit: 'mm', group: 'Case' },
+  { id: 'margin', label: 'Moulding around the tube', type: 'number', min: 20, max: 140, step: 2, default: 28, unit: 'mm', group: 'Case' },
+  { id: 'radius', label: 'Corner radius', type: 'number', min: 0, max: 70, step: 1, default: 10, unit: 'mm', group: 'Case' },
   {
     id: 'finish',
     label: 'Finish',
     type: 'select',
-    default: 'cream',
+    default: 'steel',
     group: 'Case',
     options: [
       { value: 'cream', label: 'Cream' },
@@ -92,7 +92,7 @@ export const params = [
     id: 'storage',
     label: 'Built-in storage',
     type: 'select',
-    default: 'cassette',
+    default: 'floppy',
     group: 'Storage',
     help: 'What was moulded into the case beside or below the tube.',
     options: [
@@ -128,8 +128,8 @@ export const params = [
       { value: 'none', label: 'None' },
     ],
   },
-  { id: 'keyColumns', label: 'Columns', type: 'int', min: 10, max: 20, step: 1, default: 15, group: 'Keyboard', visibleWhen: (p) => str(p, 'keyboard') !== 'none' },
-  { id: 'keyPitch', label: 'Key pitch', type: 'number', min: 12, max: 20, step: 0.05, default: 17.5, unit: 'mm', group: 'Keyboard', visibleWhen: (p) => str(p, 'keyboard') !== 'none' },
+  { id: 'keyColumns', label: 'Columns', type: 'int', min: 10, max: 20, step: 1, default: 13, group: 'Keyboard', visibleWhen: (p) => str(p, 'keyboard') !== 'none' },
+  { id: 'keyPitch', label: 'Key pitch', type: 'number', min: 12, max: 20, step: 0.05, default: 19.05, unit: 'mm', group: 'Keyboard', visibleWhen: (p) => str(p, 'keyboard') !== 'none' },
   { id: 'keypad', label: 'Numeric keypad', type: 'boolean', default: true, group: 'Keyboard', visibleWhen: (p) => str(p, 'keyboard') !== 'none' },
 
   // --- Back ---------------------------------------------------------------
@@ -151,7 +151,7 @@ function rect(depth, width, radius, cx = 0, cz = 0) {
     { x: cx - d, z: cz - w },
   ]
   const r = Math.max(0, Math.min(radius, d - 1, w - 1))
-  return r < 1 ? ring(corners) : roundCorners(corners, r, 4)
+  return r < 1 ? ring(corners) : roundCorners(corners, r, 12)
 }
 
 /**
@@ -166,32 +166,79 @@ function faceForward(geometry) {
   return geometry
 }
 
-/** A key block built flat about the origin, front row first. */
-function keyBlock(columns, rows, pitch, keypad) {
-  const keys = []
-  const width = (columns + (keypad ? 4.6 : 0)) * pitch
-  const depth = rows * pitch
-  for (let r = 0; r < rows; r++) {
-    const x = -depth / 2 + r * pitch
-    if (r === 0) {
-      keys.push(box(pitch * 0.82, 7, pitch * 5, x, 0, -pitch * 2.5))
-      for (const side of [-1, 1]) {
-        keys.push(box(pitch * 0.82, 7, pitch * 1.4, x, 0, side * pitch * 3.4))
-      }
-      continue
-    }
+/** Single source of truth for build and metrics, including keyboard clearance. */
+function layout(p) {
+  const tube = tubeSize(num(p, 'tube')), margin = num(p, 'margin')
+  const storage = str(p, 'storage'), floppy = storage === 'floppy'
+  const beside = str(p, 'drivePlace') === 'beside' && storage !== 'none'
+  const below = str(p, 'drivePlace') === 'below' && storage !== 'none'
+  const floppies = Math.round(num(p, 'floppies')), bayGap = 18
+  const stackH = floppy ? DRIVE.h * floppies + bayGap * (floppies - 1) : 96
+  const stackW = floppy ? DRIVE.w + 26 : 150
+  const rowW = floppy ? DRIVE.w * floppies + bayGap * (floppies - 1) : 150
+  const rowH = floppy ? DRIVE.h + 28 : 96
+  const shelf = str(p, 'keyboard') === 'shelf', pitch = num(p, 'keyPitch')
+  const keyWidth = (Math.round(num(p, 'keyColumns')) + (bool(p, 'keypad') ? 4.6 : 0)) * pitch
+  const shelfDepth = shelf ? 5 * pitch + 36 : 0
+  const deckBack = shelf ? 54 : 0
+  const W = Math.max(tube.w + margin * 2 + (beside ? stackW : 0), below ? rowW + margin * 2 : 0,
+    shelf ? keyWidth + 42 : 0)
+  const H = deckBack + (below ? rowH : 0) + Math.max(tube.h, beside ? stackH : 0) + margin * 2
+  const tilt = num(p, 'tilt') * Math.PI / 180, sag = Math.sin(tilt) * tube.h / 2
+  const frameT = Math.max(24, sag * 2 + 18)
+  const D = tube.d + margin + 30 + shelfDepth + frameT
+  const screenCentre = deckBack + (below ? rowH : 0) + (H - deckBack - (below ? rowH : 0)) / 2
+  return { tube, margin, storage, floppy, beside, below, floppies, bayGap, stackH, stackW,
+    rowH, shelf, pitch, keyWidth, shelfDepth, deckBack, W, H, D, tilt, sag, frameT, screenCentre }
+}
+
+/** Tapered keycaps with a smaller top and distinct Enter cap. */
+function keyBlock(columns, pitch, keypad) {
+  const keys = [], accent = [], legends = []
+  const glyphs = {
+    A:'010101111101101', B:'110101110101110', C:'011100100100011', D:'110101101101110',
+    E:'111100110100111', F:'111100110100100', G:'011100101101011', H:'101101111101101',
+    I:'111010010010111', J:'001001001101010', K:'101101110101101', L:'100100100100111',
+    M:'101111111101101', N:'101111111111101', O:'010101101101010', P:'110101110100100',
+    Q:'010101101111011', R:'110101110101101', S:'011100010001110', T:'111010010010010',
+    U:'101101101101111', V:'101101101101010', W:'101101111111101', X:'101101010101101',
+    Y:'101101010010010', Z:'111001010100111',
+    '0':'111101101101111','1':'010110010010111','2':'110001010100111','3':'110001010001110',
+    '4':'101101111001001','5':'111100110001110','6':'011100111101111','7':'111001010010010',
+    '8':'111101111101111','9':'111101111001110',
+  }
+  const width = (columns + (keypad ? 4.6 : 0)) * pitch, depth = 5 * pitch
+  const alphaLeft = -width / 2
+  const key = (x, z, w = pitch * .84, list = keys, label = '') => {
+    const bottom = rect(pitch * .86, w, 1.2)
+    const top = rect(pitch * .68, Math.max(4, w - pitch * .15), 1.2)
+    const g = merge([loftRings([{ pts: top, y: 7 }, { pts: bottom, y: 0 }]), face([top], 7, true), face([bottom], 0, false)].filter(Boolean))
+    g.translate(x, 0, z)
+    list.push(g)
+    const pattern = glyphs[label], px = pitch * .065
+    if (pattern) [...pattern].forEach((bit, i) => {
+      if (bit === '1') legends.push(face([rect(px * .85, px * .85, 0,
+        x + (2 - Math.floor(i / 3)) * px, z + (i % 3 - 1) * px)], 7.08, true))
+    })
+  }
+  for (let row = 0; row < 4; row++) {
+    const x = -depth / 2 + (row + 1.5) * pitch
     for (let c = 0; c < columns; c++) {
-      const z = -width / 2 + c * pitch + ((rows - r) % 3) * pitch * 0.25
-      if (z + pitch > width / 2) continue
-      keys.push(box(pitch * 0.82, 7, pitch * 0.84, x, 0, z))
-    }
-    if (keypad) {
-      for (let c = 0; c < 4; c++) {
-        keys.push(box(pitch * 0.82, 7, pitch * 0.84, x, 0, width / 2 - pitch * 4.3 + c * pitch))
-      }
+      // Keep all rows inside their block, with a small period keyboard stagger.
+      const stagger = row % 2 ? .10 : 0
+      key(x, alphaLeft + (c + .5 + stagger) * pitch,
+        pitch * .82, row === 1 && c === columns - 1 ? accent : keys, ['ZXCVBNM', 'ASDFGHJKL', 'QWERTYUIOP', '1234567890'][row][c] ?? '')
     }
   }
-  return { keys: merge(keys), width, depth }
+  key(-depth / 2 + pitch * .5, alphaLeft + columns * pitch * .48, columns * pitch * .52)
+  if (keypad) for (let row = 0; row < 4; row++) for (let c = 0; c < 3; c++)
+    key(-depth / 2 + (row + 1.5) * pitch, width / 2 - (3.4 - c) * pitch, pitch * .84, keys, ['012','123','456','789'][row][c])
+  return { keys: merge(keys), accent: merge(accent), legends: merge(legends), width, depth }
+}
+
+/** Flat sheet in the front's elevation coordinates (plan X is height). */
+function frontSheet(outline, x) {
+  return faceForward(face([outline], 0, true)).translate(x, 0, 0)
 }
 
 // ---------------------------------------------------------------------------
@@ -199,295 +246,138 @@ function keyBlock(columns, rows, pitch, keypad) {
 // ---------------------------------------------------------------------------
 
 export function build(p) {
-  const tube = tubeSize(num(p, 'tube'))
-  const margin = num(p, 'margin')
-  const radius = num(p, 'radius')
+  const L = layout(p)
+  const { tube, margin, storage, floppy, beside, below, floppies, bayGap, stackH, stackW,
+    rowH, shelf, pitch, shelfDepth, deckBack, W, H, D, tilt, sag, frameT, screenCentre: screenY } = L
+  const radius = Math.min(num(p, 'radius'), margin * .6)
   const finish = FINISH[str(p, 'finish')] ?? FINISH.cream
-  const storage = str(p, 'storage')
-  const beside = str(p, 'drivePlace') === 'beside' && storage !== 'none'
-  const below = str(p, 'drivePlace') === 'below' && storage !== 'none'
-  const floppy = storage === 'floppy'
-  const floppies = Math.round(num(p, 'floppies'))
-  const tilt = (num(p, 'tilt') * Math.PI) / 180
   const keyStyle = str(p, 'keyboard')
+  const front = -D / 2, back = D / 2, faceX = front + shelfDepth, bodyFront = faceX + frameT
+  const screenZ = beside ? -W / 2 + margin + tube.w / 2 : 0
+  const shell = [], detail = [], dark = [], glass = [], fascia = [], lamps = [], keys = [], parts = []
+  const onFront = g => faceForward(g).translate(bodyFront, 0, 0)
 
-  // --- Size, from the tube out --------------------------------------------
-  //
-  // Drives beside the tube stack up a column and add their width; drives below
-  // it stand in a row and add their height.
-  const bayGap = 16
-  const stackH = floppy ? DRIVE.h * floppies + bayGap * (floppies - 1) : 96
-  const stackW = floppy ? DRIVE.w + 34 : 150
-  const rowW = floppy ? DRIVE.w * floppies + bayGap * (floppies - 1) : 150
-  const rowH = floppy ? DRIVE.h + 34 : 96
-
-  const shelf = keyStyle === 'shelf'
-  const shelfHeight = 34
-  const shelfDepth = shelf ? 4 * num(p, 'keyPitch') + 40 : 0
-
-  const W = Math.max(
-    tube.w + margin * 2 + (beside ? stackW : 0),
-    below ? rowW + margin * 2 : 0,
-  )
-  const H = (below ? rowH : 0) + Math.max(tube.h, beside ? stackH : 0) + margin * 2
-  // The moulding stands proud of the mask by enough to take the tube's lean.
-  const sag = Math.sin(tilt) * (tube.h / 2)
-  const frameT = Math.min(52, Math.max(16, 2 * sag + 10))
-  const D = tube.d + margin + 30 + shelfDepth + frameT
-  const front = -D / 2
-  const back = D / 2
-
-  const shell = []
-  const detail = []
-  const dark = []
-  const glass = []
-  const fascia = []
-  const lamps = []
-  const keys = []
-  const parts = []
-
-  // --- Case ---------------------------------------------------------------
-  //
-  // The box, which stops short of the front: the moulding and the mask panel
-  // take the last of the depth.
-  const faceX = front + shelfDepth
-  const bodyFront = faceX + frameT
-  const outline = plan(rect(D - shelfDepth - frameT, W, radius))
-  const body = sweep(
-    outline,
-    [
-      { inset: 0, y: H },
-      { inset: 0, y: 0 },
-    ],
-    false,
-  )
-  shell.push(body, face([outline.pts], H, true), face([outline.pts], 0, false))
-  const bodyShift = (shelfDepth + frameT) / 2
-  for (const g of shell) g.translate(bodyShift, 0, 0)
-
-  // --- What the front carries ---------------------------------------------
-  const screenY = (below ? rowH : 0) + (H - (below ? rowH : 0)) / 2
-  const screenZ = beside ? -(W / 2) + margin + tube.w / 2 : 0
-  // Where the drives sit, as centres on the front, worked out once so the mask
-  // can be drawn round them.
+  // A broad upper enclosure, joined to a full-width keyboard wedge below it.
+  shell.push(roundedHousing(D - shelfDepth - frameT, W, H, radius)
+    .translate((shelfDepth + frameT) / 2, 0, 0))
   const bays = []
   if (storage !== 'none') {
-    const bayW = floppy ? DRIVE.w : 132
-    const bayH = floppy ? DRIVE.h : 78
-    if (beside) {
-      // A column up the right of the tube, hung from the top of it.
-      const z = W / 2 - margin - stackW / 2
-      const top = screenY + Math.max(tube.h, stackH) / 2 - bayH / 2
-      const count = floppy ? floppies : 1
-      for (let i = 0; i < count; i++) bays.push({ y: top - i * (bayH + bayGap), z, w: bayW, h: bayH })
-    } else {
-      // A row across the front below the tube, clear of the keyboard shelf.
-      const count = floppy ? floppies : 1
-      const y = Math.max(rowH / 2, (shelf ? shelfHeight : 0) + bayH / 2 + 14)
-      for (let i = 0; i < count; i++) {
-        bays.push({ y, z: (i - (count - 1) / 2) * (bayW + bayGap), w: bayW, h: bayH })
-      }
-    }
+    const w = floppy ? DRIVE.w : 132, h = floppy ? DRIVE.h : 78, count = floppy ? floppies : 1
+    for (let i = 0; i < count; i++) bays.push({ w, h,
+      y: beside ? screenY + stackH / 2 - h / 2 - i * (h + bayGap) : deckBack + rowH / 2,
+      z: beside ? W / 2 - margin - stackW / 2 : (i - (count - 1) / 2) * (w + bayGap),
+    })
   }
 
-  // --- The front: a moulding, and a mask panel set back inside it ----------
-  //
-  // The mask is the dark panel the tube and the bays are let into, and it takes
-  // in whatever they cover. Built in the elevation plane — plan x is height,
-  // plan z is width — and stood on its face.
-  let lowY = screenY - tube.h / 2
-  let highY = screenY + tube.h / 2
-  let leftZ = screenZ - tube.w / 2
-  let rightZ = screenZ + tube.w / 2
+  // Separate screen and drive openings preserve the painted divider between them.
+  const outer = roundedRect(H - deckBack, W, radius).map(q => ({ x: q.x + (H + deckBack) / 2, z: q.z }))
+  const screenR = Math.min(tube.h * .12, 24)
+  const aperture = roundedRect(tube.h + 10, tube.w + 10, screenR + 4)
+    .map(q => ({ x: q.x + screenY, z: q.z + screenZ }))
+  const bayHoles = bays.map(b => rect(b.h + 4, b.w + 4, 3, b.y, b.z))
+  shell.push(onFront(face([outer, aperture, ...bayHoles], frameT, true)))
+  shell.push(onFront(loftRings([{ pts: outer, y: frameT }, { pts: outer, y: 0 }])))
+
+  // Deep dark CRT reveal and a smooth convex face, all leaning within the opening.
+  const rearAperture = roundedRect(tube.h, tube.w, screenR)
+    .map(q => ({ x: q.x + screenY, z: q.z + screenZ }))
+  dark.push(onFront(face([rearAperture], .7, true)))
+  dark.push(onFront(loftRings([{ pts: rearAperture, y: .5 }, { pts: aperture, y: frameT - .2 }])))
+  const glassProud = sag + 5, bulge = 3
+  const layers = []
+  for (let i = 0; i <= 6; i++) {
+    const u = i / 6, shrink = u * Math.min(tube.h, tube.w) * .22
+    layers.push({ pts: roundedRect(tube.h - 12 - shrink * 2, tube.w - 12 - shrink * 2, Math.max(2, screenR - shrink * .35))
+      .map(q => ({ x: q.x + screenY, z: q.z + screenZ })), y: glassProud + bulge * (2 * u - u * u) })
+  }
+  const dome = merge([loftRings(layers.slice().reverse()), face([layers[6].pts], layers[6].y, true)].filter(Boolean))
+  const pivot = bodyFront - glassProud
+  const onTube = g => {
+    onFront(g)
+    g.translate(-pivot, -screenY, 0).rotateZ(-tilt).translate(pivot, screenY, 0)
+    return g
+  }
+  glass.push(onTube(dome))
+  if (bool(p, 'hood')) detail.push(box(Math.max(8, frameT - 6), 6, tube.w + 18,
+    faceX + 2, screenY + tube.h / 2 + 7, screenZ - (tube.w + 18) / 2))
+
   for (const bay of bays) {
-    lowY = Math.min(lowY, bay.y - bay.h / 2)
-    highY = Math.max(highY, bay.y + bay.h / 2)
-    leftZ = Math.min(leftZ, bay.z - bay.w / 2)
-    rightZ = Math.max(rightZ, bay.z + bay.w / 2)
-  }
-  const pad = 14
-  const clampY = (y) => Math.min(Math.max(y, 12), H - 12)
-  const clampZ = (z) => Math.min(Math.max(z, -W / 2 + radius + 8), W / 2 - radius - 8)
-  const maskLow = clampY(lowY - pad)
-  const maskHigh = clampY(highY + pad)
-  const maskLeft = clampZ(leftZ - pad)
-  const maskRight = clampZ(rightZ + pad)
-  const maskOutline = plan(
-    rect(maskHigh - maskLow, maskRight - maskLeft, 8, (maskHigh + maskLow) / 2, (maskLeft + maskRight) / 2),
-  )
-  // The moulding is a panel across the flat of the front, stopping where the
-  // case's own corners begin to curve away: anything wider would stand proud of
-  // them, which is what a lip on a moulding looks like.
-  const frontOutline = plan(rect(H, Math.max(60, W - radius * 2), radius, H / 2, 0))
-
-  const onFront = (geometry, x = bodyFront) => {
-    if (!geometry) return geometry
-    faceForward(geometry)
-    geometry.translate(x, 0, 0)
-    return geometry
-  }
-  // The moulding: a face with the mask cut out of it, the outer edge run round
-  // it, and the opening's own wall run back to the mask.
-  shell.push(onFront(face([frontOutline.pts, maskOutline.pts], frameT, true)))
-  shell.push(onFront(sweep(frontOutline, [{ inset: 0, y: frameT }, { inset: 0, y: 0 }], false)))
-  // Walked bottom to top, which turns the opening's normals inward.
-  shell.push(onFront(sweep(maskOutline, [{ inset: 0, y: 0 }, { inset: 0, y: frameT }], false)))
-  dark.push(onFront(face([maskOutline.pts], 0.4, true)))
-
-  // --- The tube -----------------------------------------------------------
-  //
-  // The glass sits proud of the mask and leans back inside the recess, so the
-  // moulding is always in front of it whatever the tilt.
-  const glassProud = sag + 3
-  const glassOutline = rect(tube.h - 10, tube.w - 10, radius * 0.5, screenY, screenZ)
-  const screen = onFront(profiledBoard(glassOutline, glassProud, 4, 'square', 0))
-  const pivot = bodyFront - glassProud - 2
-  screen.translate(-pivot, -screenY, 0)
-  screen.rotateZ(-tilt)
-  screen.translate(pivot, screenY, 0)
-  glass.push(screen)
-
-  if (bool(p, 'hood')) {
-    // The brow over the tube, standing out of the recess.
-    const reach = Math.max(8, frameT - 6)
-    detail.push(
-      box(reach, 10, tube.w + 24, bodyFront - reach, screenY + tube.h / 2 + 6, screenZ - (tube.w + 24) / 2),
-    )
-  }
-
-  // --- Storage ------------------------------------------------------------
-  //
-  // A bay is a fascia standing out of the mask with the slot sunk back into it,
-  // the door lever beside the slot and the lamp under it.
-  const relief = Math.min(6, frameT - 6)
-  for (const bay of bays) {
-    const faceAt = bodyFront - 0.6 - relief
-    // The fascia stands out of the mask; the slot or the well is sunk back into
-    // it, so both read against a panel that is already dark.
-    fascia.push(box(relief, bay.h, bay.w, faceAt, bay.y - bay.h / 2, bay.z - bay.w / 2))
+    const x = faceX + 3
+    // Black fascia, a visible inset slot, central latch, and red activity lamp.
+    fascia.push(box(5, bay.h, bay.w, x, bay.y - bay.h / 2, bay.z - bay.w / 2))
+    dark.push(frontSheet(rect(bay.h + 4, bay.w + 4, 3, bay.y, bay.z), x + 5.1))
     if (floppy) {
-      dark.push(box(relief - 2, 7, bay.w * 0.6, faceAt + 2, bay.y - 1, bay.z - bay.w * 0.3))
-      fascia.push(box(relief + 3, bay.h * 0.42, bay.w * 0.08, faceAt - 3, bay.y + 2, bay.z - bay.w * 0.33))
-      lamps.push(box(relief + 1.4, 4, 6, faceAt - 1.4, bay.y - bay.h * 0.36, bay.z - bay.w * 0.36))
+      parts.push({ name: 'drive-slot-' + (bays.indexOf(bay) + 1), geometry: frontSheet(rect(4, bay.w * .82, 0, bay.y + 4, bay.z), x - 2.2), color: 0x090b0d })
+      detail.push(box(7, 7, bay.w * .74, x - 2, bay.y - 1, bay.z - bay.w * .37))
+      fascia.push(box(10, bay.h * .30, bay.w * .24, x - 6, bay.y - bay.h * .26, bay.z - bay.w * .12))
+      lamps.push(box(1, 4, 5, x - .5, bay.y - bay.h * .32, bay.z - bay.w * .4))
     } else {
-      // A cassette well, with the transport buttons in a row under it.
-      dark.push(box(relief - 2, bay.h * 0.56, bay.w * 0.82, faceAt + 2, bay.y - bay.h * 0.06, bay.z - bay.w * 0.41))
-      for (let i = 0; i < 5; i++) {
-        fascia.push(box(relief + 3, 9, 17, faceAt - 3, bay.y - bay.h / 2 + 4, bay.z - bay.w * 0.4 + i * 21))
-      }
-      lamps.push(box(relief + 1, 4, 6, faceAt - 1, bay.y + bay.h * 0.3, bay.z + bay.w * 0.36))
+      dark.push(frontSheet(rect(bay.h * .48, bay.w * .8, 3, bay.y + 7, bay.z), x - .2))
+      for (let i = 0; i < 5; i++) detail.push(box(7, 8, 17, x - 3, bay.y - bay.h / 2 + 5, bay.z - 50 + i * 21))
     }
   }
+  // The narrow badge sits on the divider between stacked drives.
+  if (bays.length === 2 && beside) {
+    const badgeY = (bays[0].y + bays[1].y) / 2
+    parts.push({ name: 'nameplate', geometry: frontSheet(rect(10, 118, 1, badgeY, bays[0].z), faceX - .2), color: 0x252b2d })
+    detail.push(frontSheet(rect(1, 110, 0, badgeY + 3, bays[0].z), faceX - .3))
+  }
 
-  // --- Keyboard -----------------------------------------------------------
-  const rows = 5
   if (keyStyle !== 'none') {
-    const block = keyBlock(Math.round(num(p, 'keyColumns')), rows, num(p, 'keyPitch'), bool(p, 'keypad'))
-    if (shelf) {
-      // A shelf stepped out of the bottom of the case, keys sunk into it.
-      const shelfOutline = plan(rect(shelfDepth + 30, Math.min(W, block.width + 70), radius * 0.5))
-      const tray = sweep(
-        shelfOutline,
-        [
-          { inset: 0, y: shelfHeight },
-          { inset: 0, y: 0 },
-        ],
-        false,
-      )
-      for (const g of [tray, face([shelfOutline.pts], shelfHeight, true), face([shelfOutline.pts], 0, false)].filter(Boolean)) {
-        g.translate(front + shelfDepth / 2 + 8, 0, 0)
-        shell.push(g)
-      }
-      block.keys.translate(front + shelfDepth / 2 + 6, shelfHeight - 2, 0)
-      keys.push(block.keys)
-    } else {
-      const slabPlan = plan(rect(block.depth + 46, block.width + 40, 10))
-      const slab = sweep(
-        slabPlan,
-        [
-          { inset: 0, y: 26 },
-          { inset: 0, y: 0 },
-        ],
-        false,
-      )
-      for (const g of [slab, face([slabPlan.pts], 26, true), face([slabPlan.pts], 0, false)].filter(Boolean)) {
-        g.translate(front - 120, 0, 0)
-        detail.push(g)
-      }
-      block.keys.translate(front - 120, 26, 0)
-      keys.push(block.keys)
-    }
+    const block = keyBlock(Math.round(num(p, 'keyColumns')), pitch, bool(p, 'keypad'))
+    const depth = shelf ? shelfDepth + 8 : block.depth + 38
+    const width = shelf ? W : block.width + 40
+    const centre = shelf ? front + shelfDepth / 2 + 4 : front - depth / 2 - 24
+    const frontHeight = shelf ? 22 : 18, rearHeight = shelf ? deckBack : 38
+    const outline = rect(depth, width, Math.min(radius, 10))
+    const well = rect(block.depth + 8, block.width + 12, 5)
+    const slope = (rearHeight - frontHeight) / depth
+    const wedge = g => g.applyMatrix4(new THREE.Matrix4().set(1,0,0,0, slope,1,0,(frontHeight + rearHeight)/2, 0,0,1,0, 0,0,0,1)).translate(centre, 0, 0)
+    const bottom = outline.map(q => ({ x: q.x, z: q.z }))
+    // Side walls use a per-vertex height, keeping the floor flat at Y=0.
+    const planned = plan(outline)
+    const side = sweep(planned, i => [{ inset: 0, y: (frontHeight + rearHeight)/2 + planned.pts[i].x * slope }, { inset: 0, y: 0 }], false)
+    shell.push(side.translate(centre,0,0), face([bottom],0,false).translate(centre,0,0), wedge(face([outline, well],0,true)))
+    dark.push(wedge(face([well],-3,true)))
+    dark.push(wedge(loftRings([{ pts: well, y: -3 }, { pts: well, y: 0 }])))
+    keys.push(wedge(block.keys.translate(0,-2,0)))
+    parts.push({ name: 'key-legends', geometry: wedge(block.legends.translate(0,-2,0)), color: 0xc9c9be })
+    parts.push({ name: 'enter-key', geometry: wedge(block.accent.translate(0,-2,0)), color: 0xdcd5bd })
   }
 
-  // --- Back and vents -----------------------------------------------------
-  //
-  // The body was shifted to meet the front, but its back face never moved: it
-  // is at `back`, and everything here stands a whisker proud of it.
-  const socket = (width, height, y, z) => box(6, height, width, back - 5, y, z - width / 2)
-  if (bool(p, 'parallelPort')) dark.push(socket(64, 18, H * 0.3, -W / 4))
-  if (bool(p, 'expansionPort')) dark.push(socket(88, 16, H * 0.3, W / 4))
-  dark.push(socket(28, 26, H * 0.12, 0))
-
+  // Exterior slots are dark shallow marks, not buried boxes or internal geometry.
+  const socket = (width, height, y, z) => box(2, height, width, back + .1, y, z - width / 2)
+  if (bool(p, 'parallelPort')) dark.push(socket(64,18,H*.22,-W/4))
+  if (bool(p, 'expansionPort')) dark.push(socket(88,16,H*.22,W/4))
+  dark.push(socket(28,26,H*.12,0))
   if (bool(p, 'vents')) {
-    const slots = []
-    for (let i = 0; i < 9; i++) {
-      const y = H * 0.6 + i * 9
-      if (y > H - 12) break
-      slots.push(box(3, 4, W * 0.5, back - 2, y, -W * 0.25))
+    // A bank of passive cooling slots across the rear of the roof.
+    for (let i = 0; i < 30; i++) dark.push(face([rect(22, 2.5, 0,
+      back - 32, -W * .36 + i * W * .72 / 29)], H + .12, true))
+    for (let i=0;i<9;i++) {
+      const y = H*.60+i*7
+      if (y>H-radius-10) break
+      dark.push(box(1,2.5,W*.55,back+.15,y,-W*.275))
     }
-    // Down both sides, proud of the wall rather than sunk inside it.
-    for (let i = 0; i < 6; i++) {
-      const y = H * 0.55 + i * 10
-      if (y > H - 12) break
-      slots.push(box(D * 0.24, 4, 3, bodyFront + 30, y, W / 2 - 1))
-      slots.push(box(D * 0.24, 4, 3, bodyFront + 30, y, -W / 2 - 2))
+    for (const side of [-1,1]) for (let i=0;i<8;i++) {
+      const x = bodyFront+28+i*12
+      if (x>back-radius-18) break
+      dark.push(box(3,H*.15,1,x,H*.63,side*W/2+(side>0?.1:-1.1)))
     }
-    detail.push(merge(slots))
   }
-
-  const add = (name, list, color) => {
-    const usable = list.filter(Boolean)
-    if (!usable.length) return
-    const geometry = merge(usable)
-    if (triangleCount(geometry) > 0) parts.push({ name, geometry, color })
-  }
-  add('case', shell, finish.shell)
-  add('mouldings', detail, finish.bezel)
-  add('drive bays', fascia, finish.trim)
-  add('keys', keys, finish.trim)
-  add('recess', dark, DARK)
-  add('lamp', lamps, LAMP)
-  add('screen', glass, bool(p, 'screenOn') ? PHOSPHOR[str(p, 'phosphor')] : 0x3c4145)
-
-  const facing = parts.filter((part) => part.geometry && triangleCount(part.geometry) > 0)
-  // Swung round from -X to +Z, which is where the Front view looks from, so the
-  // front of the machine is what the front view shows.
-  for (const part of facing) part.geometry.rotateY(Math.PI / 2)
-  return facing
+  const add = (name, list, color) => { if (list.length) parts.push({ name, geometry: merge(list.filter(Boolean)), color }) }
+  add('case',shell,finish.shell); add('mouldings',detail,finish.bezel)
+  add('drive bays',fascia,0x303237); add('keys',keys,0x25282b)
+  add('recess',dark,DARK); add('lamp',lamps,LAMP)
+  const screenColor = new THREE.Color(0x303a37)
+  if (bool(p, 'screenOn')) screenColor.lerp(new THREE.Color(PHOSPHOR[str(p, 'phosphor')] ?? PHOSPHOR.green), .08)
+  add('screen',glass,screenColor.getHex())
+  for (const part of parts) part.geometry.rotateY(Math.PI/2)
+  return parts
 }
 
 export function metrics(p) {
-  const tube = tubeSize(num(p, 'tube'))
-  const margin = num(p, 'margin')
-  const storage = str(p, 'storage')
-  const beside = str(p, 'drivePlace') === 'beside' && storage !== 'none'
-  const below = str(p, 'drivePlace') === 'below' && storage !== 'none'
-  const floppy = storage === 'floppy'
-  const floppies = Math.round(num(p, 'floppies'))
-  const tilt = (num(p, 'tilt') * Math.PI) / 180
-
-  const bayGap = 16
-  const stackH = floppy ? DRIVE.h * floppies + bayGap * (floppies - 1) : 96
-  const stackW = floppy ? DRIVE.w + 34 : 150
-  const rowW = floppy ? DRIVE.w * floppies + bayGap * (floppies - 1) : 150
-  const rowH = floppy ? DRIVE.h + 34 : 96
-  const shelfDepth = str(p, 'keyboard') === 'shelf' ? 4 * num(p, 'keyPitch') + 40 : 0
-  const frameT = Math.min(52, Math.max(16, 2 * Math.sin(tilt) * (tube.h / 2) + 14))
-
-  const W = Math.max(tube.w + margin * 2 + (beside ? stackW : 0), below ? rowW + margin * 2 : 0)
-  const H = (below ? rowH : 0) + Math.max(tube.h, beside ? stackH : 0) + margin * 2
-  const D = tube.d + margin + 30 + shelfDepth + frameT
-  const screenCentre = (below ? rowH : 0) + (H - (below ? rowH : 0)) / 2
+  const { tube, storage, floppies, below, W, H, D, screenCentre } = layout(p)
 
   // These sat on the desk and you looked down into them — a tube centred in its
   // own case never reached eye level, so what is worth reporting is how far
@@ -527,6 +417,15 @@ export function metrics(p) {
 }
 
 export const presets = [
+  {
+    name: '1980 TRS-80 Model III inspired',
+    params: {
+      tube: 12, phosphor: 'white', screenOn: true, margin: 28, radius: 10,
+      finish: 'steel', storage: 'floppy', floppies: 2, drivePlace: 'beside',
+      keyboard: 'shelf', keyColumns: 13, keyPitch: 19.05, keypad: true,
+      hood: false, tilt: 4, vents: true,
+    },
+  },
   {
     name: 'Green-screen trinity',
     params: {

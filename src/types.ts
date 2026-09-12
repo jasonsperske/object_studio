@@ -52,7 +52,7 @@ export interface Part {
   /** Optional baked surface image, shared by preview and glTF/GLB export. */
   map?: THREE.Texture
   /** Explicitly safe-to-bake decoration; never inferred from part names. */
-  lod?: { surface: 'z' }
+  lod?: { surface: 'x' | 'y' | 'z' }
 }
 
 /** A derived measurement or code check shown in the info panel. */

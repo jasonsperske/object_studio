@@ -155,6 +155,20 @@ export function simplifyGeometry(source: THREE.BufferGeometry, options: LodOptio
 /** Only explicitly annotated, front-facing, coplanar triangles are baked.
  * Separate depth layers avoid moving lettering through the panel behind it. */
 export function bakeSurface(part: Part, resolution: number): Part[] | null {
+    const axis = part.lod?.surface;
+    if ((axis === 'x' || axis === 'y') && !part.map && typeof document !== 'undefined') {
+        const geometry = part.geometry.clone();
+        if (axis === 'x') geometry.rotateY(-Math.PI / 2);
+        else geometry.rotateX(Math.PI / 2);
+        try {
+            const baked = bakeSurface({ ...part, geometry, lod: { surface: 'z' } }, resolution);
+            for (const layer of baked ?? []) {
+                if (axis === 'x') layer.geometry.rotateY(Math.PI / 2);
+                else layer.geometry.rotateX(-Math.PI / 2);
+            }
+            return baked;
+        } finally { geometry.dispose(); }
+    }
     if (part.lod?.surface !== 'z' || part.map || typeof document === 'undefined')
         return null;
     const pos = part.geometry.getAttribute('position'), index = part.geometry.index;

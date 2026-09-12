@@ -308,7 +308,7 @@ function rect(depth, width, radius) {
     { x: -d, z: -w },
   ]
   const r = Math.max(0, Math.min(radius, d - 1, w - 1))
-  return r < 1 ? ring(corners) : roundCorners(corners, r, 4)
+  return r < 1 ? ring(corners) : roundCorners(corners, r, 12)
 }
 
 function shift(points, dx, dz) {
@@ -323,7 +323,13 @@ function faceForward(geometry) {
 
 /** An upright plate with its front face at `x`, centred on (y, z). */
 function plate(outline, x, thickness, radius, y, z = 0) {
-  const g = faceForward(profiledBoard(outline, 0, thickness, radius > 0 ? 'rounded' : 'square', radius))
+  // Thin face sheets need their exact contour, not a deep edge-profile offset
+  // that can fold over the tiny screen corners and overlap the face cap.
+  const pts = ring(outline)
+  const g = faceForward(merge([
+    loftRings([{ pts, y: thickness }, { pts, y: 0 }]),
+    face([pts], thickness, true), face([pts], 0, false),
+  ].filter(Boolean)))
   g.translate(x + thickness, y, z)
   return g
 }
@@ -388,7 +394,6 @@ export function build(p) {
   //
   // Built lying down in plan and stood on its face. The section is walked front
   // to back, so a taper is one inset at the far end and a step is two.
-  const faceOutline = plan(rect(H, W, radius))
   const inset = Math.min(H, W) * 0.12
   // The thin part of the set is the technology itself; anything deeper than
   // that is the box behind it. So a stepped OLED is 8 mm at the edge whatever
@@ -396,46 +401,17 @@ export function build(p) {
   const skin = Math.min(thickness, Math.max(tech.floor, 8))
   let body
   if (profile === 'slab' || thickness <= skin + 2) {
-    body = profiledBoard(faceOutline, 0, thickness, 'rounded', Math.min(radius, thickness / 2))
+    body = roundedHousing(H, W, thickness, radius)
   } else if (profile === 'tapered') {
-    body = merge(
-      [
-        sweep(
-          faceOutline,
-          [
-            { inset: 0, y: thickness },
-            { inset: 0, y: thickness - skin },
-            { inset, y: 0 },
-          ],
-          false,
-        ),
-        face([faceOutline.pts], thickness, true),
-        face([hull(faceOutline.offset(inset))], 0, false),
-      ].filter(Boolean),
-    )
+    body = roundedHousing(H, W, thickness, radius, inset)
   } else {
-    // Stepped: a thin panel over the whole face, and a box on the back of it
-    // holding the boards and the speakers. The step is not concentric — it
-    // stands on the bottom of the panel rather than in the middle of it — so
-    // the box is its own outline, shifted down the face before it is swept.
+    // Preserve the low electronics enclosure and thin full-size panel.
     const boxH = H * 0.42
-    const boxOutline = plan(shift(rect(boxH, W * 0.82, Math.min(radius, 12)), -H / 2 + boxH / 2 + 4, 0))
-    body = merge(
-      [
-        profiledBoard(faceOutline, thickness - skin, skin, 'rounded', Math.min(radius, skin / 2)),
-        sweep(
-          boxOutline,
-          [
-            { inset: 0, y: thickness - skin },
-            { inset: 0, y: 6 },
-            { inset: 12, y: 0 },
-          ],
-          false,
-        ),
-        face([boxOutline.pts], thickness - skin, true),
-        face([hull(boxOutline.offset(12))], 0, false),
-      ].filter(Boolean),
-    )
+    body = merge([
+      roundedHousing(H, W, skin, radius).translate(0, thickness - skin, 0),
+      roundedHousing(boxH, W * 0.82, thickness - skin, Math.min(radius, 12), 12)
+        .translate(-H / 2 + boxH / 2 + 4, 0, 0),
+    ])
   }
   faceForward(body)
   body.translate(thickness, H / 2, 0)
@@ -566,23 +542,7 @@ export function build(p) {
   if (speakers === 'soundbar') {
     const barW = W * 0.72
     const barH = Math.max(58, H * 0.11)
-    const outline = plan(rect(96, barW, 12))
-    shell.push(
-      merge(
-        [
-          sweep(
-            outline,
-            [
-              { inset: 0, y: barH },
-              { inset: 0, y: 0 },
-            ],
-            false,
-          ),
-          face([outline.pts], barH, true),
-          face([outline.pts], 0, false),
-        ].filter(Boolean),
-      ).translate(-140, 0, 0),
-    )
+    shell.push(roundedHousing(96, barW, barH, 12).translate(-140, 0, 0))
     const mesh = []
     for (let i = 0; i < 40; i++) {
       mesh.push(box(3, barH * 0.6, 5, -191, barH * 0.2, -barW * 0.44 + i * ((barW * 0.88) / 39)))

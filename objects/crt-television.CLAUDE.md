@@ -63,6 +63,15 @@ depth is a fixed fraction of its width rather than a real funnel geometry. Doors
 the full height, and either shut or folded back — there is no half-open. The chassis, the tube neck
 and the yoke are room in the case rather than modelled parts.
 
+## Rounded geometry compatibility
+
+Cabinet and glass contours use twelve segments per corner with stable correspondence, including square-corner settings. Shared normals smooth the cabinet and glass between depth sections. The flat bottom and existing draw-in profile are retained so handles, feet, aerials and rear sockets stay attached.
+
+Parameter IDs, defaults, presets and existing named parts are unchanged. External
+consumers should use the current `src/lib/compile.ts` helper scope, including
+`roundedRect`, `loftRings` and `roundedHousing` from `src/lib/geometry.ts`.
+These are procedural geometry helpers; no textures or external assets are required.
+
 ## Parameters
 
 <!-- generated: parameters -->
