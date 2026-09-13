@@ -29,15 +29,25 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
     // Clockwise round the face from the connector corner.
     s.moveTo(-w / 2, 0)
     if (f === 'nes') {
-      // Lower insertion tongue, broad shoulders, and the notch over the left grip.
-      s.moveTo(-w / 2 + 4, 0)
-      s.lineTo(-w / 2 + 4, 24); s.lineTo(-w / 2, 24)
-      s.lineTo(-w / 2, h - 1); s.lineTo(-w / 2 + 1, h)
-      s.lineTo(-44, h); s.lineTo(-44, h - 7)
-      s.lineTo(-18, h - 7); s.lineTo(-18, h)
-      s.lineTo(w / 2 - 1, h); s.lineTo(w / 2, h - 1)
-      s.lineTo(w / 2, 24); s.lineTo(w / 2 - 4, 24)
-      s.lineTo(w / 2 - 4, 0); s.closePath()
+      // Measured from the straight-on reference (344 × 388 px silhouette).
+      // The upper grip is a pocket in the FRONT, backed by the rear shell;
+      // it must not cut a large bite through the complete cartridge.
+      s.moveTo(-w / 2 + 6.3, .8)
+      s.lineTo(-w / 2 + 6.3, 24.7); s.lineTo(-w / 2, 24.7)
+      s.lineTo(-w / 2, h)
+      s.lineTo(-56.5, h); s.lineTo(-56.5, h - 1.4)
+      s.lineTo(-49.2, h - 1.4); s.lineTo(-49.2, h)
+      s.lineTo(-41.2, h); s.lineTo(-41.2, h - (rear ? .8 : 17.2))
+      s.lineTo(-15, h - (rear ? .8 : 17.2)); s.lineTo(-15, h)
+      s.lineTo(49.5, h); s.lineTo(49.5, h - 1.4)
+      s.lineTo(56.2, h - 1.4); s.lineTo(56.2, h)
+      s.lineTo(w / 2, h)
+      s.lineTo(w / 2, 24.7); s.lineTo(w / 2 - 6.3, 24.7)
+      s.lineTo(w / 2 - 6.3, .8)
+      s.quadraticCurveTo(w / 2 - 6.3, 0, w / 2 - 7.1, 0)
+      s.lineTo(-w / 2 + 7.1, 0)
+      s.quadraticCurveTo(-w / 2 + 6.3, 0, -w / 2 + 6.3, .8)
+      s.closePath()
       return s
     } else if (f === 'n64') {
       s.lineTo(-w / 2, h - 17); s.quadraticCurveTo(-w / 2, h - 3, -w / 2 + 17, h - 3)
@@ -79,15 +89,15 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
     shape.lineTo(x, y + radius); shape.quadraticCurveTo(x, y, x + radius, y)
     return shape
   }
-  const nesLabel = roundLabel(-15, nwc ? 83 : 48, 66, nwc ? 48 : 83, 2)
+  const nesLabel = roundLabel(-12.6, nwc ? 83 : 41.8, 57.2, nwc ? 49.9 : 91.1, 1.5)
   const arrow = new THREE.Shape()
-  arrow.moveTo(-11, 39); arrow.lineTo(1, 39); arrow.lineTo(-5, 30); arrow.closePath()
+  arrow.moveTo(-6.3, 35); arrow.lineTo(5.9, 35); arrow.lineTo(-.2, 26.4); arrow.closePath()
   const front = outline()
   if (f === 'nes') {
     front.holes.push(new THREE.Path(nesLabel.getPoints(16)))
     front.holes.push(new THREE.Path(arrow.getPoints()))
     // The grip is a recessed channel, not a row of raised bars on a flat face.
-    hole(front, -44, 5, 26, h - 12.1)
+    hole(front, -41.2, .15, 26.2, h - 17.5)
   }
   if (nwc) hole(front, w * .22, h * .32, 16, 23)
   add('front-shell', sheet(front, 1.5, frontZ - 1.5))
@@ -123,16 +133,16 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
     const part = add(id, g, 0xe8e5da); part.mediaSurface = { id, label, accept: 'image' }
   }
   let labelW = w * .73, labelH = h * .53, labelY = h * .55, labelX = 0
-  if (f === 'nes') { labelW = 66; labelH = 83; labelY = 89.5; labelX = 18 }
-  if (nwc) { labelH = 48; labelY = 107 }
+  if (f === 'nes') { labelW = 57.2; labelH = 91.1; labelY = 87.35; labelX = 16 }
+  if (nwc) { labelH = 49.9; labelY = 107.95 }
   if (f === 'snes' || f === 'n64') { labelW = w * .61; labelH = h * .53; labelY = h * .54 }
   if (f === 'gameboy') { labelW = w * .78; labelH = h * .49; labelY = h * .48 }
   if (f === 'nes') {
     // Recess floors lie below the shell face. The textured face follows the
     // rounded lower corners, keeping the image off the surrounding plastic.
-    add('label-recess-floor', sheet(nesLabel, .9, frontZ - 1.5))
+    add('label-recess-floor', sheet(nesLabel, 1.25, frontZ - 1.5))
     const label = new THREE.ShapeGeometry(nesLabel, 16)
-    surfaceUV(label); label.translate(0, 0, frontZ - .58)
+    surfaceUV(label); label.translate(0, 0, frontZ - .23)
     const part = add('cart-front', label)
     part.mediaSurface = { id: 'cart-front', label: 'Cartridge front label', accept: 'image' }
   } else {
@@ -143,13 +153,17 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
   if (!['gameboy', 'gamegear', 'n64'].includes(f)) plane('cart-top', 'Cartridge top label', Math.min(labelW, w - 30), d * .4, f === 'nes' ? labelX : 0, h + .05, frontZ - d * .25, [-Math.PI / 2, 0, 0])
   // Distinctive moulded grips and shell latches.
   if (f === 'nes') {
-    block('grip-channel-floor', 26, h - 12, .7, -44, 5, frontZ - 1.5)
-    // Full-height horizontal grip lands, inset flush with the shell surface.
-    // Leave a smooth foot below the ribs, as on the supplied blank shell.
-    for (let i = 0; i < 23; i++) block(`grip-rib-${i + 1}`, 25.6, 3.25, .65, -43.8, 18 + i * 4.65, frontZ - .8)
-    block('grip-foot', 25.6, 10.5, .65, -43.8, 5.3, frontZ - .8)
-    add('insertion-arrow', sheet(arrow, .8, frontZ - 1.5))
-    block('connector-lip', w - 9, 1.2, 1.4, -w / 2 + 4.5, .5, frontZ - .5)
+    block('grip-channel-floor', 26.2, h - 17.2, 1.05, -41.2, 0, frontZ - 1.5)
+    // Fine, closely spaced lands: forty below the deeper five-rib thumb pocket.
+    for (let i = 0; i < 40; i++) block(`grip-rib-${i + 1}`, 25.8, 1.85, .32, -41, 14.5 + i * 2.5, frontZ - .45)
+    const foot = roundLabel(0, 0, 25.8, 13, 1.3)
+    add('grip-foot', sheet(foot, .32, frontZ - .45).rotateZ(Math.PI).translate(-15.2, 13.15, 0))
+    block('thumb-pocket-floor', 26.2, 16.4, 1, -41.2, h - 17.2, frontZ - 4)
+    for (let i = 0; i < 5; i++) block(`thumb-rib-${i + 1}`, 25.8, 1.8, .4, -41, h - 15.7 + i * 3.05, frontZ - 3)
+    block('thumb-pocket-left-wall', .3, 16.4, 3, -41.2, h - 17.2, frontZ - 3)
+    block('thumb-pocket-right-wall', .3, 16.4, 3, -15.3, h - 17.2, frontZ - 3)
+    block('thumb-pocket-bottom-wall', 26.2, .35, 3, -41.2, h - 17.2, frontZ - 3)
+    add('insertion-arrow', sheet(arrow, 1.2, frontZ - 1.5))
     if (String(p.screws) !== '5') for (const x of [-w * .44, w * .36]) block('top-latch', 7, 3, 3, x - 3.5, h - 5, frontZ - d / 2)
   }
   if (['snes', 'n64', 'gamegear', 'master', 'gameboy'].includes(f)) {

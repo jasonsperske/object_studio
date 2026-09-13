@@ -72,8 +72,11 @@ of grey or gold colour. Boxed NWC presets represent a display box, not original 
 
 ## Blank-shell front geometry
 
-The front follows the supplied blank NES shell photograph: the full-height ribbed grip is on
-the **left** when looking at +Z, with a thumb notch above it. The label recess is on the upper
-right, with rounded lower corners and an inset insertion arrow below. The lower shoulders
-step inward to the connector tongue. Grip lands and the label floor sit below the surrounding
-front face. Grey/gold and three/five-screw variants retain this front layout.
+The front uses proportions measured from the supplied straight-on blank-shell photograph.
+The **left** grip has forty fine lands and a deeper five-rib thumb pocket at its top. That
+pocket is backed by the rear shell, rather than cut through the whole cartridge. Both outer
+top rails have shallow notches. The upper-right label recess is about 57.2 × 91.1 mm, with
+rounded lower corners and a shallow insertion arrow below. The shoulders step inward about
+6.3 mm at 24.7 mm above the base. A smooth, rounded-top grip foot reaches the lower edge.
+Grip lands and the label floor sit below the surrounding front face. Grey/gold and
+three/five-screw variants retain this front layout; NWC has its separate switch aperture.
