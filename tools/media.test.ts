@@ -162,3 +162,25 @@ test('NES rear screw positions follow the supplied three/five-screw diagram', ()
   }
   assert.deepEqual(layouts[0], layouts[1].slice(0, 3), 'both revisions share the same three lower/center fasteners')
 })
+
+test('NES gold grain is deterministic, label-independent and disposed once after LOD reuse', async () => {
+  const def = load('nes-cartridge'), defaults = defaultParams(def)
+  const gold = def.build({ ...defaults, finish: 'gold' }), other = def.build({ ...defaults, finish: 'gold' })
+  const grey = def.build({ ...defaults, finish: 'grey' })
+  const shell = gold.find(p => p.name === 'front-shell')!
+  assert.ok(shell.metalness! > .9 && shell.roughness! < .25)
+  const grain = shell.normalMap as THREE.DataTexture
+  assert.ok(grain?.isDataTexture)
+  assert.deepEqual(grain.image.data, (other.find(p => p.name === 'front-shell')!.normalMap as THREE.DataTexture).image.data)
+  assert.ok(gold.filter(p => p.mediaSurface).every(p => !p.normalMap))
+  assert.ok(grey.every(p => !p.normalMap))
+  let disposed = 0
+  grain.addEventListener('dispose', () => disposed++)
+  const lod = await reduceDetail(gold, normalizeLod({ detail: 20 }), new AbortController().signal)
+  assert.equal(lod.parts.find(p => p.name === 'front-shell')!.normalMap, grain)
+  disposeLodParts(lod.parts, gold)
+  assert.equal(disposed, 0)
+  disposeLodParts(gold)
+  assert.equal(disposed, 1)
+  disposeLodParts(other); disposeLodParts(grey)
+})

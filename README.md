@@ -521,3 +521,9 @@ horizontalAxis = 'x', verticalAxis = 'y')` maps a face to the full image; call i
 bending or hinging geometry. Planes already have oriented UVs. Slots bypass LOD simplification
 and baking so their coordinates and identity survive. `buildCartridge(params, profile)` supplies
 the shared cartridge shell, board, packaging and label primitives used by the nine family files.
+
+Gold NES shells also return `normalMap`, `metalness` and `roughness` on their material parts.
+The fine grain is generated deterministically in memory and exported with glTF/GLB. Bind these
+fields to your material and provide environment lighting for metallic reflections. Generator-owned
+normal maps may be shared across shell parts: dispose each unique texture once when discarding
+the build. Label media remains independent and smooth.

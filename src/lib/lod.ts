@@ -235,12 +235,14 @@ export function bakeSurface(part: Part, resolution: number): Part[] | null {
     }
 }
 export function disposeLodParts(parts: Part[], originals: Part[] = []) {
-    const geometries = new Set(originals.map(p => p.geometry)), maps = new Set(originals.map(p => p.map));
+    const geometries = new Set(originals.map(p => p.geometry)), maps = new Set(originals.flatMap(p => [p.map, p.normalMap]));
     for (const p of parts) {
         if (!geometries.has(p.geometry))
             p.geometry.dispose();
-        if (p.map && !maps.has(p.map))
-            p.map.dispose();
+        for (const texture of [p.map, p.normalMap]) if (texture && !maps.has(texture)) {
+            texture.dispose();
+            maps.add(texture);
+        }
     }
 }
 export interface LodResult {
@@ -266,7 +268,7 @@ export async function reduceDetail(originals: Part[], options: LodOptions, signa
         for (const part of originals) {
             await yieldToBrowser();
             signal.throwIfAborted();
-            const baked = !part.mediaSurface && options.strategy === 'textures' ? bakeSurface(part, options.textureSize) : null;
+            const baked = !part.mediaSurface && !part.normalMap && options.strategy === 'textures' ? bakeSurface(part, options.textureSize) : null;
             if (baked) {
                 meshParts.push(part);
                 parts.push(...baked);
@@ -277,7 +279,7 @@ export async function reduceDetail(originals: Part[], options: LodOptions, signa
                 }
             }
             else {
-                const reduced = { ...part, geometry: part.mediaSurface || part.lod?.surface || part.map ? part.geometry : simplifyGeometry(part.geometry, options) };
+                const reduced = { ...part, geometry: part.mediaSurface || part.lod?.surface || part.map || part.normalMap ? part.geometry : simplifyGeometry(part.geometry, options) };
                 parts.push(reduced);
                 meshParts.push(reduced);
             }

@@ -60,6 +60,8 @@ export interface Part {
   metalness?: number
   /** Optional baked surface image, shared by preview and glTF/GLB export. */
   map?: THREE.Texture
+  /** Generator-owned micro-surface normal texture, independent of label images. */
+  normalMap?: THREE.Texture
   /** Stable runtime texture slot; never a generator parameter. */
   mediaSurface?: MediaSurface
   /** Explicitly safe-to-bake decoration; never inferred from part names. */

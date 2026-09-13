@@ -1,3 +1,4 @@
+import { metalEnvironment } from './metalFinish'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { SceneTheme } from './settings'
@@ -53,6 +54,7 @@ export class StudioScene {
   private orthoHalfHeight = 1000
   private theme: SceneTheme = themeDef('studio').scene
   private frameHandle = 0
+  private metalEnv?: THREE.WebGLRenderTarget
   private needsRender = true
 
   constructor(container: HTMLElement) {
@@ -110,10 +112,14 @@ export class StudioScene {
     this.clearGroup(this.modelGroup)
     this.clearGroup(this.edgeGroup)
 
+    const reflective = parts.some(p => p.normalMap)
+    if (reflective) this.metalEnv ??= metalEnvironment(this.renderer)
+    this.scene.environment = reflective ? this.metalEnv!.texture : null
     for (const part of parts) {
       const material = new THREE.MeshStandardMaterial({
         color: part.color ?? 0xb9bec7,
         map: part.map ?? null,
+        normalMap: part.normalMap ?? null,
         alphaTest: part.map ? 0.01 : 0, transparent: Boolean(part.map && !part.mediaSurface), depthWrite: !part.map || Boolean(part.mediaSurface),
         roughness: part.roughness ?? 0.68,
         metalness: part.metalness ?? 0.05,
@@ -409,6 +415,7 @@ export class StudioScene {
     this.clearGroup(this.modelGroup)
     this.disposeGrid()
     this.ground.geometry.dispose()
+    this.metalEnv?.dispose()
     this.renderer.dispose()
     this.renderer.domElement.remove()
   }

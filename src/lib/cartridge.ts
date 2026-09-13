@@ -1,3 +1,4 @@
+import { goldGrain, grainUV } from './metalFinish'
 import * as THREE from 'three'
 import { box } from './geometry'
 import { surfaceUV } from './media'
@@ -221,6 +222,16 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
   }
   // Floor convention also includes the underside label offset.
   if (boxed) for (const part of parts) part.geometry.translate(0, .05, 0)
-  for (const part of parts) if (p.finish === 'gold' && part.color === color && !part.mediaSurface) { part.metalness = .55; part.roughness = .38 }
+  let grain: THREE.Texture | undefined
+  for (const part of parts) if (p.finish === 'gold' && part.color === color && !part.mediaSurface) {
+    if (f === 'nes') {
+      grain ??= goldGrain()
+      part.color = 0xe4ba63
+      part.metalness = .94
+      part.roughness = .22
+      part.normalMap = grain
+      grainUV(part.geometry)
+    } else { part.metalness = .55; part.roughness = .38 }
+  }
   return parts
 }

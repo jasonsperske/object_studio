@@ -89,3 +89,11 @@ the nominal 120 × 133 mm size these are `(0, 77.1)` and `(±54, 34.6)` in XY. T
 revision adds the upper corners at `(±51.6, 125)`. These are approximate placements measured
 from the photograph. Internal bosses use the same axes. The rear label sits between the
 center screw and lower row, so an assigned image cannot cover the screw heads.
+
+## Gold finish
+
+Gold NES shells use a glossy metallic material and deterministic fine moulded grain via
+`Part.normalMap`. Labels remain smooth and independently image-texturable. The preview uses
+studio reflections; consuming projects should provide environment lighting and pass
+`normalMap`, `metalness` and `roughness` to their material. glTF/GLB carries the material and
+normal texture. The grain is generated from a fixed seed, with no external asset or URL data.

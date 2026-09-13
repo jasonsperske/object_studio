@@ -47,7 +47,7 @@ function sceneForExport(parts: Part[], scale: number): THREE.Group {
       snapshot.colorSpace = map.colorSpace
       map = snapshot
     }
-    const material = new THREE.MeshStandardMaterial({ color: part.color ?? 0xcccccc, roughness: part.roughness ?? .68, metalness: part.metalness ?? .05, map: map ?? null, alphaTest: part.map ? 0.01 : 0, transparent: Boolean(part.map && !part.mediaSurface), depthWrite: !part.map || Boolean(part.mediaSurface) })
+    const material = new THREE.MeshStandardMaterial({ color: part.color ?? 0xcccccc, roughness: part.roughness ?? .68, metalness: part.metalness ?? .05, map: map ?? null, normalMap: part.normalMap ?? null, alphaTest: part.map ? 0.01 : 0, transparent: Boolean(part.map && !part.mediaSurface), depthWrite: !part.map || Boolean(part.mediaSurface) })
     const mesh = new THREE.Mesh(geometry, material)
     mesh.name = part.name
     if (snapshot) Object.defineProperty(mesh.userData, 'exportSnapshot', { value: snapshot, enumerable: false })
