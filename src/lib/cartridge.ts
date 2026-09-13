@@ -50,6 +50,18 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
       s.quadraticCurveTo(-w / 2 + 6.3, 0, -w / 2 + 6.3, .8)
       s.closePath()
       return s
+    } else if (f === 'famicom') {
+      // Thin rectangular reference shell with small corner radii and a lower
+      // insertion tongue, rather than the broad rounded Sega-style shoulders.
+      s.moveTo(-w / 2 + 5, 0)
+      s.lineTo(-w / 2 + 5, 5); s.lineTo(-w / 2, 5)
+      s.lineTo(-w / 2, h - 1.2)
+      s.quadraticCurveTo(-w / 2, h, -w / 2 + 1.2, h)
+      s.lineTo(w / 2 - 1.2, h)
+      s.quadraticCurveTo(w / 2, h, w / 2, h - 1.2)
+      s.lineTo(w / 2, 5); s.lineTo(w / 2 - 5, 5)
+      s.lineTo(w / 2 - 5, 0); s.closePath()
+      return s
     } else if (f === 'n64') {
       s.lineTo(-w / 2, h - 17); s.quadraticCurveTo(-w / 2, h - 3, -w / 2 + 17, h - 3)
       s.quadraticCurveTo(0, h + 3, w / 2 - 17, h - 3); s.quadraticCurveTo(w / 2, h - 3, w / 2, h - 17)
@@ -61,7 +73,7 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
     } else if (f === 'snes' && variant !== 'sfc') {
       s.lineTo(-w / 2, h - 13); s.lineTo(-w / 2 + 12, h - 13); s.lineTo(-w / 2 + 12, h)
       s.lineTo(w / 2 - 12, h); s.lineTo(w / 2 - 12, h - 13); s.lineTo(w / 2, h - 13)
-    } else if (['genesis', 'gamegear', 'famicom'].includes(f) || (f === 'snes' && variant === 'sfc')) {
+    } else if (['genesis', 'gamegear'].includes(f) || (f === 'snes' && variant === 'sfc')) {
       s.lineTo(-w / 2, h - 8); s.quadraticCurveTo(-w / 2, h, -w / 2 + 8, h)
       s.lineTo(w / 2 - 8, h); s.quadraticCurveTo(w / 2, h, w / 2, h - 8)
     } else {
@@ -91,6 +103,13 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
     return shape
   }
   const nesLabel = roundLabel(-12.6, nwc ? 83 : 41.8, 57.2, nwc ? 49.9 : 91.1, 1.5)
+  const famicomLabel = new THREE.Shape()
+  const lx = -w / 2 + 8, ly = 11, lw = w - 16, lh = h - 23, lr = 1.7
+  famicomLabel.moveTo(lx + lr, ly)
+  famicomLabel.lineTo(lx + lw - lr, ly); famicomLabel.quadraticCurveTo(lx + lw, ly, lx + lw, ly + lr)
+  famicomLabel.lineTo(lx + lw, ly + lh - lr); famicomLabel.quadraticCurveTo(lx + lw, ly + lh, lx + lw - lr, ly + lh)
+  famicomLabel.lineTo(lx + lr, ly + lh); famicomLabel.quadraticCurveTo(lx, ly + lh, lx, ly + lh - lr)
+  famicomLabel.lineTo(lx, ly + lr); famicomLabel.quadraticCurveTo(lx, ly, lx + lr, ly)
   const arrow = new THREE.Shape()
   arrow.moveTo(-6.3, 35); arrow.lineTo(5.9, 35); arrow.lineTo(-.2, 26.4); arrow.closePath()
   const front = outline()
@@ -100,6 +119,7 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
     // The grip is a recessed channel, not a row of raised bars on a flat face.
     hole(front, -41.2, .15, 26.2, h - 17.5)
   }
+  if (f === 'famicom') front.holes.push(new THREE.Path(famicomLabel.getPoints(12)))
   if (nwc) hole(front, w * .22, h * .32, 16, 23)
   add('front-shell', sheet(front, 1.5, frontZ - 1.5))
   add('rear-shell', sheet(outline(true), 1.5, backZ))
@@ -146,13 +166,19 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
     surfaceUV(label); label.translate(0, 0, frontZ - .23)
     const part = add('cart-front', label)
     part.mediaSurface = { id: 'cart-front', label: 'Cartridge front label', accept: 'image' }
+  } else if (f === 'famicom') {
+    add('label-recess-floor', sheet(famicomLabel, 1.15, frontZ - 1.5))
+    const label = new THREE.ShapeGeometry(famicomLabel, 12)
+    surfaceUV(label); label.translate(0, 0, frontZ - .33)
+    const part = add('cart-front', label, 0xf0efdf)
+    part.mediaSurface = { id: 'cart-front', label: 'Cartridge front label', accept: 'image' }
   } else {
     block('label-recess', labelW + 2, labelH + 2, .3, labelX - labelW / 2 - 1, labelY - labelH / 2 - 1, frontZ, color)
     plane('cart-front', 'Cartridge front label', labelW, labelH, labelX, labelY, frontZ + .32)
   }
   // NES caution label sits below the shared center screw, between the lower pair.
   plane('cart-back', 'Cartridge rear label', w * (f === 'nes' ? .68 : .6), h * (f === 'nes' ? .24 : .3), 0, h * (f === 'nes' ? .40 : .57), backZ - .03, [0, Math.PI, 0])
-  if (!['gameboy', 'gamegear', 'n64'].includes(f)) plane('cart-top', 'Cartridge top label', Math.min(labelW, w - 30), d * .4, f === 'nes' ? labelX : 0, h + .05, frontZ - d * .25, [-Math.PI / 2, 0, 0])
+  if (!['gameboy', 'gamegear', 'n64', 'famicom'].includes(f)) plane('cart-top', 'Cartridge top label', Math.min(labelW, w - 30), d * .4, f === 'nes' ? labelX : 0, h + .05, frontZ - d * .25, [-Math.PI / 2, 0, 0])
   // Distinctive moulded grips and shell latches.
   if (f === 'nes') {
     block('grip-channel-floor', 26.2, h - 17.2, 1.05, -41.2, 0, frontZ - 1.5)
@@ -174,7 +200,10 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
   if (f === 'snes' && variant === 'sfc') block('rounded-top-band', w - 18, 5, .8, -w / 2 + 9, h - 9, frontZ)
   if (f === 'genesis' && variant === 'ea') block('yellow-release-tab', 8, 22, 5, w / 2 - 4, h * .6, frontZ - 3, 0xc6ad37)
   if (f === 'atari') block('connector-dust-shutter', w * .66, 5, d * .5, -w * .33, 1, -d * .75, 0x252629)
-  if (f === 'famicom') for (const x of [-w / 2, w / 2 - 4]) block('side-grip', 4, h * .5, 2, x, h * .3, frontZ)
+  if (f === 'famicom') {
+    for (let i = 0; i < 4; i++) block(`top-grip-rib-${i + 1}`, w - 5, .65, .4, -w / 2 + 2.5, h - 8.5 + i * 2.2, frontZ)
+    block('connector-lip', w - 10, 1.2, .45, -w / 2 + 5, .3, frontZ)
+  }
   const count = f === 'nes' ? Number(p.screws ?? 3) : profile.screws
   // Rear-view reference: the center and lower pair are shared by both NES
   // revisions; only the five-screw shell has the two screws near the top corners.

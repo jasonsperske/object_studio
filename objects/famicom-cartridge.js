@@ -2,10 +2,10 @@
 // +Y up, front +Z. Media slots are returned on parts, never in parameters.
 export const meta = {
   "name": "Famicom cartridge",
-  "description": "Blank-label famicom cartridge with a boxed copy, separate shell halves, PCB and family-specific moulding.",
+  "description": "Famicom cartridge with a broad blank label, narrow top grip ribs and stepped connector edge; boxed and open-shell variations.",
   "order": 32
 }
-const profile = {"family": "famicom", "width": 108, "height": 70, "depth": 17, "color": 12367527, "pins": 30, "screws": 2, "box": [115, 150, 25]}
+const profile = {"family": "famicom", "width": 108, "height": 70, "depth": 14, "color": 14667109, "pins": 30, "screws": 2, "box": [115, 150, 25]}
 export const params = [
   {
     "id": "presentation",

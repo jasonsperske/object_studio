@@ -184,3 +184,24 @@ test('NES gold grain is deterministic, label-independent and disposed once after
   assert.equal(disposed, 1)
   disposeLodParts(other); disposeLodParts(grey)
 })
+
+test('Famicom reference has rectangular shoulders, a broad recessed label and horizontal top ribs', () => {
+  const def = load('famicom-cartridge'), parts = def.build(defaultParams(def))
+  const bounds = (name: string) => { const g = parts.find(p => p.name === name)!.geometry; g.computeBoundingBox(); return g.boundingBox! }
+  const label = bounds('cart-front')
+  assert.ok(label.max.x - label.min.x > 90 && label.max.y - label.min.y > 46)
+  assert.ok(label.max.z < bounds('front-shell').max.z)
+  const ribs = parts.filter(p => p.name.startsWith('top-grip-rib-'))
+  assert.equal(ribs.length, 4)
+  for (const rib of ribs) {
+    const b = bounds(rib.name)
+    assert.ok(b.min.y > label.max.y && b.max.x - b.min.x > 100)
+  }
+  assert.ok(!parts.some(p => p.name === 'side-grip' || p.mediaSurface?.id === 'cart-top'))
+  const mesh = new THREE.Mesh(parts.find(p => p.name === 'front-shell')!.geometry)
+  const ray = (x: number, y: number) => new THREE.Raycaster(new THREE.Vector3(x, y, 20), new THREE.Vector3(0, 0, -1)).intersectObject(mesh)
+  assert.equal(ray(52, 2).length, 0, 'lower connector step')
+  assert.ok(ray(52, 8).length > 0, 'full-width side above connector')
+  assert.ok(ray(51, 68).length > 0, 'small top corner radius')
+  disposeLodParts(parts)
+})

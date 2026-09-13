@@ -57,3 +57,13 @@ Textures remain outside the parameter recipe and the object URL. Callers own tex
 - **Boxed copy** — `{"presentation":"boxed"}`
 - **Opened cartridge** — `{"presentation":"open"}`
 <!-- /generated: parameters -->
+
+## Reference shell
+
+The supplied yellow blank-cartridge reference (Shutterstock image 1898052385, linked from
+[the supplied search page](https://www.shutterstock.com/search/famicom-cartridge)) guides this
+shell: a thin rectangular body with small top corner radii, four narrow horizontal grip ribs,
+a broad rounded-corner label recess and stepped lower connector shoulders. The default is pale
+yellow; other finishes remain selectable. The nominal depth is 14 mm and the front label is
+92 × 47 mm. Dimensions are visual estimates from the reference, not measured manufacturing data.
+This family exposes front and rear labels; the ribbed top has no separate label slot.
