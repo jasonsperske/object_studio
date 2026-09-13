@@ -80,3 +80,12 @@ rounded lower corners and a shallow insertion arrow below. The shoulders step in
 6.3 mm at 24.7 mm above the base. A smooth, rounded-top grip foot reaches the lower edge.
 Grip lands and the label floor sit below the surrounding front face. Grey/gold and
 three/five-screw variants retain this front layout; NWC has its separate switch aperture.
+
+## Rear screw layout
+
+The supplied rear-view diagram locates the shared center screw just above the caution label
+and the shared lower pair near the outside edges, just above the insertion shoulders. At
+the nominal 120 × 133 mm size these are `(0, 77.1)` and `(±54, 34.6)` in XY. The five-screw
+revision adds the upper corners at `(±51.6, 125)`. These are approximate placements measured
+from the photograph. Internal bosses use the same axes. The rear label sits between the
+center screw and lower row, so an assigned image cannot cover the screw heads.

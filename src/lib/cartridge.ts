@@ -149,7 +149,8 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
     block('label-recess', labelW + 2, labelH + 2, .3, labelX - labelW / 2 - 1, labelY - labelH / 2 - 1, frontZ, color)
     plane('cart-front', 'Cartridge front label', labelW, labelH, labelX, labelY, frontZ + .32)
   }
-  plane('cart-back', 'Cartridge rear label', w * .6, h * .3, 0, h * .57, backZ - .03, [0, Math.PI, 0])
+  // NES caution label sits below the shared center screw, between the lower pair.
+  plane('cart-back', 'Cartridge rear label', w * (f === 'nes' ? .68 : .6), h * (f === 'nes' ? .24 : .3), 0, h * (f === 'nes' ? .40 : .57), backZ - .03, [0, Math.PI, 0])
   if (!['gameboy', 'gamegear', 'n64'].includes(f)) plane('cart-top', 'Cartridge top label', Math.min(labelW, w - 30), d * .4, f === 'nes' ? labelX : 0, h + .05, frontZ - d * .25, [-Math.PI / 2, 0, 0])
   // Distinctive moulded grips and shell latches.
   if (f === 'nes') {
@@ -174,7 +175,12 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
   if (f === 'atari') block('connector-dust-shutter', w * .66, 5, d * .5, -w * .33, 1, -d * .75, 0x252629)
   if (f === 'famicom') for (const x of [-w / 2, w / 2 - 4]) block('side-grip', 4, h * .5, 2, x, h * .3, frontZ)
   const count = f === 'nes' ? Number(p.screws ?? 3) : profile.screws
-  const locations = count === 1 ? [[0, h * .3]] : count === 2 ? [[-w * .34, h * .25], [w * .34, h * .25]] : [[-w * .39, h * .2], [w * .39, h * .2], [0, h * .77], ...(count === 5 ? [[-w * .39, h * .91], [w * .39, h * .91]] : [])]
+  // Rear-view reference: the center and lower pair are shared by both NES
+  // revisions; only the five-screw shell has the two screws near the top corners.
+  const locations = f === 'nes'
+    ? [[-w * .45, h * .26], [w * .45, h * .26], [0, h * .58],
+      ...(count === 5 ? [[-w * .43, h * .94], [w * .43, h * .94]] : [])]
+    : count === 1 ? [[0, h * .3]] : count === 2 ? [[-w * .34, h * .25], [w * .34, h * .25]] : [[-w * .39, h * .2], [w * .39, h * .2], [0, h * .77], ...(count === 5 ? [[-w * .39, h * .91], [w * .39, h * .91]] : [])]
   locations.forEach(([x, y], i) => {
     const screwZ = backZ - (opened ? 10 : .8)
     const screw = new THREE.CylinderGeometry(2, 2, 1.1, 16).rotateX(Math.PI / 2).translate(x, y, screwZ)

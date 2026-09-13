@@ -126,3 +126,39 @@ test('NES reference front has left grip, recessed upper-right label, notch and c
   assert.equal(hits(15, 80).length, 0, 'front panel really cuts out the label recess')
   disposeLodParts(parts)
 })
+
+
+test('NES rear screw positions follow the supplied three/five-screw diagram', () => {
+  const def = load('nes-cartridge'), defaults = defaultParams(def)
+  const layouts: THREE.Vector3[][] = []
+  for (const screws of ['3', '5']) {
+    const parts = def.build({ ...defaults, screws, presentation: 'open' })
+    const center = (name: string) => {
+      const geometry = parts.find(p => p.name === name)!.geometry
+      geometry.computeBoundingBox()
+      return geometry.boundingBox!.getCenter(new THREE.Vector3())
+    }
+    const positions = Array.from({ length: Number(screws) }, (_, i) => center(`screw-${i + 1}`))
+    layouts.push(positions)
+    for (const lower of positions.slice(0, 2)) {
+      assert.ok(Math.abs(lower.x) >= 52 && Math.abs(lower.x) <= 56, 'lower screws are near the outside edges')
+      assert.ok(lower.y >= 32 && lower.y <= 37, 'lower screws sit just above the shoulders')
+    }
+    assert.equal(positions[2].x, 0)
+    assert.ok(positions[2].y >= 76 && positions[2].y <= 79, 'center screw is just above the caution label')
+    for (const upper of positions.slice(3)) {
+      assert.ok(Math.abs(upper.x) >= 49 && Math.abs(upper.x) <= 54)
+      assert.ok(upper.y >= 122 && upper.y <= 128, 'five-screw additions sit near the top corners')
+    }
+    positions.forEach((position, i) => {
+      const boss = center(`screw-boss-${i + 1}`)
+      assert.ok(Math.abs(boss.x - position.x) < 1e-5 && Math.abs(boss.y - position.y) < 1e-5, 'boss aligns with screw axis')
+    })
+    const label = parts.find(p => p.name === 'cart-back')!.geometry
+    label.computeBoundingBox()
+    assert.ok(label.boundingBox!.max.y < positions[2].y - 2, 'label does not cover the center screw')
+    assert.ok(label.boundingBox!.min.y > positions[0].y + 2, 'label clears the lower screw row')
+    disposeLodParts(parts)
+  }
+  assert.deepEqual(layouts[0], layouts[1].slice(0, 3), 'both revisions share the same three lower/center fasteners')
+})
