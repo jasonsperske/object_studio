@@ -461,3 +461,63 @@ These helpers are injected by the current `src/lib/compile.ts`. External consume
 of updated display/speaker generators must provide them alongside the existing
 helper scope (or update to this compiler); parameter schemas and part names remain
 compatible. Generators still contain no imports or runtime asset dependencies.
+
+## Cartridge series and runtime media
+
+Nine generators cover Atari 2600, NES, Famicom, Master System, Genesis / Mega Drive,
+SNES / Super Famicom, Game Boy / Color, Game Gear and Nintendo 64. Each has cartridge-only,
+boxed-copy and open-cartridge presentations. Open cartridges separate the shell trays,
+board and screws. Packaging and cartridge labels are blank and independently addressable.
+NES supports grey/gold finishes, three-screw shells with top latches, five-screw shells,
+and the NWC 1990 switch aperture and four-switch bank. Other moulding choices include the
+EA Genesis shell and tab, regional SNES silhouettes, Game Boy Color's crown, and N64 rear keys.
+Dimensions and internal boards are approximate visual references, not manufacturing drawings.
+
+Drop a file directly onto a visible label or screen, or use **Images & screens** to select
+its named surface. If several surfaces are available, a drop on an unlabelled part asks you
+to choose one. Each surface accepts one file at a time. Cartridge and packaging surfaces
+accept images only. All eight computer/television screen generators accept images and muted,
+looping browser-supported movies; animated GIFs loop using WebCodecs ImageDecoder (Chrome/Edge).
+Unsupported formats produce an error without replacing the existing image. Computer badges,
+nameplates and the radio meter also expose image slots where present.
+
+Assignments survive parameter and detail changes, including temporarily hiding a surface.
+Clear a slot to restore its original colour. Leaving the model or reloading releases its media.
+Media never enters parameters, presets, local storage or object URLs. glTF/GLB embeds applied
+images and surface identifiers; animated media exports a still frame. STL/PLY/OBJ are geometry
+exports. The runtime interface supports live textures in consuming applications:
+
+```js
+const { THREE, compileObject, listMediaSurfaces, applySurfaceTextures, loadMediaFile } =
+  createStudioRuntime()
+const object = compileObject('nes-cartridge', source)
+const params = Object.fromEntries(object.params.map(p => [p.id, p.default]))
+const parts = object.build({ ...params, presentation: 'boxed' })
+console.log(listMediaSurfaces(parts))
+// [{ id: 'cart-front', label: 'Cartridge front label', accept: 'image' }, ...]
+
+const texture = await new THREE.TextureLoader().loadAsync('/assets/my-label.png')
+texture.colorSpace = THREE.SRGBColorSpace
+const textured = applySurfaceTextures(parts, {
+  'cart-front': { texture, kind: 'image' },
+  // Assign a different texture to 'box-front', 'box-back', 'box-spine', etc.
+})
+// Each returned Part has geometry, color, optional map and mediaSurface metadata.
+// Render part.map with its existing UVs. Displays also request emissive shading.
+// Reapply bindings after object.build() when parameters change.
+// The caller owns these textures and calls texture.dispose() when finished.
+```
+
+For a local File, `await loadMediaFile(file, surface)` returns `{ texture, kind, dispose }`.
+It validates the surface's accepted media, starts muted looping playback, and owns object URLs,
+decoders and playback timers. Call its `dispose()` when replacing or removing that asset.
+`applySurfaceTextures` creates part records while sharing the original geometry and caller-owned
+texture; it never mutates the input parts or consumes their resources. Keep animation rendering
+active for VideoTexture or `texture.userData.animated` canvas textures.
+
+Generator authors declare `part.mediaSurface = { id, label, accept: 'image' | 'image-video',
+emissive?: true }`. Slot IDs are stable within the object. The injected `surfaceUV(geometry,
+horizontalAxis = 'x', verticalAxis = 'y')` maps a face to the full image; call it **before**
+bending or hinging geometry. Planes already have oriented UVs. Slots bypass LOD simplification
+and baking so their coordinates and identity survive. `buildCartridge(params, profile)` supplies
+the shared cartridge shell, board, packaging and label primitives used by the nine family files.

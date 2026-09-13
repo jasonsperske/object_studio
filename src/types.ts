@@ -43,14 +43,25 @@ export type ParamSpec = NumberParam | SelectParam | BooleanParam
 
 export type Params = Record<string, ParamValue>
 
+export interface MediaSurface {
+  id: string
+  label: string
+  accept: 'image' | 'image-video'
+  emissive?: boolean
+}
+
 /** One named piece of the model. Parts become groups/objects in OBJ and glTF. */
 export interface Part {
   name: string
   geometry: THREE.BufferGeometry
   /** Hex colour used for preview shading only. */
   color?: number
+  roughness?: number
+  metalness?: number
   /** Optional baked surface image, shared by preview and glTF/GLB export. */
   map?: THREE.Texture
+  /** Stable runtime texture slot; never a generator parameter. */
+  mediaSurface?: MediaSurface
   /** Explicitly safe-to-bake decoration; never inferred from part names. */
   lod?: { surface: 'x' | 'y' | 'z' }
 }

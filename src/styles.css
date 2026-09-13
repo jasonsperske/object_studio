@@ -1312,3 +1312,10 @@ button.icon.danger:hover {
 .lod-stats span { color: var(--muted); font-size: 12px; }
 .lod-checkbox { display: flex; align-items: center; gap: 8px; font-size: 13px; }
 .lod-progress { position: absolute; right: 14px; bottom: 40px; padding: 8px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); font-size: 12px; }
+
+.media-panel { padding: 14px 0; margin-top: 16px; border-top: 1px solid var(--line); }
+.media-panel h3 { margin: 0 0 8px; font-size: 14px; }
+.media-panel p { font-size: 12px; opacity: .75; line-height: 1.4; }
+.media-slot { padding: 8px 0; display: flex; align-items: center; gap: 8px; }
+.media-slot label { font-size: 12px; flex: 1; min-width: 0; }
+.media-slot input { display: block; max-width: 100%; margin-top: 5px; font-size: 11px; }

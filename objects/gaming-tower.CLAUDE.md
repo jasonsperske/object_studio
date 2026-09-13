@@ -109,3 +109,11 @@ These are procedural geometry helpers; no textures or external assets are requir
 - **2011 small form factor** — `{"board":"microAtx","graphicsCard":true,"cards":0,"bays525":1,"optical":1,"cardReader":true,"hardDisks":1,"ssd":true,"finish":"black","window":false,"frontMesh":true,"frontPorts":true,"frontFan":true,"rearFan":true,"fanSize":120,"display":"wide22","keyboard":true}`
 - **2012 red-trim tower** — `{"board":"atx","graphicsCard":true,"cards":2,"bays525":3,"optical":1,"fanController":true,"cardReader":true,"hardDisks":4,"ssd":true,"finish":"red","window":true,"frontMesh":true,"frontPorts":true,"frontFan":true,"rearFan":true,"topFan":true,"fanSize":140,"display":"wide27","screenOn":true,"keyboard":true}`
 <!-- /generated: parameters -->
+
+## Runtime media
+
+The screen exposes `mediaSurface: { id: "screen", accept: "image-video", emissive: true }`.
+Assign screenshots, animated GIFs or muted looping movies through the runtime media interface.
+Discover available slots with `listMediaSurfaces(parts)` and bind textures with
+`applySurfaceTextures(parts, bindings)`. UVs follow the model geometry. Assignments never
+enter parameters or object URLs; see the README for ownership and browser support.

@@ -581,7 +581,8 @@ export function build(p) {
     const badge = onLid(
       box(bandDepth * 0.85, 1.6, badgeWidth, deckX - bandDepth * 0.42, -0.4, -W / 2 + margin + 10),
     )
-    parts.push({ name: 'badge', geometry: badge, color: finish.badge })
+    surfaceUV(badge, 'z', 'x')
+    parts.push({ name: 'badge', geometry: badge, color: finish.badge, mediaSurface: { id: 'badge', label: 'Case badge', accept: 'image' } })
   }
   if (bool(p, 'lamp')) {
     const legend = Math.min(26, W * 0.09)

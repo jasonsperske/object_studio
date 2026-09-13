@@ -266,7 +266,7 @@ export async function reduceDetail(originals: Part[], options: LodOptions, signa
         for (const part of originals) {
             await yieldToBrowser();
             signal.throwIfAborted();
-            const baked = options.strategy === 'textures' ? bakeSurface(part, options.textureSize) : null;
+            const baked = !part.mediaSurface && options.strategy === 'textures' ? bakeSurface(part, options.textureSize) : null;
             if (baked) {
                 meshParts.push(part);
                 parts.push(...baked);
@@ -277,7 +277,7 @@ export async function reduceDetail(originals: Part[], options: LodOptions, signa
                 }
             }
             else {
-                const reduced = { ...part, geometry: part.lod?.surface || part.map ? part.geometry : simplifyGeometry(part.geometry, options) };
+                const reduced = { ...part, geometry: part.mediaSurface || part.lod?.surface || part.map ? part.geometry : simplifyGeometry(part.geometry, options) };
                 parts.push(reduced);
                 meshParts.push(reduced);
             }

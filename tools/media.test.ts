@@ -1,0 +1,122 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { readFileSync, readdirSync } from 'node:fs'
+import * as THREE from 'three'
+import { compileObject } from '../src/lib/compile'
+import { defaultParams } from '../src/types'
+import { applySurfaceTextures, fileMediaKind, listMediaSurfaces } from '../src/lib/media'
+import { reduceDetail, normalizeLod, disposeLodParts } from '../src/lib/lod'
+
+const load = (id: string) => compileObject(id, readFileSync(new URL(`../objects/${id}.js`, import.meta.url), 'utf8'))
+const ids = readdirSync(new URL('../objects/', import.meta.url)).filter(n => n.endsWith('-cartridge.js')).map(n => n.slice(0, -3))
+for (const id of ids) test(`${id}: all presentations and shell variants produce finite, grounded geometry and blank UV slots`, () => {
+  const def = load(id), defaults = defaultParams(def)
+  const variants = def.params.find(p => p.id === 'variant')
+  for (const variant of variants?.type === 'select' ? variants.options.map(o => o.value) : ['standard']) for (const presentation of ['cart', 'boxed', 'open']) {
+    const parts = def.build({ ...defaults, variant, presentation })
+    const slots = listMediaSurfaces(parts)
+    assert.ok(slots.length >= 2)
+    assert.equal(new Set(slots.map(s => s.id)).size, slots.length)
+    assert.ok(slots.every(s => s.accept === 'image'))
+    assert.equal(slots.some(s => s.id === 'box-front'), presentation === 'boxed')
+    for (const p of parts) {
+      assert.ok(!p.map, `${p.name} should be blank`)
+      const pos = p.geometry.getAttribute('position')
+      assert.ok(pos.count > 0, p.name)
+      assert.ok(Array.from(pos.array).every(Number.isFinite), p.name)
+      p.geometry.computeBoundingBox()
+      assert.ok(p.geometry.boundingBox!.min.y >= -0.001, `${id}/${p.name} below floor`)
+      if (p.mediaSurface) {
+        const uv = p.geometry.getAttribute('uv')
+        assert.ok(uv && Array.from(uv.array).every(v => v >= 0 && v <= 1), p.name)
+      }
+    }
+    const bounds = (name: string) => { const p = parts.find(p => p.name === name)!; return p.geometry.boundingBox! }
+    if (presentation === 'open') {
+      assert.ok(bounds('front-shell').min.z > bounds('circuit-board').max.z)
+      assert.ok(bounds('rear-shell').max.z < bounds('circuit-board').min.z)
+    }
+    disposeLodParts(parts)
+  }
+})
+
+test('NES revisions change screws and latches; NWC has a real front-shell opening', () => {
+  const def = load('nes-cartridge'), p = defaultParams(def)
+  const three = def.build({ ...p, screws: '3' }), five = def.build({ ...p, screws: '5' })
+  assert.equal(three.filter(p => /^screw-\d+$/.test(p.name)).length, 3)
+  assert.equal(five.filter(p => /^screw-\d+$/.test(p.name)).length, 5)
+  assert.ok(three.some(p => p.name === 'top-latch'))
+  assert.ok(!five.some(p => p.name === 'top-latch'))
+  const nwc = def.build({ ...p, variant: 'nwc1990' })
+  const mesh = new THREE.Mesh(nwc.find(p => p.name === 'front-shell')!.geometry)
+  const ray = new THREE.Raycaster(new THREE.Vector3(120 * .22 + 8, 133 * .32 + 12, 100), new THREE.Vector3(0, 0, -1))
+  assert.equal(ray.intersectObject(mesh).length, 0)
+  assert.equal(nwc.filter(p => /^dip-switch-\d+$/.test(p.name)).length, 4)
+  disposeLodParts([...three, ...five, ...nwc])
+})
+
+test('runtime textures are independent, video is rejected for labels, inputs remain unchanged', () => {
+  const def = load('nes-cartridge'), params = { ...defaultParams(def), presentation: 'boxed' }
+  const before = JSON.stringify(params), parts = def.build(params)
+  const a = new THREE.Texture(), b = new THREE.Texture()
+  const applied = applySurfaceTextures(parts, { 'cart-front': { texture: a, kind: 'image' }, 'box-front': { texture: b, kind: 'image' } })
+  assert.equal(applied.find(p => p.name === 'cart-front')?.map, a)
+  assert.equal(applied.find(p => p.name === 'box-front')?.map, b)
+  assert.ok(!applied.find(p => p.name === 'box-back')?.map)
+  assert.ok(parts.every(p => !p.map))
+  assert.equal(JSON.stringify(params), before)
+  assert.throws(() => applySurfaceTextures(parts, { 'cart-front': { texture: a, kind: 'video' } }), /images only/)
+  assert.equal(fileMediaKind({ name: 'MOVIE.MP4', type: '' }), 'video')
+  assert.equal(fileMediaKind({ name: 'picture.png', type: 'text/plain' }), null)
+  assert.equal(fileMediaKind({ name: 'animation.gif', type: '' }), 'image')
+  disposeLodParts(parts); a.dispose(); b.dispose()
+})
+
+for (const id of ['notebook', 'at-desktop', 'all-in-one', 'integrated-micro', 'gaming-tower', 'multimedia-pc', 'crt-television', 'flat-panel-television']) test(`${id}: screen advertises media and preserves its UVs through transforms`, () => {
+  const def = load(id), parts = def.build(defaultParams(def)), screen = parts.find(p => p.mediaSurface?.id === 'screen')!
+  assert.ok(screen, id)
+  assert.equal(screen.mediaSurface?.accept, 'image-video')
+  const uv = screen.geometry.getAttribute('uv')
+  assert.ok(uv && Array.from(uv.array).every(Number.isFinite))
+  const us = Array.from({ length: uv.count }, (_, i) => uv.getX(i)), vs = Array.from({ length: uv.count }, (_, i) => uv.getY(i))
+  assert.ok(Math.max(...us) - Math.min(...us) > .9)
+  assert.ok(Math.max(...vs) - Math.min(...vs) > .9)
+  disposeLodParts(parts)
+})
+
+test('LOD preserves editable surfaces and caller-owned textures', async () => {
+  const def = load('nes-cartridge'), source = def.build(defaultParams(def))
+  const reduced = await reduceDetail(source, normalizeLod({ detail: 20 }), new AbortController().signal)
+  for (const part of source.filter(p => p.mediaSurface)) {
+    const out = reduced.parts.find(p => p.name === part.name)!
+    assert.equal(out.geometry, part.geometry)
+    assert.deepEqual(out.mediaSurface, part.mediaSurface)
+  }
+  disposeLodParts(reduced.parts, source); disposeLodParts(source)
+})
+
+
+test('NES reference front has left grip, recessed upper-right label, notch and connector shoulders', () => {
+  const def = load('nes-cartridge'), parts = def.build(defaultParams(def))
+  const find = (name: string) => parts.find(p => p.name === name)!
+  const bounds = (name: string) => { const g = find(name).geometry; g.computeBoundingBox(); return g.boundingBox! }
+  const ribs = parts.filter(p => p.name.startsWith('grip-rib-'))
+  assert.equal(ribs.length, 23)
+  for (const rib of ribs) {
+    const b = bounds(rib.name)
+    assert.ok(b.max.x < -17, 'grip belongs on the left')
+    assert.ok(b.max.z <= 0, 'grip lands sit below the face')
+  }
+  const label = bounds('cart-front')
+  assert.ok(label.getCenter(new THREE.Vector3()).x > 0, 'label belongs on the right')
+  assert.ok(label.min.y >= 48 && label.max.y >= 130)
+  assert.ok(label.max.z < bounds('front-shell').max.z, 'label is recessed, not raised')
+  assert.ok(bounds('insertion-arrow').max.z < bounds('front-shell').max.z)
+  const shell = new THREE.Mesh(find('front-shell').geometry)
+  const hits = (x: number, y: number) => new THREE.Raycaster(new THREE.Vector3(x, y, 10), new THREE.Vector3(0, 0, -1)).intersectObject(shell)
+  assert.equal(hits(-30, 130).length, 0, 'thumb notch above grip')
+  assert.equal(hits(-58, 10).length, 0, 'narrow insertion tongue')
+  assert.ok(hits(-58, 30).length > 0, 'wide shoulder above tongue')
+  assert.equal(hits(15, 80).length, 0, 'front panel really cuts out the label recess')
+  disposeLodParts(parts)
+})

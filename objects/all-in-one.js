@@ -334,6 +334,7 @@ export function build(p) {
   //
   // Only the panel leans: it turns about its own bottom edge and is then lifted
   // onto the stand, which stands up straight underneath it.
+  for (const g of glass) if (g) surfaceUV(g, 'z', 'y')
   const panelParts = [...shell, ...front, ...dark, ...glass, ...lamps]
   for (const part of parts) panelParts.push(part.geometry)
   for (const g of panelParts) {
@@ -403,6 +404,10 @@ export function build(p) {
   add('surround', dark, COLOR.dark)
   add('screen', glass, bool(p, 'screenOn') ? 0xc3d9f2 : COLOR.screenOff)
   add('lamps', lamps, COLOR.lamp)
+
+  for (const part of parts) if (part.name === 'screen') {
+    part.mediaSurface = { id: 'screen', label: 'Screen', accept: 'image-video', emissive: true }
+  }
 
   const facing = parts.filter((part) => part.geometry && triangleCount(part.geometry) > 0)
   // Swung round from -X to +Z, which is where the Front view looks from, so the

@@ -1,3 +1,4 @@
+import { applySurfaceTextures, listMediaSurfaces, loadMediaFile } from '../src/lib/media'
 // The entry point for dist/agent/runtime.js — see tools/agent-bundle.mjs.
 //
 // A consumer that wants to turn a generator into geometry needs two things:
@@ -9,5 +10,5 @@ import * as THREE from 'three'
 import { compileObject, ObjectSourceError, setDisplayUnits } from '../src/lib/compile'
 
 export function createStudioRuntime() {
-  return { THREE, compileObject, ObjectSourceError, setDisplayUnits }
+  return { applySurfaceTextures, listMediaSurfaces, loadMediaFile, THREE, compileObject, ObjectSourceError, setDisplayUnits }
 }

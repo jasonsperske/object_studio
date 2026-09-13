@@ -618,6 +618,11 @@ export function build(p) {
   add('lamps', lamps, COLOR.power)
   add('screen', glass, bool(p, 'screenOn') ? 0x9fb8d8 : COLOR.screen)
 
+  for (const part of parts) if (part.name === 'screen') {
+    surfaceUV(part.geometry, 'z', 'y')
+    part.mediaSurface = { id: 'screen', label: 'Screen', accept: 'image-video', emissive: true }
+  }
+
   const facing = parts.filter((part) => part.geometry && triangleCount(part.geometry) > 0)
   // Swung round from -X to +Z, which is where the Front view looks from, so the
   // front of the machine is what the front view shows.

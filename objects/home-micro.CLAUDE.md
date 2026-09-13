@@ -107,3 +107,10 @@ the point of it being its own object. A cartridge slot and a cassette deck are t
 - **Business-minded micro** — `{"keyStyle":"typewriter","columns":18,"rows":6,"pitch":19.05,"functionKeys":4,"keypad":true,"margin":26,"frontBand":40,"backDeck":46,"lip":32,"slope":11,"radius":10,"finish":"beige","keyColour":"light","cassette":"port","cartridge":false,"edgeConnector":true,"joystickPorts":0,"portSide":"back","videoOut":"composite","ribs":false,"badge":true,"lamp":true}`
 - **Calculator micro** — `{"keyStyle":"calculator","columns":10,"rows":4,"pitch":13,"functionKeys":0,"keypad":false,"margin":22,"frontBand":16,"backDeck":20,"lip":18,"slope":5,"radius":10,"finish":"charcoal","keyColour":"light","cassette":"port","cartridge":false,"edgeConnector":true,"joystickPorts":0,"portSide":"right","videoOut":"rf","ribs":false,"badge":false,"lamp":false}`
 <!-- /generated: parameters -->
+
+## Runtime media
+
+The badge or meter face exposes an image-only `mediaSurface` slot.
+Discover available slots with `listMediaSurfaces(parts)` and bind textures with
+`applySurfaceTextures(parts, bindings)`. UVs follow the model geometry. Assignments never
+enter parameters or object URLs; see the README for ownership and browser support.

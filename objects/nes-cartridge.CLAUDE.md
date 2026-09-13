@@ -1,0 +1,79 @@
+# NES cartridge
+
+Use `nes-cartridge` for nes cartridge props from the cartridge era. Geometry is in millimetres,
+front faces +Z, and the object rests on Y=0. Dimensions and PCB layout are approximate visual
+references; these are scene assets, not replacement shells or circuit-board specifications.
+
+`presentation` selects a cartridge, a cartridge alongside its closed blank box, or separated
+front/rear trays with a visible board, contacts, chips, screw bosses and removed screws.
+`openGap` controls separation. Optional `battery` adds a representative save cell when open.
+Shell colour is independent of the moulding; colour options also support custom scene props.
+
+Available shell variants: Retail shell, NWC 1990 • DIP switch opening.
+
+Every label is blank. `cart-front` and `cart-back` are independent image slots.
+Some families also expose `cart-top`; boxed copies expose `box-front`, `box-back`,
+`box-spine`, `box-right`, `box-top` and `box-bottom`. Discover the slots in the current build
+using `listMediaSurfaces(parts)`. Use `applySurfaceTextures(parts, { 'cart-front':
+{ texture, kind: 'image' } })` from the published runtime to apply a THREE.Texture.
+UVs define the intended orientation; assign a normally oriented image without rotating it.
+Textures remain outside the parameter recipe and the object URL. Callers own texture disposal.
+
+## Examples
+
+```js
+{ presentation: 'boxed' }
+```
+
+```js
+{ presentation: 'open', openGap: 45, battery: true }
+```
+
+## Parameters
+
+<!-- generated: parameters -->
+**Model**
+
+| Parameter | Type | Range | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `presentation` | select | `cart`, `boxed`, `open` | `"cart"` |  |
+| `openGap` | number | 20–90 mm, step 1 | `35` | Only used in some combinations. |
+
+**Shell**
+
+| Parameter | Type | Range | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `finish` | select | `original`, `grey`, `gold`, `black`, `yellow` | `"original"` |  |
+| `variant` | select | `standard`, `nwc1990` | `"standard"` |  |
+| `screws` | select | `3`, `5` | `"3"` |  |
+
+**Board**
+
+| Parameter | Type | Range | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `battery` | boolean | `true`, `false` | `false` | Only used in some combinations. |
+
+**Presets** — worked examples; each lists only what it changes.
+
+- **Cartridge only** — `{"presentation":"cart"}`
+- **Boxed copy** — `{"presentation":"boxed"}`
+- **Opened cartridge** — `{"presentation":"open"}`
+- **Gold five-screw** — `{"finish":"gold","screws":"5"}`
+- **NWC 1990 grey** — `{"variant":"nwc1990","finish":"grey","screws":"3"}`
+- **NWC 1990 gold** — `{"variant":"nwc1990","finish":"gold","screws":"3"}`
+<!-- /generated: parameters -->
+
+## Reference notes
+
+The [NWC 1990 cartridge reference](https://www.atarihq.com/tsr/nes/nwc/nwc.html)
+describes the exposed four-switch timer bank. This model cuts an aperture in the front shell
+and places that bank on the board; the `nwc1990` variation changes geometry independently
+of grey or gold colour. Boxed NWC presets represent a display box, not original retail packaging.
+
+## Blank-shell front geometry
+
+The front follows the supplied blank NES shell photograph: the full-height ribbed grip is on
+the **left** when looking at +Z, with a thumb notch above it. The label recess is on the upper
+right, with rounded lower corners and an inset insertion arrow below. The lower shoulders
+step inward to the connector tongue. Grip lands and the label floor sit below the surrounding
+front face. Grey/gold and three/five-screw variants retain this front layout.

@@ -101,3 +101,11 @@ These are procedural geometry helpers; no textures or external assets are requir
 - **2000 small footprint** — `{"board":"microAtx","isaCards":0,"pciCards":2,"bays525":1,"optical":1,"bays35":1,"floppy":true,"hardDisks":1,"finish":"putty","speakers":"none","display":"crt15","keyboard":true,"badge":false}`
 - **1998 workshop machine, open** — `{"board":"atx","isaCards":2,"pciCards":3,"bays525":3,"optical":1,"tapeDrive":true,"bays35":2,"floppy":true,"hardDisks":3,"finish":"beige","cutaway":true,"speakers":"none","display":"none","keyboard":false}`
 <!-- /generated: parameters -->
+
+## Runtime media
+
+The screen exposes `mediaSurface: { id: "screen", accept: "image-video", emissive: true }`.
+Assign screenshots, animated GIFs or muted looping movies through the runtime media interface.
+Discover available slots with `listMediaSurfaces(parts)` and bind textures with
+`applySurfaceTextures(parts, bindings)`. UVs follow the model geometry. Assignments never
+enter parameters or object URLs; see the README for ownership and browser support.

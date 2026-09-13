@@ -121,3 +121,11 @@ These are procedural geometry helpers; no textures or external assets are requir
 - **2022 wall-mounted 75″** — `{"panel":75,"aspect":"sixteenNine","tech":"lcd","bezel":3,"chin":8,"screenOn":true,"thickness":30,"profile":"stepped","radius":4,"finish":"black","speakers":"soundbar","stand":"none","bracket":true,"ports":10,"badge":false}`
 - **Small kitchen set** — `{"panel":24,"aspect":"sixteenNine","tech":"lcd","bezel":12,"chin":22,"screenOn":true,"thickness":40,"profile":"slab","radius":6,"finish":"white","speakers":"grille","stand":"easel","standHeight":30,"tilt":6,"ports":3,"badge":true}`
 <!-- /generated: parameters -->
+
+## Runtime media
+
+The screen exposes `mediaSurface: { id: "screen", accept: "image-video", emissive: true }`.
+Assign screenshots, animated GIFs or muted looping movies through the runtime media interface.
+Discover available slots with `listMediaSurfaces(parts)` and bind textures with
+`applySurfaceTextures(parts, bindings)`. UVs follow the model geometry. Assignments never
+enter parameters or object URLs; see the README for ownership and browser support.

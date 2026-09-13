@@ -35,9 +35,24 @@ function sceneForExport(parts: Part[], scale: number): THREE.Group {
   for (const part of parts) {
     const geometry = part.geometry.clone()
     if (scale !== 1) geometry.scale(scale, scale, scale)
-    const material = new THREE.MeshStandardMaterial({ color: part.color ?? 0xcccccc, map: part.map ?? null, alphaTest: part.map ? 0.01 : 0, transparent: Boolean(part.map), depthWrite: !part.map })
+    let map = part.map
+    let snapshot: THREE.CanvasTexture | undefined
+    if (map && ((map as THREE.VideoTexture).isVideoTexture || map.userData.animated)) {
+      const img = map.image as HTMLVideoElement | HTMLCanvasElement
+      const canvas = document.createElement('canvas')
+      canvas.width = 'videoWidth' in img ? img.videoWidth : img.width
+      canvas.height = 'videoHeight' in img ? img.videoHeight : img.height
+      canvas.getContext('2d')!.drawImage(img, 0, 0)
+      snapshot = new THREE.CanvasTexture(canvas)
+      snapshot.colorSpace = map.colorSpace
+      map = snapshot
+    }
+    const material = new THREE.MeshStandardMaterial({ color: part.color ?? 0xcccccc, roughness: part.roughness ?? .68, metalness: part.metalness ?? .05, map: map ?? null, alphaTest: part.map ? 0.01 : 0, transparent: Boolean(part.map && !part.mediaSurface), depthWrite: !part.map || Boolean(part.mediaSurface) })
     const mesh = new THREE.Mesh(geometry, material)
     mesh.name = part.name
+    if (snapshot) Object.defineProperty(mesh.userData, 'exportSnapshot', { value: snapshot, enumerable: false })
+    if (part.mediaSurface) mesh.userData.mediaSurface = part.mediaSurface
+    if (part.map && part.mediaSurface?.emissive) { material.emissive.set(0xffffff); material.emissiveMap = map ?? null; material.emissiveIntensity = 0.75 }
     group.add(mesh)
   }
   group.updateMatrixWorld(true)
@@ -49,6 +64,7 @@ function disposeScene(group: THREE.Group) {
     const mesh = obj as THREE.Mesh
     if (mesh.isMesh) {
       mesh.geometry.dispose()
+      mesh.userData.exportSnapshot?.dispose()
       const mat = mesh.material as THREE.Material | THREE.Material[]
       if (Array.isArray(mat)) mat.forEach((m) => m.dispose())
       else mat.dispose()

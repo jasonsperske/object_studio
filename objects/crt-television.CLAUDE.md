@@ -147,3 +147,11 @@ These are procedural geometry helpers; no textures or external assets are requir
 - **1996 black box** — `{"tube":25,"aspect":"fourThree","faceCurve":25,"screenOn":true,"picture":"colour","cabinet":"blackBox","finish":"charcoal","bezel":30,"radius":14,"depthAllowance":90,"taperBack":true,"controls":"discreet","buttons":5,"speaker":"below","grille":"slots","aerial":"none","remote":true,"badge":true,"standby":true}`
 - **2003 widescreen tube** — `{"tube":32,"aspect":"sixteenNine","faceCurve":0,"screenOn":true,"picture":"colour","cabinet":"blackBox","finish":"silver","bezel":26,"radius":12,"depthAllowance":110,"taperBack":true,"controls":"none","speaker":"below","grille":"perforated","aerial":"none","remote":true,"badge":false,"standby":true}`
 <!-- /generated: parameters -->
+
+## Runtime media
+
+The screen exposes `mediaSurface: { id: "screen", accept: "image-video", emissive: true }`.
+Assign screenshots, animated GIFs or muted looping movies through the runtime media interface.
+Discover available slots with `listMediaSurfaces(parts)` and bind textures with
+`applySurfaceTextures(parts, bindings)`. UVs follow the model geometry. Assignments never
+enter parameters or object URLs; see the README for ownership and browser support.

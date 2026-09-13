@@ -79,8 +79,8 @@ export function renderThumbnails(requests: ThumbnailRequest[], size = 420): Reco
     for (const part of request.parts) {
       const material = new THREE.MeshStandardMaterial({
         color: part.color ?? 0xb9bec7,
-        roughness: 0.65,
-        metalness: 0.05,
+        roughness: part.roughness ?? 0.65,
+        metalness: part.metalness ?? 0.05,
       })
       materials.push(material)
       group.add(new THREE.Mesh(part.geometry, material))
