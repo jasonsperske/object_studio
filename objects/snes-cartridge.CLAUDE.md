@@ -65,3 +65,13 @@ Textures remain outside the parameter recipe and the object URL. Callers own tex
 The [M+ Museum discussion of regional cartridges](https://www.mplus.org.hk/en/magazine/region-locking-really-hertz/)
 documents the physical cartridge/slot differences. This generator separates the stepped North
 American silhouette from the rounded Super Famicom / PAL silhouette and rear key recesses.
+
+## Reference shell
+
+The supplied North American SNES references guide the standard shell: a shallow stepped
+top, six broad side bands, a recessed upper label, and a separate lower front pocket
+with a central tab. Two recessed screws sit low on the front wings. The rear has a
+higher caution-label area, lower band and bottom key openings. Open presentations
+include a compact low board, narrower connector tongue and internal support ribs.
+Dimensions and board components remain visual approximations. The Super Famicom
+variant retains its separate rounded shell. All label artwork remains blank.

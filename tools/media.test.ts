@@ -274,3 +274,30 @@ test('Genesis reference shell rolls its side cheeks and has wrapped labels and r
     disposeLodParts(parts)
   }
 })
+
+test('SNES reference has broad side bands, lower pocket, front screws and a compact board', () => {
+  const def = load('snes-cartridge')
+  for (const presentation of ['cart', 'open', 'boxed']) {
+    const parts = def.build({ ...defaultParams(def), presentation })
+    const part = (name: string) => parts.find(p => p.name === name)!
+    const bounds = (name: string) => { const g = part(name).geometry; g.computeBoundingBox(); return g.boundingBox! }
+    const front = bounds('front-shell'), label = bounds('cart-front'), pocket = bounds('lower-front-pocket')
+    assert.ok(label.min.y > front.min.y + 40)
+    assert.ok(label.max.z < front.max.z)
+    assert.ok(pocket.max.y < label.min.y)
+    assert.ok(pocket.max.z < front.max.z - 1)
+    assert.equal(parts.filter(p => p.name.startsWith('front-side-band-')).length, 12)
+    for (let i = 1; i <= 2; i++) {
+      const screw = bounds(`screw-${i}`)
+      assert.ok(screw.max.y < front.min.y + 9)
+      assert.ok(screw.min.z > front.max.z - 2)
+      const center = screw.getCenter(new THREE.Vector3())
+      assert.equal(new THREE.Raycaster(new THREE.Vector3(center.x, center.y, front.max.z + 10), new THREE.Vector3(0, 0, -1)).intersectObject(new THREE.Mesh(part('front-shell').geometry)).length, 0)
+    }
+    const board = bounds('circuit-board'), tongue = bounds('connector-tongue')
+    assert.ok(board.max.y - board.min.y <= 26.01)
+    assert.ok(tongue.max.x - tongue.min.x < board.max.x - board.min.x)
+    assert.ok(tongue.min.y < board.min.y)
+    disposeLodParts(parts)
+  }
+})
