@@ -2,7 +2,7 @@
 // +Y up, front +Z. Media slots are returned on parts, never in parameters.
 export const meta = {
   "name": "Genesis / Mega Drive cartridge",
-  "description": "Blank-label genesis / mega drive cartridge with a boxed copy, separate shell halves, PCB and family-specific moulding.",
+  "description": "Genesis / Mega Drive cartridge with rounded side cheeks, a wrapped blank label, rear grip recess and inset screws; boxed and open variations.",
   "order": 34
 }
 const profile = {"family": "genesis", "width": 110, "height": 70, "depth": 18, "color": 2697258, "pins": 32, "screws": 2, "box": [135, 190, 27]}

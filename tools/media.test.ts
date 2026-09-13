@@ -240,3 +240,37 @@ test('Master System has an upper title band, continuous rails, rear screw wells 
   for (const mesh of meshes) (mesh.material as THREE.Material).dispose()
   disposeLodParts(parts)
 })
+
+test('Genesis reference shell rolls its side cheeks and has wrapped labels and recessed rear hardware', () => {
+  const def = load('genesis-cartridge')
+  for (const presentation of ['cart', 'open', 'boxed']) {
+    const parts = def.build({ ...defaultParams(def), presentation })
+    const part = (name: string) => parts.find(p => p.name === name)!
+    const bounds = (name: string) => { const g = part(name).geometry; g.computeBoundingBox(); return g.boundingBox! }
+    const front = bounds('cart-front'), top = bounds('cart-top')
+    assert.ok(Math.abs(front.max.y - top.min.y) < 1e-4)
+    assert.ok(Math.abs(front.max.z - top.max.z) < 1e-4)
+    assert.equal(front.min.x, top.min.x)
+    assert.equal(front.max.x, top.max.x)
+    assert.ok(front.max.y - front.min.y > 60)
+    const shell = bounds('front-shell')
+    const pos = part('front-shell').geometry.getAttribute('position')
+    let rolled = false
+    for (let i = 0; i < pos.count; i++) {
+      if (pos.getX(i) > shell.max.x - .1 && pos.getZ(i) < shell.max.z - 5) rolled = true
+    }
+    assert.ok(rolled, 'outer cheeks roll back from the label plane')
+    const rear = bounds('rear-shell'), grip = bounds('rear-grip-floor')
+    assert.ok(grip.min.z > rear.min.z)
+    const back = new THREE.Mesh(part('rear-shell').geometry)
+    const center = grip.getCenter(new THREE.Vector3())
+    assert.equal(new THREE.Raycaster(new THREE.Vector3(center.x, center.y, rear.min.z - 10), new THREE.Vector3(0, 0, 1)).intersectObject(back).length, 0)
+    for (let i = 1; i <= 2; i++) {
+      const screw = bounds(`screw-${i}`)
+      assert.ok(screw.min.y > 30 && screw.max.y < 37)
+      assert.ok(part(`screw-well-${i}`))
+    }
+    assert.ok(Math.abs(bounds('circuit-board').min.y - shell.min.y - 8) < 1e-4)
+    disposeLodParts(parts)
+  }
+})

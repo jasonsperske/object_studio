@@ -59,3 +59,13 @@ Textures remain outside the parameter recipe and the object URL. Callers own tex
 - **Opened cartridge** — `{"presentation":"open"}`
 - **EA tall shell • yellow tab** — `{"variant":"ea"}`
 <!-- /generated: parameters -->
+
+## Reference shell
+
+The supplied Sega USA/EUR shell photos guide the standard variant: curved side cheeks,
+rounded corners, a broad blank front label reaching the top edge, and a matching-width
+top continuation. Front and top remain independent image slots with a shared seam.
+The rear has a shallow capsule grip recess, a blank maker panel, two inset screws at
+mid-height, and a lower caution label. The connector board is recessed 8 mm into the
+bottom opening. These are approximate visual dimensions. Boxed and open presentations
+use the same shell; the EA tall shell keeps its separate shape and yellow tab.
