@@ -309,6 +309,11 @@ test('Super Famicom has its own broad recess, capsule grip, side grooves and fro
     const part = (name: string) => parts.find(p => p.name === name)!
     const bounds = (name: string) => { const g = part(name).geometry; g.computeBoundingBox(); return g.boundingBox! }
     const shell = bounds('front-shell'), label = bounds('cart-front'), grip = bounds('front-grip-floor')
+    assert.ok(!parts.some(p => p.mediaSurface?.id === 'cart-top'), 'Super Famicom has no top sticker')
+    const normals = part('front-shell').geometry.getAttribute('normal')
+    let rounded = false
+    for (let i = 0; i < normals.count; i++) if (normals.getZ(i) > .1 && normals.getZ(i) < .9) rounded = true
+    assert.ok(rounded, 'front edges have curved bevel normals')
     assert.ok(label.max.x - label.min.x > 106)
     assert.ok(label.max.z < shell.max.z)
     assert.ok(grip.max.y < label.min.y && grip.max.x - grip.min.x > 75)

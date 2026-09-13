@@ -84,3 +84,6 @@ rounded label recess, and a lower central panel with a capsule grip recess and
 internal ribs. Two inset front screws sit at the bottom corners. Cart, open and
 boxed presentations share these details. Artwork remains blank and dimensions
 are approximate visual references.
+
+The Super Famicom front shell and lower grip panel have rounded molded edge profiles.
+This variant exposes no cart-top sticker slot; its cartridge labels are front and rear only.

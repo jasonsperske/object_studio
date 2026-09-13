@@ -181,7 +181,9 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
     for (const x of [-w * .44, w * .44]) { const bore = new THREE.Path(); bore.absarc(x, 6, 3.3, 0, Math.PI * 2, true); front.holes.push(bore) }
   }
   if (nwc) hole(front, w * .22, h * .32, 16, 23)
-  add('front-shell', sheet(front, 1.5, frontZ - 1.5))
+  add('front-shell', sfc
+    ? new THREE.ExtrudeGeometry(front, { depth: .3, bevelEnabled: true, bevelThickness: 1.2, bevelSize: 1, bevelOffset: -1, bevelSegments: 6, curveSegments: 16 }).translate(0, 0, frontZ - 1.5)
+    : sheet(front, 1.5, frontZ - 1.5))
   const rear = outline(true)
   const rearGrip = new THREE.Shape()
   rearGrip.moveTo(-w * .34, h - 10)
@@ -306,7 +308,7 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
     part.mediaSurface = { id: 'cart-front', label: 'Cartridge front label', accept: 'image' }
     const panel = rounded(w * .68, .3, 43.7, .7)
     panel.holes.push(new THREE.Path(sfcGrip.getPoints(16)))
-    add('lower-front-panel', sheet(panel, .3, frontZ))
+    add('lower-front-panel', new THREE.ExtrudeGeometry(panel, { depth: .1, bevelEnabled: true, bevelThickness: .3, bevelSize: .6, bevelOffset: -.6, bevelSegments: 5, curveSegments: 16 }).translate(0, 0, frontZ - .1))
     add('front-grip-floor', sheet(sfcGrip, .25, frontZ - 1.5), new THREE.Color(color).multiplyScalar(.7).getHex())
     for (const x of [-w * .1, w * .1]) block('front-grip-divider', .65, 6, .6, x, 26, frontZ - 1.25)
     for (let i = 0; i < 4; i++) block('front-grip-rib', w * .55, .35, .15, -w * .275, 26 + i * 1.6, frontZ - 1.1)
@@ -337,7 +339,7 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
   plane('cart-back', 'Cartridge rear label', w * (f === 'nes' ? .68 : f === 'master' ? .64 : snes ? .60 : genesis ? .72 : .6), h * (f === 'nes' ? .24 : f === 'master' ? .32 : snes ? .38 : genesis ? .23 : .3), 0, h * (f === 'nes' ? .40 : f === 'master' ? .50 : snes ? .66 : genesis ? .19 : .57), backZ - .03, [0, Math.PI, 0])
   if (genesis) plane('cart-top', 'Cartridge top label', w * .7, d * .4, 0, h + .03, frontZ + .03 - d * .2, [-Math.PI / 2, 0, 0])
   else if (f === 'master') plane('cart-top', 'Cartridge top label', w - 8, d * .4, 0, h + .03, frontZ + .03 - d * .2, [-Math.PI / 2, 0, 0])
-  else if (!['gameboy', 'gamegear', 'n64', 'famicom'].includes(f)) plane('cart-top', 'Cartridge top label', Math.min(labelW, w - 30), d * .4, f === 'nes' ? labelX : 0, h + .05, frontZ - d * .25, [-Math.PI / 2, 0, 0])
+  else if (!sfc && !['gameboy', 'gamegear', 'n64', 'famicom'].includes(f)) plane('cart-top', 'Cartridge top label', Math.min(labelW, w - 30), d * .4, f === 'nes' ? labelX : 0, h + .05, frontZ - d * .25, [-Math.PI / 2, 0, 0])
   // Distinctive moulded grips and shell latches.
   if (f === 'nes') {
     block('grip-channel-floor', 26.2, h - 17.2, 1.05, -41.2, 0, frontZ - 1.5)
