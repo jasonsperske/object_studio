@@ -2,7 +2,7 @@
 // +Y up, front +Z. Media slots are returned on parts, never in parameters.
 export const meta = {
   "name": "SNES / Super Famicom cartridge",
-  "description": "SNES cartridge with broad side bands, recessed upper label and lower front pocket, low front screws and a compact internal board; boxed and open variations.",
+  "description": "Two regional shells: the stepped North American SNES cartridge and the rounded Super Famicom / PAL cartridge. Select Shell variant to switch geometry; both support boxed and open presentations.",
   "order": 35
 }
 const profile = {"family": "snes", "width": 135, "height": 87, "depth": 20, "color": 11053477, "pins": 31, "screws": 2, "box": [178, 125, 30]}
@@ -98,6 +98,7 @@ export const params = [
 export function build(p) { return buildCartridge(p, profile) }
 export function metrics(p) { return [
   { label: 'Family', value: meta.name },
+  { label: 'Shell', value: str(p, 'variant') === 'sfc' ? 'Super Famicom / PAL — rounded shell' : 'North American SNES — stepped shell', note: 'The supplied stepped-shell photos apply to the North American variant.' },
   { label: 'Scale', value: 'Approximate reference dimensions', note: 'Visual scene asset; internal board components are representative, not a repair or manufacturing drawing.' },
   { label: 'Media', value: 'Images only', note: 'Front, rear and packaging faces have independent runtime texture slots.' },
 ] }
