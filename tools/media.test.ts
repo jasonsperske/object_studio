@@ -257,9 +257,9 @@ test('Genesis reference shell rolls its side cheeks and has wrapped labels and r
     const pos = part('front-shell').geometry.getAttribute('position')
     let rolled = false
     for (let i = 0; i < pos.count; i++) {
-      if (pos.getX(i) > shell.max.x - .1 && pos.getZ(i) < shell.max.z - 5) rolled = true
+      if (pos.getX(i) > shell.max.x - .1 && pos.getZ(i) < shell.max.z - 8.5) rolled = true
     }
-    assert.ok(rolled, 'outer cheeks roll back from the label plane')
+    assert.ok(rolled, 'outer cheeks roll almost to the mid-shell seam')
     const rear = bounds('rear-shell'), grip = bounds('rear-grip-floor')
     assert.ok(grip.min.z > rear.min.z)
     const back = new THREE.Mesh(part('rear-shell').geometry)

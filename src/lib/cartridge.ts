@@ -74,11 +74,12 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
       }
       s.closePath(); return s
     } else if (genesis) {
-      s.moveTo(-w / 2 + 5, 0)
-      s.quadraticCurveTo(-w / 2, 0, -w / 2, 5)
-      s.lineTo(-w / 2, h - 8); s.quadraticCurveTo(-w / 2, h, -w / 2 + 10, h)
-      s.lineTo(w / 2 - 10, h); s.quadraticCurveTo(w / 2, h, w / 2, h - 8)
-      s.lineTo(w / 2, 5); s.quadraticCurveTo(w / 2, 0, w / 2 - 5, 0)
+      // Small front-elevation corner radii; the broad rounding is in X/Z.
+      s.moveTo(-w / 2 + 2, 0)
+      s.quadraticCurveTo(-w / 2, 0, -w / 2, 2)
+      s.lineTo(-w / 2, h - 2); s.quadraticCurveTo(-w / 2, h, -w / 2 + 2, h)
+      s.lineTo(w / 2 - 2, h); s.quadraticCurveTo(w / 2, h, w / 2, h - 2)
+      s.lineTo(w / 2, 2); s.quadraticCurveTo(w / 2, 0, w / 2 - 2, 0)
       s.closePath(); return s
     } else if (f === 'n64') {
       s.lineTo(-w / 2, h - 17); s.quadraticCurveTo(-w / 2, h - 3, -w / 2 + 17, h - 3)
@@ -187,21 +188,52 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
     add(`${name}-rim`, walls)
   }
   if (genesis) for (const part of parts.filter(part => ['front-shell', 'front-rim'].includes(part.name))) {
-    const source = part.geometry, pos = source.getAttribute('position')
-    const vertices: number[] = []
-    const bend = (v: THREE.Vector3) => {
-      const t = Math.min(1, Math.max(0, (Math.abs(v.x - ox) - (w / 2 - 12)) / 12))
-      v.z -= 6 * (1 - Math.sqrt(1 - t * t)) * Math.max(0, Math.min(1, (v.z - frontZ + d / 2) / (d / 2)))
-      vertices.push(v.x, v.y, v.z)
+    // Slice the original tray into narrow cross sections before rolling its
+    // cheeks. Analytic normals keep the curve smooth without softening seams.
+    const source = part.geometry, pos = source.getAttribute('position'), normals = source.getAttribute('normal')
+    const vertices: number[] = [], ns: number[] = []
+    const radius = w * .15, start = w * .35, depth = d / 2 - .2
+    const emit = (v: THREE.Vector3, normal: THREE.Vector3) => {
+      const x = v.x - ox, t = Math.min(1, Math.max(0, (Math.abs(x) - start) / radius))
+      const angle = t * Math.PI / 2, k = Math.max(0, Math.min(1, (v.z - frontZ + d / 2) / (d / 2)))
+      const drop = depth * (1 - Math.cos(angle))
+      if (t > 0) {
+        v.x = ox + Math.sign(x) * (start + radius * Math.sin(angle))
+        const dx = Math.max(1e-5, Math.cos(angle) * Math.PI / 2)
+        const dz = 1 - drop / (d / 2)
+        const slope = Math.sign(x) * depth * Math.sin(angle) * Math.PI / (2 * radius) * k
+        normal.set(normal.x / dx + normal.z * slope / (dx * dz), normal.y, normal.z / dz).normalize()
+      }
+      v.z -= drop * k
+      vertices.push(v.x, v.y, v.z); ns.push(normal.x, normal.y, normal.z)
     }
-    const split = (a: THREE.Vector3, b: THREE.Vector3, c: THREE.Vector3, level: number) => {
-      if (!level) { bend(a); bend(b); bend(c); return }
-      const ab = a.clone().add(b).multiplyScalar(.5), bc = b.clone().add(c).multiplyScalar(.5), ca = c.clone().add(a).multiplyScalar(.5)
-      split(a.clone(), ab.clone(), ca.clone(), level - 1); split(ab.clone(), b.clone(), bc.clone(), level - 1)
-      split(ca.clone(), bc.clone(), c.clone(), level - 1); split(ab, bc, ca, level - 1)
+    const cuts = [-w / 2, -start, start, w / 2]
+    for (let i = 1; i < 32; i++) { cuts.push(-w / 2 + radius * i / 32, start + radius * i / 32) }
+    cuts.sort((a, b) => a - b)
+    const clip = (poly: THREE.Vector3[], edge: number, above: boolean) => {
+      const out: THREE.Vector3[] = []
+      for (let i = 0; i < poly.length; i++) {
+        const a = poly[i], b = poly[(i + 1) % poly.length]
+        const inside = above ? a.x >= edge : a.x <= edge
+        if (inside) out.push(a.clone())
+        if (inside !== (above ? b.x >= edge : b.x <= edge)) out.push(a.clone().lerp(b, (edge - a.x) / (b.x - a.x)))
+      }
+      return out
     }
-    for (let i = 0; i < pos.count; i += 3) split(new THREE.Vector3().fromBufferAttribute(pos, i), new THREE.Vector3().fromBufferAttribute(pos, i + 1), new THREE.Vector3().fromBufferAttribute(pos, i + 2), 2)
-    const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3)); geometry.computeVertexNormals()
+    for (let i = 0; i < pos.count; i += 3) {
+      const triangle = [0, 1, 2].map(j => new THREE.Vector3().fromBufferAttribute(pos, i + j))
+      const normal = new THREE.Vector3().fromBufferAttribute(normals, i)
+      for (let c = 0; c < cuts.length - 1; c++) {
+        const poly = clip(clip(triangle, ox + cuts[c], true), ox + cuts[c + 1], false)
+        for (let j = 1; j < poly.length - 1; j++) {
+          if (poly[j].clone().sub(poly[0]).cross(poly[j + 1].clone().sub(poly[0])).lengthSq() < 1e-12) continue
+          for (const v of [poly[0], poly[j], poly[j + 1]]) emit(v.clone(), normal.clone())
+        }
+      }
+    }
+    const geometry = new THREE.BufferGeometry()
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3))
+    geometry.setAttribute('normal', new THREE.Float32BufferAttribute(ns, 3))
     part.geometry = geometry; source.dispose()
   }
   const plane = (id: string, label: string, width: number, height: number, x: number, y: number, z: number, rotation: [number, number, number] = [0, 0, 0]) => {

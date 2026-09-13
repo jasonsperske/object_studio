@@ -69,3 +69,7 @@ The rear has a shallow capsule grip recess, a blank maker panel, two inset screw
 mid-height, and a lower caution label. The connector board is recessed 8 mm into the
 bottom opening. These are approximate visual dimensions. Boxed and open presentations
 use the same shell; the EA tall shell keeps its separate shape and yellow tab.
+
+The side cheeks use a quarter-ellipse cross section starting at the label border,
+with smooth analytic normals and only small front-elevation corner radii. The curve
+rolls almost to the shell seam while the central label plane stays flat.
