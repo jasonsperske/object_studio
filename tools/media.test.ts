@@ -301,3 +301,28 @@ test('SNES reference has broad side bands, lower pocket, front screws and a comp
     disposeLodParts(parts)
   }
 })
+
+test('Super Famicom has its own broad recess, capsule grip, side grooves and front screws', () => {
+  const def = load('snes-cartridge')
+  for (const presentation of ['cart', 'open', 'boxed']) {
+    const parts = def.build({ ...defaultParams(def), variant: 'sfc', presentation })
+    const part = (name: string) => parts.find(p => p.name === name)!
+    const bounds = (name: string) => { const g = part(name).geometry; g.computeBoundingBox(); return g.boundingBox! }
+    const shell = bounds('front-shell'), label = bounds('cart-front'), grip = bounds('front-grip-floor')
+    assert.ok(label.max.x - label.min.x > 106)
+    assert.ok(label.max.z < shell.max.z)
+    assert.ok(grip.max.y < label.min.y && grip.max.x - grip.min.x > 75)
+    assert.ok(!parts.some(p => p.name.startsWith('front-side-band-') || p.name === 'lower-front-pocket'))
+    const mesh = new THREE.Mesh(part('front-shell').geometry), center = shell.getCenter(new THREE.Vector3())
+    for (let i = 0; i < 5; i++) {
+      const ray = new THREE.Raycaster(new THREE.Vector3(shell.min.x + 1, shell.max.y - 8 - i * 4, shell.max.z + 10), new THREE.Vector3(0, 0, -1))
+      assert.equal(ray.intersectObject(mesh).length, 0, 'upper side grooves cut through the front outline')
+    }
+    assert.equal(new THREE.Raycaster(new THREE.Vector3(center.x, grip.getCenter(new THREE.Vector3()).y, shell.max.z + 10), new THREE.Vector3(0, 0, -1)).intersectObject(mesh).length, 0)
+    for (let i = 1; i <= 2; i++) {
+      const screw = bounds(`screw-${i}`)
+      assert.ok(screw.max.y < shell.min.y + 9 && screw.min.z > shell.max.z - 2)
+    }
+    disposeLodParts(parts)
+  }
+})

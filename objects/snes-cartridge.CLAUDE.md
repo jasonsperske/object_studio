@@ -75,3 +75,12 @@ higher caution-label area, lower band and bottom key openings. Open presentation
 include a compact low board, narrower connector tongue and internal support ribs.
 Dimensions and board components remain visual approximations. The Super Famicom
 variant retains its separate rounded shell. All label artwork remains blank.
+
+## Super Famicom reference shell
+
+The supplied Super Famicom photographs guide the sfc variant independently:
+a rounded rectangular perimeter, five short grooves on each upper side, a wide
+rounded label recess, and a lower central panel with a capsule grip recess and
+internal ribs. Two inset front screws sit at the bottom corners. Cart, open and
+boxed presentations share these details. Artwork remains blank and dimensions
+are approximate visual references.
