@@ -211,9 +211,14 @@ test('Master System has an upper title band, continuous rails, rear screw wells 
   const part = (name: string) => parts.find(p => p.name === name)!
   const bounds = (name: string) => { const g = part(name).geometry; g.computeBoundingBox(); return g.boundingBox! }
   const label = bounds('cart-front')
-  assert.ok(label.min.y >= 50 && label.max.y - label.min.y <= 18)
+  assert.ok(label.min.y >= 50 && label.max.y - label.min.y <= 19.1)
   assert.ok(label.max.x - label.min.x >= 99)
-  assert.ok(label.max.z < bounds('front-shell').max.z)
+  const top = bounds('cart-top')
+  assert.ok(Math.abs(label.max.y - top.min.y) < 1e-4, 'front and top meet vertically')
+  assert.ok(Math.abs(label.max.z - top.max.z) < 1e-4, 'front and top meet in depth')
+  assert.equal(label.min.x, top.min.x)
+  assert.equal(label.max.x, top.max.x)
+  assert.notEqual(part('cart-front').mediaSurface?.id, part('cart-top').mediaSurface?.id)
   assert.equal(parts.filter(p => p.name.startsWith('front-grip-rail-')).length, 3)
   for (let i = 1; i <= 3; i++) {
     const rail = bounds(`front-grip-rail-${i}`)

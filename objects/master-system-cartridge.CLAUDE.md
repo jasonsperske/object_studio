@@ -61,10 +61,10 @@ Textures remain outside the parameter recipe and the object URL. Callers own tex
 ## Reference shell
 
 The supplied front, rear and connector photographs guide this shell. Its full-width front
-has a narrow 100 × 17 mm recessed title band near the top, three horizontal grip rails
+has a narrow 100 × 19 mm title band reaching the top edge, three horizontal grip rails
 continuing onto the sides, and an uninterrupted lower panel. The rear has two recessed
 screw heads flanking the caution-label area, an upper moulded band, and keyed lower-edge
 notches. The edge connector sits 8 mm inside the open bottom mouth. Dimensions are approximate
 visual references. All label surfaces stay blank: `cart-front` is the upper title band,
-`cart-top` is its independently textured top continuation, and `cart-back` is the rear label.
+`cart-top` is its independently textured top continuation (matching width and a shared edge with the front, so aligned images appear as one wrapped sticker), and `cart-back` is the rear label.
 Boxed and open presentations use the same revised shell.

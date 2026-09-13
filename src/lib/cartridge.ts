@@ -120,7 +120,7 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
   famicomLabel.lineTo(lx + lw, ly + lh - lr); famicomLabel.quadraticCurveTo(lx + lw, ly + lh, lx + lw - lr, ly + lh)
   famicomLabel.lineTo(lx + lr, ly + lh); famicomLabel.quadraticCurveTo(lx, ly + lh, lx, ly + lh - lr)
   famicomLabel.lineTo(lx, ly + lr); famicomLabel.quadraticCurveTo(lx, ly, lx + lr, ly)
-  const masterLabel = roundLabel(-w / 2 + 4, h - 19, w - 8, 17, 1)
+  const masterLabel = roundLabel(-w / 2 + 4, h - 19, w - 8, 19.03, 1)
   const arrow = new THREE.Shape()
   arrow.moveTo(-6.3, 35); arrow.lineTo(5.9, 35); arrow.lineTo(-.2, 26.4); arrow.closePath()
   const front = outline()
@@ -131,7 +131,6 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
     hole(front, -41.2, .15, 26.2, h - 17.5)
   }
   if (f === 'famicom') front.holes.push(new THREE.Path(famicomLabel.getPoints(12)))
-  if (f === 'master') front.holes.push(new THREE.Path(masterLabel.getPoints(12)))
   if (nwc) hole(front, w * .22, h * .32, 16, 23)
   add('front-shell', sheet(front, 1.5, frontZ - 1.5))
   const rear = outline(true)
@@ -184,9 +183,9 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
     const part = add('cart-front', label)
     part.mediaSurface = { id: 'cart-front', label: 'Cartridge front label', accept: 'image' }
   } else if (f === 'master') {
-    add('label-recess-floor', sheet(masterLabel, 1.1, frontZ - 1.5))
+    // The sticker wraps the upper edge; both UV surfaces share the same seam.
     const label = new THREE.ShapeGeometry(masterLabel, 12)
-    surfaceUV(label); label.translate(0, 0, frontZ - .38)
+    surfaceUV(label); label.translate(0, 0, frontZ + .03)
     const part = add('cart-front', label, 0xe8e5da)
     part.mediaSurface = { id: 'cart-front', label: 'Cartridge front title band', accept: 'image' }
   } else if (f === 'famicom') {
@@ -201,7 +200,8 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
   }
   // NES caution label sits below the shared center screw, between the lower pair.
   plane('cart-back', 'Cartridge rear label', w * (f === 'nes' ? .68 : f === 'master' ? .64 : .6), h * (f === 'nes' ? .24 : f === 'master' ? .32 : .3), 0, h * (f === 'nes' ? .40 : f === 'master' ? .50 : .57), backZ - .03, [0, Math.PI, 0])
-  if (!['gameboy', 'gamegear', 'n64', 'famicom'].includes(f)) plane('cart-top', 'Cartridge top label', f === 'master' ? w - 8 : Math.min(labelW, w - 30), d * .4, f === 'nes' ? labelX : 0, h + .05, frontZ - d * .25, [-Math.PI / 2, 0, 0])
+  if (f === 'master') plane('cart-top', 'Cartridge top label', w - 8, d * .4, 0, h + .03, frontZ + .03 - d * .2, [-Math.PI / 2, 0, 0])
+  else if (!['gameboy', 'gamegear', 'n64', 'famicom'].includes(f)) plane('cart-top', 'Cartridge top label', Math.min(labelW, w - 30), d * .4, f === 'nes' ? labelX : 0, h + .05, frontZ - d * .25, [-Math.PI / 2, 0, 0])
   // Distinctive moulded grips and shell latches.
   if (f === 'nes') {
     block('grip-channel-floor', 26.2, h - 17.2, 1.05, -41.2, 0, frontZ - 1.5)
