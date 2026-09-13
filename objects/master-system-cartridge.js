@@ -2,7 +2,7 @@
 // +Y up, front +Z. Media slots are returned on parts, never in parameters.
 export const meta = {
   "name": "Master System cartridge",
-  "description": "Blank-label master system cartridge with a boxed copy, separate shell halves, PCB and family-specific moulding.",
+  "description": "Master System shell with a narrow upper title band, wraparound grip rails, plain lower face and recessed rear screws; boxed and open variations.",
   "order": 33
 }
 const profile = {"family": "master", "width": 108, "height": 70, "depth": 18, "color": 2697258, "pins": 25, "screws": 2, "box": [135, 190, 27]}

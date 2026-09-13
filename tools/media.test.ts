@@ -205,3 +205,33 @@ test('Famicom reference has rectangular shoulders, a broad recessed label and ho
   assert.ok(ray(51, 68).length > 0, 'small top corner radius')
   disposeLodParts(parts)
 })
+
+test('Master System has an upper title band, continuous rails, rear screw wells and open connector mouth', () => {
+  const def = load('master-system-cartridge'), parts = def.build(defaultParams(def))
+  const part = (name: string) => parts.find(p => p.name === name)!
+  const bounds = (name: string) => { const g = part(name).geometry; g.computeBoundingBox(); return g.boundingBox! }
+  const label = bounds('cart-front')
+  assert.ok(label.min.y >= 50 && label.max.y - label.min.y <= 18)
+  assert.ok(label.max.x - label.min.x >= 99)
+  assert.ok(label.max.z < bounds('front-shell').max.z)
+  assert.equal(parts.filter(p => p.name.startsWith('front-grip-rail-')).length, 3)
+  for (let i = 1; i <= 3; i++) {
+    const rail = bounds(`front-grip-rail-${i}`)
+    assert.ok(rail.max.y < label.min.y && rail.max.x - rail.min.x >= 108)
+  }
+  const back = new THREE.Mesh(part('rear-shell').geometry)
+  for (let i = 1; i <= 2; i++) {
+    const screw = bounds(`screw-${i}`), center = screw.getCenter(new THREE.Vector3())
+    assert.ok(center.y >= 38 && center.y <= 41)
+    assert.ok(Math.abs(center.x) >= 41)
+    assert.ok(screw.min.z > bounds('rear-shell').min.z, 'head is inset')
+    assert.ok(part(`screw-well-${i}`))
+    const hit = new THREE.Raycaster(new THREE.Vector3(center.x, center.y, -50), new THREE.Vector3(0, 0, 1)).intersectObject(back)
+    assert.equal(hit.length, 0, 'rear face is bored through at each screw')
+  }
+  const meshes = parts.map(p => new THREE.Mesh(p.geometry, new THREE.MeshBasicMaterial({side: THREE.DoubleSide})))
+  const hits = new THREE.Raycaster(new THREE.Vector3(0, -10, -9), new THREE.Vector3(0, 1, 0)).intersectObjects(meshes)
+  assert.ok(hits.length > 0 && hits[0].point.y >= 7.9, 'connector board sits inside an open mouth')
+  for (const mesh of meshes) (mesh.material as THREE.Material).dispose()
+  disposeLodParts(parts)
+})

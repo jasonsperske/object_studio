@@ -62,6 +62,16 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
       s.lineTo(w / 2, 5); s.lineTo(w / 2 - 5, 5)
       s.lineTo(w / 2 - 5, 0); s.closePath()
       return s
+    } else if (f === 'master') {
+      s.moveTo(-w / 2, 0)
+      s.lineTo(-w / 2, h - 1.5); s.lineTo(-w / 2 + 1.5, h)
+      s.lineTo(w / 2 - 1.5, h); s.lineTo(w / 2, h - 1.5)
+      s.lineTo(w / 2, 0)
+      if (rear) for (const x of [w / 2 - 9, -w / 2 + 9]) {
+        s.lineTo(x + 2, 0); s.lineTo(x + 2, 2.5)
+        s.lineTo(x - 2, 2.5); s.lineTo(x - 2, 0)
+      }
+      s.closePath(); return s
     } else if (f === 'n64') {
       s.lineTo(-w / 2, h - 17); s.quadraticCurveTo(-w / 2, h - 3, -w / 2 + 17, h - 3)
       s.quadraticCurveTo(0, h + 3, w / 2 - 17, h - 3); s.quadraticCurveTo(w / 2, h - 3, w / 2, h - 17)
@@ -110,6 +120,7 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
   famicomLabel.lineTo(lx + lw, ly + lh - lr); famicomLabel.quadraticCurveTo(lx + lw, ly + lh, lx + lw - lr, ly + lh)
   famicomLabel.lineTo(lx + lr, ly + lh); famicomLabel.quadraticCurveTo(lx, ly + lh, lx, ly + lh - lr)
   famicomLabel.lineTo(lx, ly + lr); famicomLabel.quadraticCurveTo(lx, ly, lx + lr, ly)
+  const masterLabel = roundLabel(-w / 2 + 4, h - 19, w - 8, 17, 1)
   const arrow = new THREE.Shape()
   arrow.moveTo(-6.3, 35); arrow.lineTo(5.9, 35); arrow.lineTo(-.2, 26.4); arrow.closePath()
   const front = outline()
@@ -120,9 +131,15 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
     hole(front, -41.2, .15, 26.2, h - 17.5)
   }
   if (f === 'famicom') front.holes.push(new THREE.Path(famicomLabel.getPoints(12)))
+  if (f === 'master') front.holes.push(new THREE.Path(masterLabel.getPoints(12)))
   if (nwc) hole(front, w * .22, h * .32, 16, 23)
   add('front-shell', sheet(front, 1.5, frontZ - 1.5))
-  add('rear-shell', sheet(outline(true), 1.5, backZ))
+  const rear = outline(true)
+  if (f === 'master') for (const x of [-w * .39, w * .39]) {
+    const bore = new THREE.Path(); bore.absarc(x, h * .56, 3.1, 0, Math.PI * 2, true)
+    rear.holes.push(bore)
+  }
+  add('rear-shell', sheet(rear, 1.5, backZ))
   // Open-backed trays: offset contours form walls, leaving the connector edge open.
   for (const [name, z] of [['front', frontZ - d / 2 + .2], ['rear', backZ + 1.5]] as const) {
     const shape = outline(name === 'rear')
@@ -166,6 +183,12 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
     surfaceUV(label); label.translate(0, 0, frontZ - .23)
     const part = add('cart-front', label)
     part.mediaSurface = { id: 'cart-front', label: 'Cartridge front label', accept: 'image' }
+  } else if (f === 'master') {
+    add('label-recess-floor', sheet(masterLabel, 1.1, frontZ - 1.5))
+    const label = new THREE.ShapeGeometry(masterLabel, 12)
+    surfaceUV(label); label.translate(0, 0, frontZ - .38)
+    const part = add('cart-front', label, 0xe8e5da)
+    part.mediaSurface = { id: 'cart-front', label: 'Cartridge front title band', accept: 'image' }
   } else if (f === 'famicom') {
     add('label-recess-floor', sheet(famicomLabel, 1.15, frontZ - 1.5))
     const label = new THREE.ShapeGeometry(famicomLabel, 12)
@@ -177,8 +200,8 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
     plane('cart-front', 'Cartridge front label', labelW, labelH, labelX, labelY, frontZ + .32)
   }
   // NES caution label sits below the shared center screw, between the lower pair.
-  plane('cart-back', 'Cartridge rear label', w * (f === 'nes' ? .68 : .6), h * (f === 'nes' ? .24 : .3), 0, h * (f === 'nes' ? .40 : .57), backZ - .03, [0, Math.PI, 0])
-  if (!['gameboy', 'gamegear', 'n64', 'famicom'].includes(f)) plane('cart-top', 'Cartridge top label', Math.min(labelW, w - 30), d * .4, f === 'nes' ? labelX : 0, h + .05, frontZ - d * .25, [-Math.PI / 2, 0, 0])
+  plane('cart-back', 'Cartridge rear label', w * (f === 'nes' ? .68 : f === 'master' ? .64 : .6), h * (f === 'nes' ? .24 : f === 'master' ? .32 : .3), 0, h * (f === 'nes' ? .40 : f === 'master' ? .50 : .57), backZ - .03, [0, Math.PI, 0])
+  if (!['gameboy', 'gamegear', 'n64', 'famicom'].includes(f)) plane('cart-top', 'Cartridge top label', f === 'master' ? w - 8 : Math.min(labelW, w - 30), d * .4, f === 'nes' ? labelX : 0, h + .05, frontZ - d * .25, [-Math.PI / 2, 0, 0])
   // Distinctive moulded grips and shell latches.
   if (f === 'nes') {
     block('grip-channel-floor', 26.2, h - 17.2, 1.05, -41.2, 0, frontZ - 1.5)
@@ -194,8 +217,18 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
     add('insertion-arrow', sheet(arrow, 1.2, frontZ - 1.5))
     if (String(p.screws) !== '5') for (const x of [-w * .44, w * .36]) block('top-latch', 7, 3, 3, x - 3.5, h - 5, frontZ - d / 2)
   }
-  if (['snes', 'n64', 'gamegear', 'master', 'gameboy'].includes(f)) {
+  if (['snes', 'n64', 'gamegear', 'gameboy'].includes(f)) {
     for (let side = -1; side <= 1; side += 2) for (let i = 0; i < (f === 'gameboy' ? 6 : 4); i++) block(`grip-${side}-${i}`, w * .075, 1.2, .7, side < 0 ? -w / 2 + 2 : w / 2 - w * .075 - 2, h * .55 + i * 3, frontZ)
+  }
+  if (f === 'master') {
+    // Continuous rails frame the title band, leaving the lower face blank.
+    for (let i = 0; i < 3; i++) {
+      const y = h - 25 + i * 1.7
+      block(`front-grip-rail-${i + 1}`, w, .7, .45, -w / 2, y, frontZ)
+      for (const side of [-1, 1]) block(`side-grip-rail-${i + 1}-${side}`, .4, .7, d / 2 - .4,
+        side < 0 ? -w / 2 - .4 : w / 2, y, frontZ - d / 2 + .2)
+    }
+    block('rear-upper-band', w - 6, 5, .4, -w / 2 + 3, h - 8, backZ - .4)
   }
   if (f === 'snes' && variant === 'sfc') block('rounded-top-band', w - 18, 5, .8, -w / 2 + 9, h - 9, frontZ)
   if (f === 'genesis' && variant === 'ea') block('yellow-release-tab', 8, 22, 5, w / 2 - 4, h * .6, frontZ - 3, 0xc6ad37)
@@ -210,19 +243,29 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
   const locations = f === 'nes'
     ? [[-w * .45, h * .26], [w * .45, h * .26], [0, h * .58],
       ...(count === 5 ? [[-w * .43, h * .94], [w * .43, h * .94]] : [])]
+    : f === 'master' ? [[-w * .39, h * .56], [w * .39, h * .56]]
     : count === 1 ? [[0, h * .3]] : count === 2 ? [[-w * .34, h * .25], [w * .34, h * .25]] : [[-w * .39, h * .2], [w * .39, h * .2], [0, h * .77], ...(count === 5 ? [[-w * .39, h * .91], [w * .39, h * .91]] : [])]
   locations.forEach(([x, y], i) => {
-    const screwZ = backZ - (opened ? 10 : .8)
+    const screwZ = backZ + (opened ? -10 : f === 'master' ? .65 : -.8)
     const screw = new THREE.CylinderGeometry(2, 2, 1.1, 16).rotateX(Math.PI / 2).translate(x, y, screwZ)
     add(`screw-${i + 1}`, screw, 0x777b7d)
     block(`screw-slot-${i + 1}`, 2.5, .55, .1, x - 1.25, y - .275, screwZ - .6, 0x242628)
+    if (f === 'master') {
+      const well = new THREE.CylinderGeometry(3.1, 3.1, 1.5, 24, 1, true).rotateX(Math.PI / 2).translate(x, y, backZ + .75)
+      // These are the inside walls of a bore, so wind and shade inward.
+      const index = well.index!, normal = well.getAttribute('normal')
+      for (let j = 0; j < index.count; j += 3) { const b = index.getX(j + 1); index.setX(j + 1, index.getX(j + 2)); index.setX(j + 2, b) }
+      for (let j = 0; j < normal.count; j++) normal.setXYZ(j, -normal.getX(j), -normal.getY(j), -normal.getZ(j))
+      add(`screw-well-${i + 1}`, well)
+    }
     if (opened) add(`screw-boss-${i + 1}`, new THREE.CylinderGeometry(3.5, 3.5, d * .28, 16).rotateX(Math.PI / 2).translate(x, y, backZ + 1.5 + d * .14))
   })
   const boardW = w * .77, boardH = f === 'nes' ? h * (nwc ? .79 : .47) : h * .73
-  block('circuit-board', boardW, boardH, 1.4, -boardW / 2, 3, -d / 2 - .7, 0x285d42)
+  const boardY = f === 'master' ? 8 : 3
+  block('circuit-board', boardW, boardH, 1.4, -boardW / 2, boardY, -d / 2 - .7, 0x285d42)
   for (let i = 0; i < profile.pins; i++) {
     const pitch = boardW * .9 / profile.pins, x = -boardW * .45 + i * pitch
-    for (const z of [-d / 2 - .76, -d / 2 + .71]) block(`contact-${i + 1}-${z < -d / 2 ? 'rear' : 'front'}`, pitch * .64, 7, .05, x, 3, z, 0xb9a553)
+    for (const z of [-d / 2 - .76, -d / 2 + .71]) block(`contact-${i + 1}-${z < -d / 2 ? 'rear' : 'front'}`, pitch * .64, 7, .05, x, boardY, z, 0xb9a553)
   }
   if (opened || nwc) {
     for (let i = 0; i < (nwc ? 4 : 2); i++) {
