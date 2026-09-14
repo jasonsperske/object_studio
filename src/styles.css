@@ -393,12 +393,25 @@ a.brand:hover .mark {
 }
 
 .panel-footer {
+  display: flex;
+  flex-direction: column;
   border-top: 1px solid var(--line);
   background: var(--panel-2);
   padding: 10px 14px;
   max-height: 40%;
-  overflow-y: auto;
+  overflow: hidden;
   flex: none;
+}
+
+.info-toggle {
+  align-self: flex-start;
+  flex: none;
+}
+
+.model-info {
+  min-height: 0;
+  overflow-y: auto;
+  margin-top: 10px;
 }
 
 .splitter {

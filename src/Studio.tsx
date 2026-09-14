@@ -123,6 +123,7 @@ export default function Studio({
     shadows: true,
   })
   const [panelWidth, setPanelWidth] = useState(360)
+  const [infoVisible, setInfoVisible] = useState(true)
   const [fitToken, setFitToken] = useState(0)
 
   const viewportRef = useRef<ViewportHandle>(null)
@@ -402,12 +403,23 @@ export default function Studio({
           </div>
 
           <div className="panel-footer">
-            <MetricsPanel
-              metrics={metrics}
-              triangles={stats.triangles}
-              size={stats.size}
-              settings={settings}
-            />
+            <button
+              type="button"
+              className="ghost info-toggle"
+              aria-expanded={infoVisible}
+              aria-controls="model-info"
+              onClick={() => setInfoVisible(visible => !visible)}
+            >
+              {infoVisible ? 'Hide info' : 'Show info'}
+            </button>
+            <div id="model-info" className="model-info" hidden={!infoVisible}>
+              <MetricsPanel
+                metrics={metrics}
+                triangles={stats.triangles}
+                size={stats.size}
+                settings={settings}
+              />
+            </div>
           </div>
         </aside>
 
