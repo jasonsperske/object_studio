@@ -132,3 +132,11 @@ All details are generated procedurally without image or font downloads.
 - **Pressed-steel micro** — `{"tube":9,"phosphor":"white","screenOn":false,"margin":44,"radius":8,"finish":"steel","storage":"cassette","drivePlace":"below","keyboard":"shelf","keyColumns":13,"keyPitch":17.5,"keypad":false,"hood":false,"tilt":0,"vents":true}`
 - **Small classroom micro** — `{"tube":7,"phosphor":"green","screenOn":true,"margin":40,"radius":20,"finish":"cream","storage":"none","keyboard":"shelf","keyColumns":12,"keyPitch":15,"keypad":false,"hood":true,"tilt":6,"parallelPort":false,"expansionPort":true}`
 <!-- /generated: parameters -->
+
+## Runtime media
+
+The screen exposes `mediaSurface: { id: "screen", accept: "image-video", emissive: true }`.
+Assign screenshots, animated GIFs or muted looping movies through the runtime media interface.
+Discover available slots with `listMediaSurfaces(parts)` and bind textures with
+`applySurfaceTextures(parts, bindings)`. UVs follow the model geometry. Assignments never
+enter parameters or object URLs; see the README for ownership and browser support.

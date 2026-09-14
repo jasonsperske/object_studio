@@ -95,3 +95,10 @@ Embedded label glyphs retain their bundled font license in the generator source.
 | `audioFilament` | number | 0–100 %, step 1 | `50` | AUDIO FIL RHEOSTAT: adjusts audio-tube heater voltage. The modeled meter follows this control in Audio mode. |
 | `rfFilament` | number | 0–100 %, step 1 | `50` | RF FIL RHEOSTAT: adjusts RF-tube heater voltage. The modeled meter follows this control in RF mode. |
 <!-- /generated: parameters -->
+
+## Runtime media
+
+The badge or meter face exposes an image-only `mediaSurface` slot.
+Discover available slots with `listMediaSurfaces(parts)` and bind textures with
+`applySurfaceTextures(parts, bindings)`. UVs follow the model geometry. Assignments never
+enter parameters or object URLs; see the README for ownership and browser support.

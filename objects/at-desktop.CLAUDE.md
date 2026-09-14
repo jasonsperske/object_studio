@@ -124,3 +124,11 @@ including the original board dimensions and five expansion slots.
 - **1990 office machine, lid off** — `{"board":"babyAt","slots":8,"cards":4,"bayHeight":"half","bayColumns":2,"floppies":1,"smallFloppy":true,"hardDisk":true,"tapeDrive":true,"finish":"putty","cutaway":true,"keyLock":true,"turboButton":false,"display":"none","keyboard":true}`
 - **1992 grey box** — `{"board":"babyAt","slots":6,"cards":3,"bayHeight":"half","bayColumns":1,"floppies":1,"smallFloppy":true,"hardDisk":true,"tapeDrive":false,"finish":"grey","keyLock":false,"turboButton":true,"display":"colour","monitorSize":14,"screenOn":true,"keyboard":true}`
 <!-- /generated: parameters -->
+
+## Runtime media
+
+The screen exposes `mediaSurface: { id: "screen", accept: "image-video", emissive: true }`.
+Assign screenshots, animated GIFs or muted looping movies through the runtime media interface.
+Discover available slots with `listMediaSurfaces(parts)` and bind textures with
+`applySurfaceTextures(parts, bindings)`. UVs follow the model geometry. Assignments never
+enter parameters or object URLs; see the README for ownership and browser support.

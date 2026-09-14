@@ -396,6 +396,7 @@ export function build(p) {
   const angle = (num(p, 'lidAngle') * Math.PI) / 180
   const lidShell = faceForward(roundedHousing(lidH, lidW, lidThickness, radius)).translate(lidThickness, lidH / 2, 0)
   const lidScreen = plate(rect(screenH, screenW, radius * 0.4), -1.5, 2.5, 0, lidH / 2)
+  surfaceUV(lidScreen, 'z', 'y')
   // The hinge line, lifted clear of the deck so a shut lid has the keys under
   // it rather than through it.
   const hinge = { x: back - HINGE_SETBACK, y: heightAt(back - HINGE_SETBACK) + deckClear }
@@ -421,6 +422,10 @@ export function build(p) {
   add('ports', dark, COLOR.port)
   add('lamps', lamps, COLOR.lamp)
   add('screen', glass, bool(p, 'screenOn') ? 0x9fc3e8 : COLOR.screenOff)
+
+  for (const part of parts) if (part.name === 'screen') {
+    part.mediaSurface = { id: 'screen', label: 'Screen', accept: 'image-video', emissive: true }
+  }
 
   const facing = parts.filter((part) => part.geometry && triangleCount(part.geometry) > 0)
   // Swung round from -X to +Z, which is where the Front view looks from, so the

@@ -468,6 +468,7 @@ export function build(p) {
   //
   // Everything above is part of the panel. Curving comes first, because it is a
   // property of the set; the tilt and the lift belong to the stand.
+  for (const g of glass) if (g) surfaceUV(g, 'z', 'y')
   const panelParts = [...shell, ...front, ...dark, ...glass, ...lamps]
   for (const part of parts) panelParts.push(part.geometry)
 
@@ -563,6 +564,10 @@ export function build(p) {
   add('soundbar', fabric, COLOR.fabric)
   add('screen', glass, bool(p, 'screenOn') ? COLOR.picture : COLOR.screenOff)
   add('lamp', lamps, COLOR.lamp)
+
+  for (const part of parts) if (part.name === 'screen') {
+    part.mediaSurface = { id: 'screen', label: 'Screen', accept: 'image-video', emissive: true }
+  }
 
   const facing = parts.filter((part) => part.geometry && triangleCount(part.geometry) > 0)
   // Swung round from -X to +Z, which is where the Front view looks from, so the

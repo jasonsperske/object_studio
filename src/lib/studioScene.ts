@@ -1,3 +1,4 @@
+import { metalEnvironment } from './metalFinish'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { SceneTheme } from './settings'
@@ -53,6 +54,7 @@ export class StudioScene {
   private orthoHalfHeight = 1000
   private theme: SceneTheme = themeDef('studio').scene
   private frameHandle = 0
+  private metalEnv?: THREE.WebGLRenderTarget
   private needsRender = true
 
   constructor(container: HTMLElement) {
@@ -110,17 +112,23 @@ export class StudioScene {
     this.clearGroup(this.modelGroup)
     this.clearGroup(this.edgeGroup)
 
+    const reflective = parts.some(p => p.normalMap)
+    if (reflective) this.metalEnv ??= metalEnvironment(this.renderer)
+    this.scene.environment = reflective ? this.metalEnv!.texture : null
     for (const part of parts) {
       const material = new THREE.MeshStandardMaterial({
         color: part.color ?? 0xb9bec7,
         map: part.map ?? null,
-        alphaTest: part.map ? 0.01 : 0, transparent: Boolean(part.map), depthWrite: !part.map,
-        roughness: 0.68,
-        metalness: 0.05,
+        normalMap: part.normalMap ?? null,
+        alphaTest: part.map ? 0.01 : 0, transparent: Boolean(part.map && !part.mediaSurface), depthWrite: !part.map || Boolean(part.mediaSurface),
+        roughness: part.roughness ?? 0.68,
+        metalness: part.metalness ?? 0.05,
         wireframe: this.display.wireframe,
       })
       const mesh = new THREE.Mesh(part.geometry, material)
       mesh.name = part.name
+      mesh.userData.mediaSurface = part.mediaSurface
+      if (part.map && part.mediaSurface?.emissive) { material.emissive.set(0xffffff); material.emissiveMap = part.map; material.emissiveIntensity = 0.75 }
       mesh.castShadow = !part.map
       mesh.receiveShadow = true
       this.modelGroup.add(mesh)
@@ -140,6 +148,17 @@ export class StudioScene {
 
     this.updateBounds()
     this.needsRender = true
+  }
+
+  mediaTarget(clientX: number, clientY: number): string | null {
+    const rect = this.renderer.domElement.getBoundingClientRect()
+    const ray = new THREE.Raycaster()
+    ray.setFromCamera(new THREE.Vector2((clientX - rect.left) / rect.width * 2 - 1, -(clientY - rect.top) / rect.height * 2 + 1), this.activeCamera())
+    const hit = ray.intersectObjects(this.modelGroup.children, false)[0]
+    if (!hit) return null
+    if (hit.object.userData.mediaSurface) return hit.object.userData.mediaSurface.id
+    const slots = new Set(this.modelGroup.children.flatMap(m => m.userData.mediaSurface ? [m.userData.mediaSurface.id] : []))
+    return slots.size === 1 ? [...slots][0] : null
   }
 
   private clearGroup(group: THREE.Group) {
@@ -381,7 +400,8 @@ export class StudioScene {
   private animate = () => {
     this.frameHandle = requestAnimationFrame(this.animate)
     const damping = this.controls.update()
-    if (damping || this.needsRender) {
+    const animated = this.modelGroup.children.some(child => { const map = ((child as THREE.Mesh).material as THREE.MeshStandardMaterial).map; return map && ((map as THREE.VideoTexture).isVideoTexture || map.userData.animated) })
+    if (damping || this.needsRender || animated) {
       this.needsRender = false
       this.render()
     }
@@ -395,6 +415,7 @@ export class StudioScene {
     this.clearGroup(this.modelGroup)
     this.disposeGrid()
     this.ground.geometry.dispose()
+    this.metalEnv?.dispose()
     this.renderer.dispose()
     this.renderer.domElement.remove()
   }

@@ -148,3 +148,29 @@ refreshes `dist/agent/` — the prose around the table is yours to write.
 
 `npm run agent-bundle -- --check` fails if any doc has drifted from the code it documents, which
 is what keeps this file and its neighbours worth trusting.
+
+## Cartridge generators and media slots
+
+| id | Cartridge family |
+| --- | --- |
+| `atari-2600-cartridge` | Atari 2600 |
+| `nes-cartridge` | NES; 3/5 screws, grey/gold and NWC 1990 aperture |
+| `famicom-cartridge` | Famicom |
+| `master-system-cartridge` | Sega Master System |
+| `genesis-cartridge` | Genesis / Mega Drive; standard and EA shell |
+| `snes-cartridge` | North American SNES and Super Famicom / PAL |
+| `game-boy-cartridge` | Game Boy and Color shell |
+| `game-gear-cartridge` | Game Gear |
+| `n64-cartridge` | Nintendo 64; regional rear key positions |
+
+All have `presentation: 'cart' | 'boxed' | 'open'`, blank labels, independent runtime image
+slots and approximate millimetre geometry. They are visual props, not manufacturing references.
+Use their individual guides for presets and variants.
+
+Media is an optional Part interface: `mediaSurface: { id, label, accept, emissive? }` and `map`.
+The bundled runtime exports `listMediaSurfaces`, `applySurfaceTextures` and `loadMediaFile`.
+Discover slots on the built parts, supply image textures by slot ID, and reapply after rebuilding.
+Never put image URLs, files or texture data in parameter recipes or share links. Caller-supplied
+textures remain caller-owned. Local File loaders expose `dispose()` for URL/decoder cleanup.
+Screen slots accept images and video; cartridge labels, box faces and equipment badges accept
+images only. The README documents UV orientation, GIF browser support and animated exports.

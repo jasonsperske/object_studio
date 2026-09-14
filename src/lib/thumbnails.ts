@@ -1,3 +1,5 @@
+import { metalEnvironment } from './metalFinish'
+import { disposeLodParts } from './lod'
 import * as THREE from 'three'
 import type { Part } from '../types'
 
@@ -72,15 +74,20 @@ export function renderThumbnails(requests: ThumbnailRequest[], size = 420): Reco
   const group = new THREE.Group()
   scene.add(group)
 
+  let metalEnv: THREE.WebGLRenderTarget | undefined
   for (const request of requests) {
+    const reflective = request.parts.some(p => p.normalMap)
+    if (reflective) metalEnv ??= metalEnvironment(renderer)
+    scene.environment = reflective ? metalEnv!.texture : null
     for (const child of [...group.children]) group.remove(child)
 
     const materials: THREE.Material[] = []
     for (const part of request.parts) {
       const material = new THREE.MeshStandardMaterial({
+        normalMap: part.normalMap ?? null,
         color: part.color ?? 0xb9bec7,
-        roughness: 0.65,
-        metalness: 0.05,
+        roughness: part.roughness ?? 0.65,
+        metalness: part.metalness ?? 0.05,
       })
       materials.push(material)
       group.add(new THREE.Mesh(part.geometry, material))
@@ -96,9 +103,10 @@ export function renderThumbnails(requests: ThumbnailRequest[], size = 420): Reco
     }
 
     for (const material of materials) material.dispose()
-    for (const part of request.parts) part.geometry.dispose()
+    disposeLodParts(request.parts)
   }
 
+  metalEnv?.dispose()
   renderer.dispose()
   renderer.forceContextLoss()
   return output

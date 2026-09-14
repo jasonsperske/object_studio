@@ -294,6 +294,7 @@ export function build(p) {
   const pivot = bodyFront - glassProud
   const onTube = g => {
     onFront(g)
+    surfaceUV(g, 'z', 'y')
     g.translate(-pivot, -screenY, 0).rotateZ(-tilt).translate(pivot, screenY, 0)
     return g
   }
@@ -372,6 +373,14 @@ export function build(p) {
   const screenColor = new THREE.Color(0x303a37)
   if (bool(p, 'screenOn')) screenColor.lerp(new THREE.Color(PHOSPHOR[str(p, 'phosphor')] ?? PHOSPHOR.green), .08)
   add('screen',glass,screenColor.getHex())
+  for (const part of parts) if (part.name === 'nameplate') {
+    surfaceUV(part.geometry, 'z', 'y')
+    part.mediaSurface = { id: 'nameplate', label: 'Nameplate', accept: 'image' }
+  }
+  for (const part of parts) if (part.name === 'screen') {
+    part.mediaSurface = { id: 'screen', label: 'Screen', accept: 'image-video', emissive: true }
+  }
+
   for (const part of parts) part.geometry.rotateY(Math.PI/2)
   return parts
 }

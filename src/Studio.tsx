@@ -1,3 +1,5 @@
+import MediaPanel from './components/MediaPanel'
+import { useMedia } from './hooks/useMedia'
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import LodPanel from './components/LodPanel'
@@ -156,7 +158,8 @@ export default function Studio({
   // Studio owns source buffers; the LOD hook owns only its derived resources.
   useEffect(() => () => disposeLodParts(built.parts), [built.parts])
   const lod = useLod(built.parts, lodOptions)
-  const parts = lod.parts
+  const media = useMedia(lod.parts, notify)
+  const parts = media.parts
   const originalTriangles = useMemo(() => built.parts.reduce((n,p) => n+triangleCount(p.geometry),0), [built.parts])
   const meshTriangles = useMemo(() => lod.meshParts.reduce((n,p) => n+triangleCount(p.geometry),0), [lod.meshParts])
   const viewerError = compileError ?? built.error
@@ -391,10 +394,11 @@ export default function Studio({
                 onSnapshot={savePng}
                 triangles={stats.triangles}
                 meshTriangles={meshTriangles}
-                hasTextures={lod.bakedParts > 0}
+                hasTextures={lod.bakedParts > 0 || Object.keys(media.bindings).length > 0}
                 updating={lod.busy || model !== deferred}
               />
             )}
+            <MediaPanel surfaces={media.surfaces} assigned={Object.keys(media.bindings)} onAssign={media.assign} onClear={media.clear} notify={notify} />
           </div>
 
           <div className="panel-footer">
@@ -444,6 +448,8 @@ export default function Studio({
             <Viewport
               ref={viewportRef}
               parts={parts}
+              onMediaDrop={media.assign}
+              notify={notify}
               sceneTheme={themeDef(settings.theme).scene}
               projection={projection}
               display={display}

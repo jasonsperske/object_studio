@@ -1,3 +1,5 @@
+import { surfaceUV } from './media'
+import { buildCartridge } from './cartridge'
 import * as THREE from 'three'
 import {
   beadSection,
@@ -56,6 +58,8 @@ function formatLength(mm: number): string {
  * namespace.
  */
 const HELPERS = {
+  surfaceUV,
+  buildCartridge,
   box,
   slab,
   post,

@@ -103,3 +103,11 @@ These are procedural geometry helpers; no textures or external assets are requir
 - **2007 consumer widescreen** — `{"panel":15.6,"aspect":"sixteenNine","lidBezel":18,"keyPitch":19.05,"keyRows":6,"pointing":"trackpad","palmrest":62,"bay":"dvd","batteryBulge":false,"pcCard":false,"thickness":34,"finish":"silver","radius":10,"lidAngle":105,"screenOn":true}`
 - **2006 sub-notebook** — `{"panel":10.6,"aspect":"sixteenTen","lidBezel":14,"keyPitch":16,"keyRows":5,"pointing":"trackpad","palmrest":34,"bay":"none","batteryBulge":true,"pcCard":true,"thickness":24,"finish":"magnesium","radius":5,"lidAngle":120}`
 <!-- /generated: parameters -->
+
+## Runtime media
+
+The screen exposes `mediaSurface: { id: "screen", accept: "image-video", emissive: true }`.
+Assign screenshots, animated GIFs or muted looping movies through the runtime media interface.
+Discover available slots with `listMediaSurfaces(parts)` and bind textures with
+`applySurfaceTextures(parts, bindings)`. UVs follow the model geometry. Assignments never
+enter parameters or object URLs; see the README for ownership and browser support.

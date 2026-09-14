@@ -11,6 +11,8 @@ export interface ViewportHandle {
 }
 
 interface Props {
+  onMediaDrop: (id: string, file: File) => void
+  notify: (message: string) => void
   parts: Part[]
   sceneTheme: SceneTheme
   projection: Projection
@@ -24,7 +26,7 @@ interface Props {
  * survives every parameter change; only the geometry is swapped.
  */
 const Viewport = forwardRef<ViewportHandle, Props>(function Viewport(
-  { parts, sceneTheme, projection, display, fitToken },
+  { parts, sceneTheme, projection, display, fitToken, onMediaDrop, notify },
   ref,
 ) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -68,7 +70,15 @@ const Viewport = forwardRef<ViewportHandle, Props>(function Viewport(
     snapshot: () => sceneRef.current?.snapshot() ?? null,
   }))
 
-  return <div className="viewport" ref={containerRef} />
+  return <div className="viewport" ref={containerRef}
+    onDragOver={event => { event.preventDefault(); event.dataTransfer.dropEffect = 'copy' }}
+    onDrop={event => {
+      event.preventDefault()
+      if (event.dataTransfer.files.length !== 1) { notify('Drop one file at a time onto its surface.'); return }
+      const id = sceneRef.current?.mediaTarget(event.clientX, event.clientY)
+      if (id) onMediaDrop(id, event.dataTransfer.files[0])
+      else notify('Choose the label or screen in Images & screens to assign this file.')
+    }} />
 })
 
 export default Viewport
