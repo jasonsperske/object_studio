@@ -28,6 +28,8 @@ import { defaultParams } from './types'
 type Tab = 'properties' | 'detail' | 'presets' | 'export'
 type Pane = 'viewer' | 'source'
 
+const INFO_VISIBLE_KEY = 'object-studio.info-visible.v1'
+
 export interface StudioProps {
   objectId: string
   definition: ObjectDefinition | null
@@ -123,7 +125,20 @@ export default function Studio({
     shadows: true,
   })
   const [panelWidth, setPanelWidth] = useState(360)
-  const [infoVisible, setInfoVisible] = useState(true)
+  const [infoVisible, setInfoVisible] = useState(() => {
+    try {
+      return localStorage.getItem(INFO_VISIBLE_KEY) !== 'false'
+    } catch {
+      return true
+    }
+  })
+  useEffect(() => {
+    try {
+      localStorage.setItem(INFO_VISIBLE_KEY, String(infoVisible))
+    } catch {
+      // Storage restrictions should not prevent toggling the panel.
+    }
+  }, [infoVisible])
   const [fitToken, setFitToken] = useState(0)
 
   const viewportRef = useRef<ViewportHandle>(null)
