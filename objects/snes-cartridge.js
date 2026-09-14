@@ -1,8 +1,8 @@
-// SNES / Super Famicom cartridge. Dimensions are approximate visual references in millimetres.
+// SNES cartridge. Dimensions are approximate visual references in millimetres.
 // +Y up, front +Z. Media slots are returned on parts, never in parameters.
 export const meta = {
-  "name": "SNES / Super Famicom cartridge",
-  "description": "Two regional shells: the stepped North American SNES cartridge and the rounded Super Famicom / PAL cartridge. Select Shell variant to switch geometry; both support boxed and open presentations.",
+  "name": "SNES cartridge",
+  "description": "North American SNES cartridge with a stepped shell, broad side bands, recessed label and lower front pocket; boxed and open presentations.",
   "order": 35
 }
 const profile = {"family": "snes", "width": 135, "height": 87, "depth": 20, "color": 11053477, "pins": 31, "screws": 2, "box": [178, 125, 30]}
@@ -58,23 +58,6 @@ export const params = [
     ]
   },
   {
-    "id": "variant",
-    "label": "Shell variant",
-    "type": "select",
-    "default": "standard",
-    "group": "Shell",
-    "options": [
-      {
-        "value": "standard",
-        "label": "North American SNES"
-      },
-      {
-        "value": "sfc",
-        "label": "Super Famicom / PAL"
-      }
-    ]
-  },
-  {
     "id": "openGap",
     "label": "Shell separation",
     "type": "number",
@@ -98,7 +81,6 @@ export const params = [
 export function build(p) { return buildCartridge(p, profile) }
 export function metrics(p) { return [
   { label: 'Family', value: meta.name },
-  { label: 'Shell', value: str(p, 'variant') === 'sfc' ? 'Super Famicom / PAL — rounded shell' : 'North American SNES — stepped shell', note: 'The supplied stepped-shell photos apply to the North American variant.' },
   { label: 'Scale', value: 'Approximate reference dimensions', note: 'Visual scene asset; internal board components are representative, not a repair or manufacturing drawing.' },
   { label: 'Media', value: 'Images only', note: 'Front, rear and packaging faces have independent runtime texture slots.' },
 ] }
@@ -119,12 +101,6 @@ export const presets = [
     "name": "Opened cartridge",
     "params": {
       "presentation": "open"
-    }
-  },
-  {
-    "name": "Super Famicom / PAL",
-    "params": {
-      "variant": "sfc"
     }
   }
 ]

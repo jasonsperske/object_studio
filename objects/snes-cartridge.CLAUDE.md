@@ -1,4 +1,4 @@
-# SNES / Super Famicom cartridge
+# SNES cartridge
 
 Use `snes-cartridge` for snes / super famicom cartridge props from the cartridge era. Geometry is in millimetres,
 front faces +Z, and the object rests on Y=0. Dimensions and PCB layout are approximate visual
@@ -9,7 +9,7 @@ front/rear trays with a visible board, contacts, chips, screw bosses and removed
 `openGap` controls separation. Optional `battery` adds a representative save cell when open.
 Shell colour is independent of the moulding; colour options also support custom scene props.
 
-Available shell variants: North American SNES, Super Famicom / PAL.
+This generator represents the North American SNES shell.
 
 Every label is blank. `cart-front` and `cart-back` are independent image slots.
 Some families also expose `cart-top`; boxed copies expose `box-front`, `box-back`,
@@ -44,7 +44,6 @@ Textures remain outside the parameter recipe and the object URL. Callers own tex
 | Parameter | Type | Range | Default | Notes |
 | --- | --- | --- | --- | --- |
 | `finish` | select | `original`, `grey`, `gold`, `black`, `yellow` | `"original"` |  |
-| `variant` | select | `standard`, `sfc` | `"standard"` |  |
 
 **Board**
 
@@ -57,14 +56,7 @@ Textures remain outside the parameter recipe and the object URL. Callers own tex
 - **Cartridge only** — `{"presentation":"cart"}`
 - **Boxed copy** — `{"presentation":"boxed"}`
 - **Opened cartridge** — `{"presentation":"open"}`
-- **Super Famicom / PAL** — `{"variant":"sfc"}`
 <!-- /generated: parameters -->
-
-## Reference notes
-
-The [M+ Museum discussion of regional cartridges](https://www.mplus.org.hk/en/magazine/region-locking-really-hertz/)
-documents the physical cartridge/slot differences. This generator separates the stepped North
-American silhouette from the rounded Super Famicom / PAL silhouette and rear key recesses.
 
 ## Reference shell
 
@@ -73,17 +65,4 @@ top, six broad side bands, a recessed upper label, and a separate lower front po
 with a central tab. Two recessed screws sit low on the front wings. The rear has a
 higher caution-label area, lower band and bottom key openings. Open presentations
 include a compact low board, narrower connector tongue and internal support ribs.
-Dimensions and board components remain visual approximations. The Super Famicom
-variant retains its separate rounded shell. All label artwork remains blank.
-
-## Super Famicom reference shell
-
-The supplied Super Famicom photographs guide the sfc variant independently:
-a rounded rectangular perimeter, five short grooves on each upper side, a wide
-rounded label recess, and a lower central panel with a capsule grip recess and
-internal ribs. Two inset front screws sit at the bottom corners. Cart, open and
-boxed presentations share these details. Artwork remains blank and dimensions
-are approximate visual references.
-
-The Super Famicom front shell and lower grip panel have rounded molded edge profiles.
-This variant exposes no cart-top sticker slot; its cartridge labels are front and rear only.
+Dimensions and board components remain visual approximations. All label artwork remains blank.
