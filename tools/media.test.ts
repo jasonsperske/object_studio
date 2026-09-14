@@ -327,3 +327,24 @@ test('Original Game Boy has separated badge and label recesses, fine upper ribs 
     disposeLodParts(parts)
   }
 })
+
+test('Game Gear has a square shell, upper arch, rounded label, lower badge and inset rear screw', () => {
+  const def = load('game-gear-cartridge')
+  for (const presentation of ['cart', 'boxed', 'open']) {
+    const parts = def.build({ ...defaultParams(def), presentation })
+    const part = (name: string) => parts.find(p => p.name === name)!
+    const bounds = (name: string) => { const g = part(name).geometry; g.computeBoundingBox(); return g.boundingBox! }
+    const shell = bounds('front-shell'), label = bounds('cart-front'), arch = bounds('upper-arch'), badge = bounds('cart-badge')
+    assert.ok(Math.abs(shell.max.x - shell.min.x - 67) < 1e-4)
+    assert.ok(Math.abs(shell.max.y - shell.min.y - 68) < 1e-4)
+    assert.ok(arch.max.z > shell.max.z + 2.4)
+    assert.ok(label.max.z < shell.max.z && label.max.x - label.min.x > 55)
+    assert.ok(badge.max.y < label.min.y)
+    assert.equal(parts.filter(p => p.name === 'upper-grip-line').length, 2)
+    assert.ok(!parts.some(p => p.name.startsWith('grip-') || p.mediaSurface?.id === 'cart-back' || p.mediaSurface?.id === 'cart-top'))
+    const rear = bounds('rear-shell'), screw = bounds('screw-1'), center = screw.getCenter(new THREE.Vector3())
+    if (presentation !== 'open') assert.ok(screw.min.z > rear.min.z)
+    assert.equal(new THREE.Raycaster(new THREE.Vector3(center.x, center.y, rear.min.z - 20), new THREE.Vector3(0, 0, 1)).intersectObject(new THREE.Mesh(part('rear-shell').geometry)).length, 0)
+    disposeLodParts(parts)
+  }
+})

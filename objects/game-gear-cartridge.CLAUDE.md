@@ -57,3 +57,14 @@ Textures remain outside the parameter recipe and the object URL. Callers own tex
 - **Boxed copy** — `{"presentation":"boxed"}`
 - **Opened cartridge** — `{"presentation":"open"}`
 <!-- /generated: parameters -->
+
+## Reference shell
+
+The supplied production-cart photos guide the nearly square 67 × 68 mm shell,
+raised upper arch with short side arms, two fine horizontal grip lines, and large
+label recess with rounded upper corners. The lower oval badge stays blank and has
+its own image slot alongside the main front label. The rear has a molded panel and
+one inset screw, with no rear or top sticker. The 8.5 mm body and 2.5 mm raised arch
+produce about 11 mm total depth (plus the fine grip lines). The flash-cart photo informs overall proportions;
+its custom top cutout and transparent finish are not part of the standard shell.
+Boxed and open versions share the revised shell; internal electronics remain representative.

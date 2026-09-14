@@ -2,10 +2,10 @@
 // +Y up, front +Z. Media slots are returned on parts, never in parameters.
 export const meta = {
   "name": "Game Gear cartridge",
-  "description": "Blank-label game gear cartridge with a boxed copy, separate shell halves, PCB and family-specific moulding.",
+  "description": "Game Gear cartridge with a molded upper arch, rounded label recess, twin grip lines, lower badge and inset rear screw; boxed and open variations.",
   "order": 37
 }
-const profile = {"family": "gamegear", "width": 66, "height": 69, "depth": 10, "color": 2697258, "pins": 23, "screws": 1, "box": [95, 135, 22]}
+const profile = {"family": "gamegear", "width": 67, "height": 68, "depth": 8.5, "color": 2697258, "pins": 23, "screws": 1, "box": [95, 135, 22]}
 export const params = [
   {
     "id": "presentation",
