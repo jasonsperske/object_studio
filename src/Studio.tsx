@@ -28,6 +28,8 @@ import { defaultParams } from './types'
 type Tab = 'properties' | 'detail' | 'presets' | 'export'
 type Pane = 'viewer' | 'source'
 
+const INFO_VISIBLE_KEY = 'object-studio.info-visible.v1'
+
 export interface StudioProps {
   objectId: string
   definition: ObjectDefinition | null
@@ -123,6 +125,20 @@ export default function Studio({
     shadows: true,
   })
   const [panelWidth, setPanelWidth] = useState(360)
+  const [infoVisible, setInfoVisible] = useState(() => {
+    try {
+      return localStorage.getItem(INFO_VISIBLE_KEY) !== 'false'
+    } catch {
+      return true
+    }
+  })
+  useEffect(() => {
+    try {
+      localStorage.setItem(INFO_VISIBLE_KEY, String(infoVisible))
+    } catch {
+      // Storage restrictions should not prevent toggling the panel.
+    }
+  }, [infoVisible])
   const [fitToken, setFitToken] = useState(0)
 
   const viewportRef = useRef<ViewportHandle>(null)
@@ -401,13 +417,28 @@ export default function Studio({
             <MediaPanel surfaces={media.surfaces} assigned={Object.keys(media.bindings)} onAssign={media.assign} onClear={media.clear} notify={notify} />
           </div>
 
-          <div className="panel-footer">
-            <MetricsPanel
-              metrics={metrics}
-              triangles={stats.triangles}
-              size={stats.size}
-              settings={settings}
-            />
+          <div className={`panel-footer${infoVisible ? '' : ' collapsed'}`}>
+            <button
+              type="button"
+              className="info-toggle"
+              aria-label={infoVisible ? 'Hide info' : 'Show info'}
+              title={infoVisible ? 'Hide info' : 'Show info'}
+              aria-expanded={infoVisible}
+              aria-controls="model-info"
+              onClick={() => setInfoVisible(visible => !visible)}
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d={infoVisible ? 'M4 6l4 4 4-4' : 'M4 10l4-4 4 4'} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            <div id="model-info" className="model-info" hidden={!infoVisible}>
+              <MetricsPanel
+                metrics={metrics}
+                triangles={stats.triangles}
+                size={stats.size}
+                settings={settings}
+              />
+            </div>
           </div>
         </aside>
 
