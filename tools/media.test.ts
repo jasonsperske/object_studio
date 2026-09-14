@@ -283,7 +283,12 @@ test('SNES reference has broad side bands, lower pocket, front screws and a comp
     const bounds = (name: string) => { const g = part(name).geometry; g.computeBoundingBox(); return g.boundingBox! }
     const front = bounds('front-shell'), label = bounds('cart-front'), pocket = bounds('lower-front-pocket')
     assert.ok(label.min.y > front.min.y + 40)
-    assert.ok(label.max.z < front.max.z)
+    const top = bounds('cart-top')
+    assert.ok(Math.abs(label.max.y - top.min.y) < 1e-4)
+    assert.ok(Math.abs(label.max.z - top.max.z) < 1e-4)
+    assert.equal(label.min.x, top.min.x)
+    assert.equal(label.max.x, top.max.x)
+    assert.notEqual(part('cart-front').mediaSurface?.id, part('cart-top').mediaSurface?.id)
     assert.ok(pocket.max.y < label.min.y)
     assert.ok(pocket.max.z < front.max.z - 1)
     assert.equal(parts.filter(p => p.name.startsWith('front-side-band-')).length, 12)

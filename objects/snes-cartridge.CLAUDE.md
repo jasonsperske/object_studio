@@ -61,8 +61,11 @@ Textures remain outside the parameter recipe and the object URL. Callers own tex
 ## Reference shell
 
 The supplied North American SNES references guide the standard shell: a shallow stepped
-top, six broad side bands, a recessed upper label, and a separate lower front pocket
+top, six broad side bands, an upper label wrapping to the top, and a separate lower front pocket
 with a central tab. Two recessed screws sit low on the front wings. The rear has a
 higher caution-label area, lower band and bottom key openings. Open presentations
 include a compact low board, narrower connector tongue and internal support ribs.
 Dimensions and board components remain visual approximations. All label artwork remains blank.
+
+The front and top label surfaces share an exact edge and matching width, so aligned
+images appear as one wrapped sticker. They retain independent runtime image slots.

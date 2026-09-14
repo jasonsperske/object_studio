@@ -2,7 +2,7 @@
 // +Y up, front +Z. Media slots are returned on parts, never in parameters.
 export const meta = {
   "name": "SNES cartridge",
-  "description": "North American SNES cartridge with a stepped shell, broad side bands, recessed label and lower front pocket; boxed and open presentations.",
+  "description": "North American SNES cartridge with a stepped shell, broad side bands, wrapped front/top label and recessed lower front pocket; boxed and open presentations.",
   "order": 35
 }
 const profile = {"family": "snes", "width": 135, "height": 87, "depth": 20, "color": 11053477, "pins": 31, "screws": 2, "box": [178, 125, 30]}

@@ -129,7 +129,7 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
   famicomLabel.lineTo(lx + lw, ly + lh - lr); famicomLabel.quadraticCurveTo(lx + lw, ly + lh, lx + lw - lr, ly + lh)
   famicomLabel.lineTo(lx + lr, ly + lh); famicomLabel.quadraticCurveTo(lx, ly + lh, lx, ly + lh - lr)
   famicomLabel.lineTo(lx, ly + lr); famicomLabel.quadraticCurveTo(lx, ly, lx + lr, ly)
-  const snesLabel = roundLabel(-w * .31, h * .51, w * .62, h * .49 - 2, 2)
+  const snesLabel = roundLabel(-w * .31, h * .51, w * .62, h * .49 + .03, 2)
   const snesPocket = new THREE.Shape(roundLabel(-w * .31, .5, w * .62, 30, 2).getPoints(16).map(v => new THREE.Vector2(v.x, 31 - v.y)))
   const masterLabel = roundLabel(-w / 2 + 4, h - 19, w - 8, 19.03, 1)
   const arrow = new THREE.Shape()
@@ -143,7 +143,7 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
   }
   if (f === 'famicom') front.holes.push(new THREE.Path(famicomLabel.getPoints(12)))
   if (snes) {
-    front.holes.push(new THREE.Path(snesLabel.getPoints(16)), new THREE.Path(snesPocket.getPoints(16)))
+    front.holes.push(new THREE.Path(snesPocket.getPoints(16)))
     for (const x of [-w * .42, w * .42]) {
       const bore = new THREE.Path(); bore.absarc(x, 6, 2.6, 0, Math.PI * 2, true); front.holes.push(bore)
     }
@@ -268,9 +268,9 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
     const part = add('cart-front', label, 0xe8e5da)
     part.mediaSurface = { id: 'cart-front', label: 'Cartridge front title band', accept: 'image' }
   } else if (snes) {
-    add('label-recess-floor', sheet(snesLabel, 1.1, frontZ - 1.5))
+    // Separate UV slots meet at the fold of one continuous sticker.
     const label = new THREE.ShapeGeometry(snesLabel, 16)
-    surfaceUV(label); label.translate(0, 0, frontZ - .38)
+    surfaceUV(label); label.translate(0, 0, frontZ + .03)
     const part = add('cart-front', label, 0xe8e5da)
     part.mediaSurface = { id: 'cart-front', label: 'Cartridge front label', accept: 'image' }
     add('lower-front-pocket', sheet(snesPocket, .3, frontZ - 1.5))
@@ -292,7 +292,8 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
   }
   // NES caution label sits below the shared center screw, between the lower pair.
   plane('cart-back', 'Cartridge rear label', w * (f === 'nes' ? .68 : f === 'master' ? .64 : snes ? .60 : genesis ? .72 : .6), h * (f === 'nes' ? .24 : f === 'master' ? .32 : snes ? .38 : genesis ? .23 : .3), 0, h * (f === 'nes' ? .40 : f === 'master' ? .50 : snes ? .66 : genesis ? .19 : .57), backZ - .03, [0, Math.PI, 0])
-  if (genesis) plane('cart-top', 'Cartridge top label', w * .7, d * .4, 0, h + .03, frontZ + .03 - d * .2, [-Math.PI / 2, 0, 0])
+  if (snes) plane('cart-top', 'Cartridge top label', w * .62, d * .4, 0, h + .03, frontZ + .03 - d * .2, [-Math.PI / 2, 0, 0])
+  else if (genesis) plane('cart-top', 'Cartridge top label', w * .7, d * .4, 0, h + .03, frontZ + .03 - d * .2, [-Math.PI / 2, 0, 0])
   else if (f === 'master') plane('cart-top', 'Cartridge top label', w - 8, d * .4, 0, h + .03, frontZ + .03 - d * .2, [-Math.PI / 2, 0, 0])
   else if (!['gameboy', 'gamegear', 'n64', 'famicom'].includes(f)) plane('cart-top', 'Cartridge top label', Math.min(labelW, w - 30), d * .4, f === 'nes' ? labelX : 0, h + .05, frontZ - d * .25, [-Math.PI / 2, 0, 0])
   // Distinctive moulded grips and shell latches.
