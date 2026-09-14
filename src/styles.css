@@ -389,29 +389,52 @@ a.brand:hover .mark {
 .panel-body {
   flex: 1;
   overflow-y: auto;
-  padding: 14px;
+  padding: 14px 14px 28px;
 }
 
 .panel-footer {
+  position: relative;
   display: flex;
   flex-direction: column;
   border-top: 1px solid var(--line);
   background: var(--panel-2);
   padding: 10px 14px;
   max-height: 40%;
-  overflow: hidden;
   flex: none;
 }
 
+.panel-footer.collapsed {
+  padding: 0;
+}
+
 .info-toggle {
-  align-self: flex-start;
-  flex: none;
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: 7px 7px 0 0;
+  background: var(--panel-2);
+  color: var(--muted);
+  cursor: pointer;
+  z-index: 1;
+}
+
+.info-toggle:hover {
+  color: var(--text);
+  background: var(--accent-soft);
 }
 
 .model-info {
   min-height: 0;
   overflow-y: auto;
-  margin-top: 10px;
 }
 
 .splitter {
