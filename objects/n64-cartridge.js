@@ -2,7 +2,7 @@
 // +Y up, front +Z. Media slots are returned on parts, never in parameters.
 export const meta = {
   "name": "Nintendo 64 cartridge",
-  "description": "Blank-label nintendo 64 cartridge with a boxed copy, separate shell halves, PCB and family-specific moulding.",
+  "description": "Nintendo 64 cartridge with a bowed top, rounded side cheeks, curved label recess and lower corner details; boxed and open variations with regional key slots.",
   "order": 38
 }
 const profile = {"family": "n64", "width": 116, "height": 76, "depth": 19, "color": 11053477, "pins": 25, "screws": 2, "box": [178, 125, 30]}

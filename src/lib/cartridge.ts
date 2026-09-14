@@ -13,6 +13,7 @@ export interface CartridgeProfile {
 /** Shared manufacturing primitives; each family supplies its own shell silhouette. */
 export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
   const f = profile.family, variant = String(p.variant ?? 'standard')
+  const n64 = f === 'n64'
   const gamegear = f === 'gamegear'
   const gameboy = f === 'gameboy' && variant === 'standard'
   const snes = f === 'snes'
@@ -89,8 +90,8 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
       s.lineTo(w / 2 - 1.5, h); s.quadraticCurveTo(w / 2, h, w / 2, h - 1.5)
       s.lineTo(w / 2, 1); s.quadraticCurveTo(w / 2, 0, w / 2 - 1, 0); s.closePath(); return s
     } else if (f === 'n64') {
-      s.lineTo(-w / 2, h - 17); s.quadraticCurveTo(-w / 2, h - 3, -w / 2 + 17, h - 3)
-      s.quadraticCurveTo(0, h + 3, w / 2 - 17, h - 3); s.quadraticCurveTo(w / 2, h - 3, w / 2, h - 17)
+      s.lineTo(-w / 2, h - 13); s.quadraticCurveTo(-w / 2, h - 11, -w / 2 + 3, h - 10)
+      s.quadraticCurveTo(0, h + 10, w / 2 - 3, h - 10); s.quadraticCurveTo(w / 2, h - 11, w / 2, h - 13)
     } else if (f === 'gameboy' && variant === 'color') {
       s.lineTo(-w / 2, h - 8); s.quadraticCurveTo(0, h + 6, w / 2, h - 8)
     } else if (f === 'gameboy') {
@@ -136,6 +137,11 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
   famicomLabel.lineTo(lx + lw, ly + lh - lr); famicomLabel.quadraticCurveTo(lx + lw, ly + lh, lx + lw - lr, ly + lh)
   famicomLabel.lineTo(lx + lr, ly + lh); famicomLabel.quadraticCurveTo(lx, ly + lh, lx, ly + lh - lr)
   famicomLabel.lineTo(lx, ly + lr); famicomLabel.quadraticCurveTo(lx, ly, lx + lr, ly)
+  const n64Label = new THREE.Shape()
+  n64Label.moveTo(-25, 6); n64Label.lineTo(25, 6); n64Label.quadraticCurveTo(29, 6, 29, 10)
+  n64Label.lineTo(29, h - 12); n64Label.quadraticCurveTo(29, h - 8, 25, h - 7)
+  n64Label.quadraticCurveTo(0, h - 3, -25, h - 7)
+  n64Label.quadraticCurveTo(-29, h - 8, -29, h - 12); n64Label.lineTo(-29, 10); n64Label.quadraticCurveTo(-29, 6, -25, 6); n64Label.closePath()
   const ggLabel = new THREE.Shape()
   ggLabel.moveTo(-27, 15); ggLabel.lineTo(27, 15); ggLabel.quadraticCurveTo(28, 15, 28, 16)
   ggLabel.lineTo(28, 49); ggLabel.quadraticCurveTo(28, 56, 21, 56)
@@ -169,11 +175,13 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
       const bore = new THREE.Path(); bore.absarc(x, 6, 2.6, 0, Math.PI * 2, true); front.holes.push(bore)
     }
   }
+  if (n64) front.holes.push(new THREE.Path(n64Label.getPoints(20)))
   if (gamegear) front.holes.push(...[ggLabel, ggBadge].map(shape => new THREE.Path(shape.getPoints(16))))
   if (gameboy) front.holes.push(...[gbLabel, gbBadge, gbArrow].map(shape => new THREE.Path(shape.getPoints(16))))
   if (nwc) hole(front, w * .22, h * .32, 16, 23)
   add('front-shell', sheet(front, 1.5, frontZ - 1.5))
   const rear = outline(true)
+  if (n64) for (const x of [-w * .30, w * .30]) { const bore = new THREE.Path(); bore.absarc(x, h * .82, 3.1, 0, Math.PI * 2, true); rear.holes.push(bore) }
   if (gamegear) { const bore = new THREE.Path(); bore.absarc(0, h * .32, 3.1, 0, Math.PI * 2, true); rear.holes.push(bore) }
   if (gameboy) { const bore = new THREE.Path(); bore.absarc(0, 16, 3.1, 0, Math.PI * 2, true); rear.holes.push(bore) }
 
@@ -221,12 +229,12 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
     const walls = new THREE.BufferGeometry(); walls.setAttribute('position', new THREE.Float32BufferAttribute(coords, 3)); walls.setAttribute('normal', new THREE.Float32BufferAttribute(ns, 3)); walls.setAttribute('uv', new THREE.Float32BufferAttribute(tex, 2)); g.dispose()
     add(`${name}-rim`, walls)
   }
-  if (genesis) for (const part of parts.filter(part => ['front-shell', 'front-rim'].includes(part.name))) {
+  if (genesis || n64) for (const part of parts.filter(part => ['front-shell', 'front-rim'].includes(part.name))) {
     // Slice the original tray into narrow cross sections before rolling its
     // cheeks. Analytic normals keep the curve smooth without softening seams.
     const source = part.geometry, pos = source.getAttribute('position'), normals = source.getAttribute('normal')
     const vertices: number[] = [], ns: number[] = []
-    const radius = w * .15, start = w * .35, depth = d / 2 - .2
+    const radius = n64 ? 9 : w * .15, start = w / 2 - radius, depth = n64 ? 6 : d / 2 - .2
     const emit = (v: THREE.Vector3, normal: THREE.Vector3) => {
       const x = v.x - ox, t = Math.min(1, Math.max(0, (Math.abs(x) - start) / radius))
       const angle = t * Math.PI / 2, k = Math.max(0, Math.min(1, (v.z - frontZ + d / 2) / (d / 2)))
@@ -293,6 +301,10 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
     surfaceUV(label); label.translate(0, 0, frontZ + .03)
     const part = add('cart-front', label, 0xe8e5da)
     part.mediaSurface = { id: 'cart-front', label: 'Cartridge front title band', accept: 'image' }
+  } else if (n64) {
+    add('label-recess-floor', sheet(n64Label, 1.1, frontZ - 1.5))
+    const label = new THREE.ShapeGeometry(n64Label, 20); surfaceUV(label); label.translate(0, 0, frontZ - .38)
+    add('cart-front', label, 0xe8e5da).mediaSurface = { id: 'cart-front', label: 'Cartridge front label', accept: 'image' }
   } else if (gamegear) {
     add('label-recess-floor', sheet(ggLabel, 1.1, frontZ - 1.5))
     const label = new THREE.ShapeGeometry(ggLabel, 16); surfaceUV(label); label.translate(0, 0, frontZ - .38)
@@ -361,8 +373,16 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
     add('insertion-arrow', sheet(arrow, 1.2, frontZ - 1.5))
     if (String(p.screws) !== '5') for (const x of [-w * .44, w * .36]) block('top-latch', 7, 3, 3, x - 3.5, h - 5, frontZ - d / 2)
   }
-  if (!snes && !gameboy && !gamegear && ['snes', 'n64', 'gamegear', 'gameboy'].includes(f)) {
+  if (!snes && !n64 && !gameboy && !gamegear && ['snes', 'n64', 'gamegear', 'gameboy'].includes(f)) {
     for (let side = -1; side <= 1; side += 2) for (let i = 0; i < (f === 'gameboy' ? 6 : 4); i++) block(`grip-${side}-${i}`, w * .075, 1.2, .7, side < 0 ? -w / 2 + 2 : w / 2 - w * .075 - 2, h * .55 + i * 3, frontZ)
+  }
+  if (n64) {
+    for (const side of [-1, 1]) {
+      block('front-panel-seam', .3, h - 4.5, .12, side * 35, 0, frontZ, new THREE.Color(color).multiplyScalar(.65).getHex())
+      block('lower-corner-seam', .4, 20, .15, side * 49, 0, frontZ)
+      block('lower-corner-shoulder', 2, .5, .15, side < 0 ? -51 : 49, 20, frontZ - .15)
+      if (opened) block('board-support', 2, 26, 3, side * 45, 7, backZ + 1.5)
+    }
   }
   if (gameboy) {
     for (const side of [-1, 1]) for (let i = 0; i < 6; i++) {
@@ -421,6 +441,7 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
   const locations = f === 'nes'
     ? [[-w * .45, h * .26], [w * .45, h * .26], [0, h * .58],
       ...(count === 5 ? [[-w * .43, h * .94], [w * .43, h * .94]] : [])]
+    : n64 ? [[-w * .30, h * .82], [w * .30, h * .82]]
     : gamegear ? [[0, h * .32]]
     : gameboy ? [[0, 16]]
     : snes ? [[-w * .42, 6], [w * .42, 6]]
@@ -428,23 +449,23 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
     : f === 'master' ? [[-w * .39, h * .56], [w * .39, h * .56]]
     : count === 1 ? [[0, h * .3]] : count === 2 ? [[-w * .34, h * .25], [w * .34, h * .25]] : [[-w * .39, h * .2], [w * .39, h * .2], [0, h * .77], ...(count === 5 ? [[-w * .39, h * .91], [w * .39, h * .91]] : [])]
   locations.forEach(([x, y], i) => {
-    const screwZ = snes ? frontZ - .65 : backZ + (opened ? -10 : (f === 'master' || genesis || gameboy || gamegear) ? .65 : -.8)
+    const screwZ = snes ? frontZ - .65 : backZ + (opened ? -10 : (f === 'master' || genesis || n64 || gameboy || gamegear) ? .65 : -.8)
     const screw = new THREE.CylinderGeometry(2, 2, 1.1, 16).rotateX(Math.PI / 2).translate(x, y, screwZ)
     add(`screw-${i + 1}`, screw, 0x777b7d)
     block(`screw-slot-${i + 1}`, 2.5, .55, .1, x - 1.25, y - .275, screwZ + (snes ? .56 : -.6), 0x242628)
-    if (f === 'master' || genesis || gameboy || gamegear) {
+    if (f === 'master' || genesis || n64 || gameboy || gamegear) {
       const well = new THREE.CylinderGeometry(3.1, 3.1, 1.5, 24, 1, true).rotateX(Math.PI / 2).translate(x, y, backZ + .75)
       // These are the inside walls of a bore, so wind and shade inward.
       const index = well.index!, normal = well.getAttribute('normal')
       for (let j = 0; j < index.count; j += 3) { const b = index.getX(j + 1); index.setX(j + 1, index.getX(j + 2)); index.setX(j + 2, b) }
       for (let j = 0; j < normal.count; j++) normal.setXYZ(j, -normal.getX(j), -normal.getY(j), -normal.getZ(j))
       add(`screw-well-${i + 1}`, well)
-      if (genesis || gameboy || gamegear) add(`screw-seat-${i + 1}`, new THREE.RingGeometry(1.3, 3.1, 24).rotateY(Math.PI).translate(x, y, backZ + 1.45))
+      if (genesis || n64 || gameboy || gamegear) add(`screw-seat-${i + 1}`, new THREE.RingGeometry(1.3, 3.1, 24).rotateY(Math.PI).translate(x, y, backZ + 1.45))
     }
     if (opened) add(`screw-boss-${i + 1}`, new THREE.CylinderGeometry(3.5, 3.5, d * .28, 16).rotateX(Math.PI / 2).translate(x, y, backZ + 1.5 + d * .14))
   })
-  const boardW = w * .77, boardH = f === 'nes' ? h * (nwc ? .79 : .47) : snes ? 26 : h * .73
-  const boardY = f === 'master' || genesis ? 8 : 3
+  const boardW = w * .77, boardH = f === 'nes' ? h * (nwc ? .79 : .47) : snes || n64 ? 26 : h * .73
+  const boardY = f === 'master' || genesis ? 8 : n64 ? 2 : 3
   block('circuit-board', boardW, boardH, 1.4, -boardW / 2, snes ? 11 : boardY, -d / 2 - .7, 0x285d42)
   if (snes) block('connector-tongue', w * .44, 10, 1.4, -w * .22, 1, -d / 2 - .7, 0x285d42)
   for (let i = 0; i < profile.pins; i++) {

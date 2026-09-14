@@ -348,3 +348,32 @@ test('Game Gear has a square shell, upper arch, rounded label, lower badge and i
     disposeLodParts(parts)
   }
 })
+
+test('N64 has a bowed crown, tall curved label, rolled sides and compact board', () => {
+  const def = load('n64-cartridge')
+  for (const presentation of ['cart', 'boxed', 'open']) {
+    const parts = def.build({ ...defaultParams(def), presentation })
+    const part = (name: string) => parts.find(p => p.name === name)!
+    const bounds = (name: string) => { const g = part(name).geometry; g.computeBoundingBox(); return g.boundingBox! }
+    const shell = bounds('front-shell'), label = bounds('cart-front'), board = bounds('circuit-board')
+    assert.ok(label.max.y - label.min.y > 64)
+    assert.ok(label.max.z < shell.max.z)
+    assert.ok(board.max.y - board.min.y < 26.01)
+    assert.ok(!parts.some(p => p.name.startsWith('grip-') || p.mediaSurface?.id === 'cart-top'))
+    const pos = part('front-shell').geometry.getAttribute('position'), center = shell.getCenter(new THREE.Vector3())
+    let sideTop = 0, rolled = false
+    for (let i = 0; i < pos.count; i++) if (Math.abs(pos.getX(i) - center.x) > 56) {
+      sideTop = Math.max(sideTop, pos.getY(i))
+      if (pos.getZ(i) < shell.max.z - 5) rolled = true
+    }
+    assert.ok(shell.max.y - sideTop > 8)
+    assert.ok(rolled)
+    const rear = bounds('rear-shell')
+    for (let i = 1; i <= 2; i++) {
+      const screw = bounds('screw-' + i), c = screw.getCenter(new THREE.Vector3())
+      assert.ok(c.y > rear.min.y + 60)
+      assert.equal(new THREE.Raycaster(new THREE.Vector3(c.x, c.y, rear.min.z - 20), new THREE.Vector3(0, 0, 1)).intersectObject(new THREE.Mesh(part('rear-shell').geometry)).length, 0)
+    }
+    disposeLodParts(parts)
+  }
+})

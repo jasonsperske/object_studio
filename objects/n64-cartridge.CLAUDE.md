@@ -59,3 +59,12 @@ Textures remain outside the parameter recipe and the object URL. Callers own tex
 - **Opened cartridge** — `{"presentation":"open"}`
 - **Japanese rear keys** — `{"variant":"japan"}`
 <!-- /generated: parameters -->
+
+## Reference shell
+
+The supplied shell and interior references guide the wide bowed crown, smooth rolled
+side cheeks, tall recessed label with a curved upper edge, vertical panel seams and
+lower corner shoulders. The open model uses a compact low board, side supports and
+upper rear screw bosses. Regional rear key slots remain selectable. Front and rear
+labels stay blank with independent image slots; there is no top sticker. Dimensions
+and electronic components are visual approximations.
