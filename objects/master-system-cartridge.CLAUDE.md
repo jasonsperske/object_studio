@@ -4,7 +4,7 @@ Use `master-system-cartridge` for master system cartridge props from the cartrid
 front faces +Z, and the object rests on Y=0. Dimensions and PCB layout are approximate visual
 references; these are scene assets, not replacement shells or circuit-board specifications.
 
-`presentation` selects a cartridge, a cartridge alongside its closed blank box, or separated
+`presentation` selects a cartridge, its box alone, a cartridge alongside its closed blank box, or separated
 front/rear trays with a visible board, contacts, chips, screw bosses and removed screws.
 `openGap` controls separation. Optional `battery` adds a representative save cell when open.
 Shell colour is independent of the moulding; colour options also support custom scene props.
@@ -36,14 +36,14 @@ Textures remain outside the parameter recipe and the object URL. Callers own tex
 
 | Parameter | Type | Range | Default | Notes |
 | --- | --- | --- | --- | --- |
-| `presentation` | select | `cart`, `boxed`, `open` | `"cart"` |  |
+| `presentation` | select | `cart`, `box`, `boxed`, `open` | `"cart"` |  |
 | `openGap` | number | 20–90 mm, step 1 | `35` | Only used in some combinations. |
 
 **Shell**
 
 | Parameter | Type | Range | Default | Notes |
 | --- | --- | --- | --- | --- |
-| `finish` | select | `original`, `grey`, `gold`, `black`, `yellow` | `"original"` |  |
+| `finish` | select | `original`, `grey`, `gold`, `black`, `yellow` | `"original"` | Only used in some combinations. |
 
 **Board**
 
@@ -53,6 +53,7 @@ Textures remain outside the parameter recipe and the object URL. Callers own tex
 
 **Presets** — worked examples; each lists only what it changes.
 
+- **Box only** — `{"presentation":"box"}`
 - **Cartridge only** — `{"presentation":"cart"}`
 - **Boxed copy** — `{"presentation":"boxed"}`
 - **Opened cartridge** — `{"presentation":"open"}`
@@ -68,3 +69,6 @@ notches. The edge connector sits 8 mm inside the open bottom mouth. Dimensions a
 visual references. All label surfaces stay blank: `cart-front` is the upper title band,
 `cart-top` is its independently textured top continuation (matching width and a shared edge with the front, so aligned images appear as one wrapped sticker), and `cart-back` is the rear label.
 Boxed and open presentations use the same revised shell.
+
+Box-only presentation (`presentation: "box"`) returns only centered packaging geometry,
+with six independent image-only box surfaces and no cartridge parts.

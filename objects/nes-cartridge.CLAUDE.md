@@ -4,7 +4,7 @@ Use `nes-cartridge` for nes cartridge props from the cartridge era. Geometry is 
 front faces +Z, and the object rests on Y=0. Dimensions and PCB layout are approximate visual
 references; these are scene assets, not replacement shells or circuit-board specifications.
 
-`presentation` selects a cartridge, a cartridge alongside its closed blank box, or separated
+`presentation` selects a cartridge, its box alone, a cartridge alongside its closed blank box, or separated
 front/rear trays with a visible board, contacts, chips, screw bosses and removed screws.
 `openGap` controls separation. Optional `battery` adds a representative save cell when open.
 Shell colour is independent of the moulding; colour options also support custom scene props.
@@ -36,16 +36,16 @@ Textures remain outside the parameter recipe and the object URL. Callers own tex
 
 | Parameter | Type | Range | Default | Notes |
 | --- | --- | --- | --- | --- |
-| `presentation` | select | `cart`, `boxed`, `open` | `"cart"` |  |
+| `presentation` | select | `cart`, `box`, `boxed`, `open` | `"cart"` |  |
 | `openGap` | number | 20–90 mm, step 1 | `35` | Only used in some combinations. |
 
 **Shell**
 
 | Parameter | Type | Range | Default | Notes |
 | --- | --- | --- | --- | --- |
-| `finish` | select | `original`, `grey`, `gold`, `black`, `yellow` | `"original"` |  |
-| `variant` | select | `standard`, `nwc1990` | `"standard"` |  |
-| `screws` | select | `3`, `5` | `"3"` |  |
+| `finish` | select | `original`, `grey`, `gold`, `black`, `yellow` | `"original"` | Only used in some combinations. |
+| `variant` | select | `standard`, `nwc1990` | `"standard"` | Only used in some combinations. |
+| `screws` | select | `3`, `5` | `"3"` | Only used in some combinations. |
 
 **Board**
 
@@ -55,6 +55,7 @@ Textures remain outside the parameter recipe and the object URL. Callers own tex
 
 **Presets** — worked examples; each lists only what it changes.
 
+- **Box only** — `{"presentation":"box"}`
 - **Cartridge only** — `{"presentation":"cart"}`
 - **Boxed copy** — `{"presentation":"boxed"}`
 - **Opened cartridge** — `{"presentation":"open"}`
@@ -97,3 +98,6 @@ Gold NES shells use a glossy metallic material and deterministic fine moulded gr
 studio reflections; consuming projects should provide environment lighting and pass
 `normalMap`, `metalness` and `roughness` to their material. glTF/GLB carries the material and
 normal texture. The grain is generated from a fixed seed, with no external asset or URL data.
+
+Box-only presentation (`presentation: "box"`) returns only centered packaging geometry,
+with six independent image-only box surfaces and no cartridge parts.

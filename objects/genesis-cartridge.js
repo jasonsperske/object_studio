@@ -19,6 +19,10 @@ export const params = [
         "label": "Cartridge only"
       },
       {
+        "value": "box",
+        "label": "Box only"
+      },
+      {
         "value": "boxed",
         "label": "Cartridge with box"
       },
@@ -30,6 +34,7 @@ export const params = [
   },
   {
     "id": "finish",
+    "visibleWhen": (p) => str(p, 'presentation') !== 'box',
     "label": "Shell colour",
     "type": "select",
     "default": "original",
@@ -59,6 +64,7 @@ export const params = [
   },
   {
     "id": "variant",
+    "visibleWhen": (p) => str(p, 'presentation') !== 'box',
     "label": "Shell variant",
     "type": "select",
     "default": "standard",
@@ -102,6 +108,7 @@ export function metrics(p) { return [
   { label: 'Media', value: 'Images only', note: 'Front, rear and packaging faces have independent runtime texture slots.' },
 ] }
 export const presets = [
+  { "name": "Box only", "params": { "presentation": "box" } },
   {
     "name": "Cartridge only",
     "params": {

@@ -12,13 +12,20 @@ const ids = readdirSync(new URL('../objects/', import.meta.url)).filter(n => n.e
 for (const id of ids) test(`${id}: all presentations and shell variants produce finite, grounded geometry and blank UV slots`, () => {
   const def = load(id), defaults = defaultParams(def)
   const variants = def.params.find(p => p.id === 'variant')
-  for (const variant of variants?.type === 'select' ? variants.options.map(o => o.value) : ['standard']) for (const presentation of ['cart', 'boxed', 'open']) {
+  for (const variant of variants?.type === 'select' ? variants.options.map(o => o.value) : ['standard']) for (const presentation of ['cart', 'box', 'boxed', 'open']) {
     const parts = def.build({ ...defaults, variant, presentation })
     const slots = listMediaSurfaces(parts)
     assert.ok(slots.length >= 2)
     assert.equal(new Set(slots.map(s => s.id)).size, slots.length)
     assert.ok(slots.every(s => s.accept === 'image'))
-    assert.equal(slots.some(s => s.id === 'box-front'), presentation === 'boxed')
+    assert.equal(slots.some(s => s.id === 'box-front'), presentation === 'boxed' || presentation === 'box')
+    if (presentation === 'box') {
+      assert.ok(parts.every(p => p.name.startsWith('box-') || p.name === 'case-spine-hinge'))
+      assert.equal(slots.length, 6)
+      const body = parts.find(p => p.name === 'box-body')!.geometry
+      body.computeBoundingBox()
+      assert.ok(Math.abs(body.boundingBox!.getCenter(new THREE.Vector3()).x) < 1e-4)
+    }
     for (const p of parts) {
       assert.ok(!p.map, `${p.name} should be blank`)
       const pos = p.geometry.getAttribute('position')

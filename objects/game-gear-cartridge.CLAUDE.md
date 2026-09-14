@@ -4,7 +4,7 @@ Use `game-gear-cartridge` for game gear cartridge props from the cartridge era. 
 front faces +Z, and the object rests on Y=0. Dimensions and PCB layout are approximate visual
 references; these are scene assets, not replacement shells or circuit-board specifications.
 
-`presentation` selects a cartridge, a cartridge alongside its closed blank box, or separated
+`presentation` selects a cartridge, its box alone, a cartridge alongside its closed blank box, or separated
 front/rear trays with a visible board, contacts, chips, screw bosses and removed screws.
 `openGap` controls separation. Optional `battery` adds a representative save cell when open.
 Shell colour is independent of the moulding; colour options also support custom scene props.
@@ -36,14 +36,14 @@ Textures remain outside the parameter recipe and the object URL. Callers own tex
 
 | Parameter | Type | Range | Default | Notes |
 | --- | --- | --- | --- | --- |
-| `presentation` | select | `cart`, `boxed`, `open` | `"cart"` |  |
+| `presentation` | select | `cart`, `box`, `boxed`, `open` | `"cart"` |  |
 | `openGap` | number | 20–90 mm, step 1 | `35` | Only used in some combinations. |
 
 **Shell**
 
 | Parameter | Type | Range | Default | Notes |
 | --- | --- | --- | --- | --- |
-| `finish` | select | `original`, `grey`, `gold`, `black`, `yellow` | `"original"` |  |
+| `finish` | select | `original`, `grey`, `gold`, `black`, `yellow` | `"original"` | Only used in some combinations. |
 
 **Board**
 
@@ -53,6 +53,7 @@ Textures remain outside the parameter recipe and the object URL. Callers own tex
 
 **Presets** — worked examples; each lists only what it changes.
 
+- **Box only** — `{"presentation":"box"}`
 - **Cartridge only** — `{"presentation":"cart"}`
 - **Boxed copy** — `{"presentation":"boxed"}`
 - **Opened cartridge** — `{"presentation":"open"}`
@@ -68,3 +69,6 @@ one inset screw, with no rear or top sticker. The 8.5 mm body and 2.5 mm raised 
 produce about 11 mm total depth (plus the fine grip lines). The flash-cart photo informs overall proportions;
 its custom top cutout and transparent finish are not part of the standard shell.
 Boxed and open versions share the revised shell; internal electronics remain representative.
+
+Box-only presentation (`presentation: "box"`) returns only centered packaging geometry,
+with six independent image-only box surfaces and no cartridge parts.

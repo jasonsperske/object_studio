@@ -29,6 +29,28 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
   const frontZ = gap, backZ = -d - gap
   const add = (name: string, geometry: THREE.BufferGeometry, tint = color) => { geometry.translate(ox, 0, 0); parts.push({ name, geometry, color: tint }); return parts[parts.length - 1] }
   const block = (name: string, width: number, height: number, depth: number, x: number, y: number, z: number, tint = color) => add(name, box(width, height, depth, x, y, z), tint)
+  const plane = (id: string, label: string, width: number, height: number, x: number, y: number, z: number, rotation: [number, number, number] = [0, 0, 0]) => {
+    const g = new THREE.PlaneGeometry(width, height); g.rotateX(rotation[0]); g.rotateY(rotation[1]); g.rotateZ(rotation[2]); g.translate(x, y, z)
+    const part = add(id, g, 0xe8e5da); part.mediaSurface = { id, label, accept: 'image' }
+  }
+  const packaging = (bx: number) => {
+    const [bw, bh, bd] = profile.box
+    const plastic = ['genesis', 'master'].includes(f)
+    block('box-body', bw, bh, bd, bx - bw / 2, 0, -bd, plastic ? 0x24262a : 0xd9d5c8)
+    if (plastic) block('case-spine-hinge', 3, bh - 4, bd + 1, bx - bw / 2 - 1, 2, -bd - .5, 0x16181a)
+    else for (const y of [1, bh - 2]) block('box-fold', bw - 2, .45, .2, bx - bw / 2 + 1, y, .01, 0xb1ac9f)
+    plane('box-front', 'Box front', bw - 2, bh - 2, bx, bh / 2, .25)
+    plane('box-back', 'Box back', bw - 2, bh - 2, bx, bh / 2, -bd - .05, [0, Math.PI, 0])
+    plane('box-spine', 'Box left spine', bd - 2, bh - 2, bx - bw / 2 - .05, bh / 2, -bd / 2, [0, -Math.PI / 2, 0])
+    plane('box-right', 'Box right spine', bd - 2, bh - 2, bx + bw / 2 + .05, bh / 2, -bd / 2, [0, Math.PI / 2, 0])
+    plane('box-top', 'Box top flap', bw - 2, bd - 2, bx, bh + .05, -bd / 2, [-Math.PI / 2, 0, 0])
+    plane('box-bottom', 'Box bottom flap', bw - 2, bd - 2, bx, -.05, -bd / 2, [Math.PI / 2, 0, 0])
+  }
+  if (p.presentation === 'box') {
+    packaging(0)
+    for (const part of parts) part.geometry.translate(0, .05, 0)
+    return parts
+  }
   const outline = (rear = false) => {
     const s = new THREE.Shape()
     // Clockwise round the face from the connector corner.
@@ -278,10 +300,6 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
     geometry.setAttribute('normal', new THREE.Float32BufferAttribute(ns, 3))
     part.geometry = geometry; source.dispose()
   }
-  const plane = (id: string, label: string, width: number, height: number, x: number, y: number, z: number, rotation: [number, number, number] = [0, 0, 0]) => {
-    const g = new THREE.PlaneGeometry(width, height); g.rotateX(rotation[0]); g.rotateY(rotation[1]); g.rotateZ(rotation[2]); g.translate(x, y, z)
-    const part = add(id, g, 0xe8e5da); part.mediaSurface = { id, label, accept: 'image' }
-  }
   let labelW = w * .73, labelH = h * .53, labelY = h * .55, labelX = 0
   if (f === 'nes') { labelW = 57.2; labelH = 91.1; labelY = 87.35; labelX = 16 }
   if (nwc) { labelH = 49.9; labelY = 107.95 }
@@ -485,19 +503,7 @@ export function buildCartridge(p: Params, profile: CartridgeProfile): Part[] {
     block('dip-switch-housing', 14, 21, d / 2 - 1, w * .22 + 1, h * .32 + 1, -d / 2 + .7, 0x254e8a)
     for (let i = 0; i < 4; i++) block(`dip-switch-${i + 1}`, 7, 2, 1.4, w * .22 + (i === 2 ? 5 : 2), h * .32 + 3 + i * 4.2, -.2, 0xe5e3d9)
   }
-  if (boxed) {
-    const [bw, bh, bd] = profile.box, bx = w / 2 + 16 + bw / 2
-    const plastic = ['genesis', 'master'].includes(f)
-    block('box-body', bw, bh, bd, bx - bw / 2, 0, -bd, plastic ? 0x24262a : 0xd9d5c8)
-    if (plastic) block('case-spine-hinge', 3, bh - 4, bd + 1, bx - bw / 2 - 1, 2, -bd - .5, 0x16181a)
-    else for (const y of [1, bh - 2]) block('box-fold', bw - 2, .45, .2, bx - bw / 2 + 1, y, .01, 0xb1ac9f)
-    plane('box-front', 'Box front', bw - 2, bh - 2, bx, bh / 2, .25)
-    plane('box-back', 'Box back', bw - 2, bh - 2, bx, bh / 2, -bd - .05, [0, Math.PI, 0])
-    plane('box-spine', 'Box left spine', bd - 2, bh - 2, bx - bw / 2 - .05, bh / 2, -bd / 2, [0, -Math.PI / 2, 0])
-    plane('box-right', 'Box right spine', bd - 2, bh - 2, bx + bw / 2 + .05, bh / 2, -bd / 2, [0, Math.PI / 2, 0])
-    plane('box-top', 'Box top flap', bw - 2, bd - 2, bx, bh + .05, -bd / 2, [-Math.PI / 2, 0, 0])
-    plane('box-bottom', 'Box bottom flap', bw - 2, bd - 2, bx, -.05, -bd / 2, [Math.PI / 2, 0, 0])
-  }
+  if (boxed) packaging(w / 2 + 16 + profile.box[0] / 2)
   // Floor convention also includes the underside label offset.
   if (boxed) for (const part of parts) part.geometry.translate(0, .05, 0)
   let grain: THREE.Texture | undefined
