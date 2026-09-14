@@ -306,3 +306,24 @@ test('SNES reference has broad side bands, lower pocket, front screws and a comp
     disposeLodParts(parts)
   }
 })
+
+test('Original Game Boy has separated badge and label recesses, fine upper ribs and an inset rear screw', () => {
+  const def = load('game-boy-cartridge')
+  for (const presentation of ['cart', 'boxed', 'open']) {
+    const parts = def.build({ ...defaultParams(def), presentation })
+    const part = (name: string) => parts.find(p => p.name === name)!
+    const bounds = (name: string) => { const g = part(name).geometry; g.computeBoundingBox(); return g.boundingBox! }
+    const label = bounds('cart-front'), badge = bounds('cart-badge'), shell = bounds('front-shell')
+    assert.ok(label.max.y < badge.min.y && label.max.y - label.min.y > 38)
+    assert.ok(label.max.z < shell.max.z && badge.max.z < shell.max.z)
+    assert.equal(parts.filter(p => p.name === 'upper-grip-rib').length, 12)
+    assert.ok(bounds('insertion-arrow').max.y < label.min.y)
+    assert.ok(!parts.some(p => p.mediaSurface?.id === 'cart-back' || p.mediaSurface?.id === 'cart-top'))
+    const back = bounds('rear-shell'), screw = bounds('screw-1'), center = screw.getCenter(new THREE.Vector3())
+    assert.ok(Math.abs(center.y - back.min.y - 16) < 1e-4)
+    if (presentation !== 'open') assert.ok(screw.min.z > back.min.z)
+    const ray = new THREE.Raycaster(new THREE.Vector3(center.x, center.y, back.min.z - 20), new THREE.Vector3(0, 0, 1))
+    assert.equal(ray.intersectObject(new THREE.Mesh(part('rear-shell').geometry)).length, 0)
+    disposeLodParts(parts)
+  }
+})

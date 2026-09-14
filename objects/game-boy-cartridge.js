@@ -2,7 +2,7 @@
 // +Y up, front +Z. Media slots are returned on parts, never in parameters.
 export const meta = {
   "name": "Game Boy / Color cartridge",
-  "description": "Blank-label game boy / color cartridge with a boxed copy, separate shell halves, PCB and family-specific moulding.",
+  "description": "Game Boy cartridge with a recessed label, upper oval badge, fine grip ribs, insertion arrow and inset rear screw; boxed, open and Color-shell variations.",
   "order": 36
 }
 const profile = {"family": "gameboy", "width": 57, "height": 65, "depth": 8, "color": 11053477, "pins": 16, "screws": 1, "box": [90, 125, 23]}

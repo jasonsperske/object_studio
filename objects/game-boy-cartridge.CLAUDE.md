@@ -59,3 +59,12 @@ Textures remain outside the parameter recipe and the object URL. Callers own tex
 - **Opened cartridge** — `{"presentation":"open"}`
 - **Game Boy Color shell** — `{"variant":"color"}`
 <!-- /generated: parameters -->
+
+## Original Game Boy reference shell
+
+The supplied grey shell photographs guide the standard variant: a small upper-right
+step, recessed oval badge, six fine ribs at each upper side, a broad 44 × 39 mm front
+label recess and a small insertion arrow. The rear has a molded central panel and
+one inset screw. The blank front label and upper badge expose independent image slots;
+the standard shell has no rear or top sticker. The Color variant retains its separate
+shape. Dimensions and internal components remain approximate visual references.
