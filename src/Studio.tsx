@@ -402,15 +402,19 @@ export default function Studio({
             <MediaPanel surfaces={media.surfaces} assigned={Object.keys(media.bindings)} onAssign={media.assign} onClear={media.clear} notify={notify} />
           </div>
 
-          <div className="panel-footer">
+          <div className={`panel-footer${infoVisible ? '' : ' collapsed'}`}>
             <button
               type="button"
-              className="ghost info-toggle"
+              className="info-toggle"
+              aria-label={infoVisible ? 'Hide info' : 'Show info'}
+              title={infoVisible ? 'Hide info' : 'Show info'}
               aria-expanded={infoVisible}
               aria-controls="model-info"
               onClick={() => setInfoVisible(visible => !visible)}
             >
-              {infoVisible ? 'Hide info' : 'Show info'}
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d={infoVisible ? 'M4 6l4 4 4-4' : 'M4 10l4-4 4 4'} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             </button>
             <div id="model-info" className="model-info" hidden={!infoVisible}>
               <MetricsPanel
