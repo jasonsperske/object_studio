@@ -224,6 +224,8 @@ test('integrated micro keeps keys inside the deck and tilted glass behind the fa
 test('GGIE controls move the pointer and knobs without changing the cabinet', () => {
     const def = compileObject('ggie-radio', readFileSync(new URL('../objects/ggie-radio.js', import.meta.url), 'utf8'));
     const low = def.build({ power: 'on', frequency: 550, volume: 0 });
+    // Keep the photo-based generator under its optimized full-detail budget.
+    assert.ok(count(low) < 100000, 'GGIE full detail should stay below 100k triangles');
     const high = def.build({ power: 'on', frequency: 1700, volume: 100 });
     const off = def.build({ power: 'off', frequency: 550, volume: 100 });
     const find = (parts: Part[], name: string) => parts.find(p => p.name === name)!;

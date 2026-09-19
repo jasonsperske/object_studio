@@ -34,8 +34,8 @@ export function build(p) {
     } else { g = new THREE.BoxGeometry(w,h,d); g.translate(x,y,z); }
     add(name,g,color);
   }
-  function disc(name,x,y,z,r,d,color,r2=r) { const g = new THREE.CylinderGeometry(r2,r,d,48); g.rotateX(Math.PI/2); g.translate(x,y,z); add(name,g,color); }
-  function torus(name,x,y,z,r,t,color) { const g = new THREE.TorusGeometry(r,t,8,64); g.translate(x,y,z); add(name,g,color); }
+  function disc(name,x,y,z,r,d,color,r2=r) { const g = new THREE.CylinderGeometry(r2,r,d,24); g.rotateX(Math.PI/2); g.translate(x,y,z); add(name,g,color); }
+  function torus(name,x,y,z,r,t,color) { const g = new THREE.TorusGeometry(r,t,8,32); g.translate(x,y,z); add(name,g,color); }
   function line(name,a,b,r,color) { const v = new THREE.Vector3(...a), w = new THREE.Vector3(...b), delta = w.clone().sub(v); const g=new THREE.CylinderGeometry(r,r,delta.length(),6); g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),delta.normalize())); g.translate(...v.add(w).multiplyScalar(.5).toArray()); add(name,g,color); }
   function label(text,x,y,size=4,z=5,color=C.ivory) {
     const scale=size/1000; let cursor = -[...text].reduce((n,c)=>n+(GLYPHS[c]?.ha || 350),0)*scale/2;
@@ -50,7 +50,27 @@ export function build(p) {
 
   function shape(points) {const s=new THREE.Shape();points.forEach(([x,y],i)=>i?s.lineTo(x,y):s.moveTo(x,y));s.closePath();return s;}
   function panel(name,s,z,depth,color,bevel=.3) {const g=new THREE.ExtrudeGeometry(s,{depth,steps:1,bevelEnabled:bevel>0,bevelSize:bevel,bevelThickness:bevel,bevelSegments:2,curveSegments:12});g.translate(0,0,z);add(name,g,color);}
-  function curve(name,points,r,color) {const path=new THREE.CatmullRomCurve3(points.map(v=>new THREE.Vector3(...v)));add(name,new THREE.TubeGeometry(path,32,r,6,false),color);}
+  function curve(name,points,r,color) {
+    const path=new THREE.CatmullRomCurve3(points.map(v=>new THREE.Vector3(...v)));
+    // Choose the fewest longitudinal segments that keep chord error below
+    // 0.05 mm (and below half the strand radius). Retain six radial sides
+    // for the original rounded highlights; large bridge curves stay smooth.
+    const tolerance=Math.min(.05,r*.5);
+    let segments=4;
+    for(;segments<32;segments*=2) {
+      let acceptable=true;
+      for(let i=0;i<segments && acceptable;i++) {
+        const start=path.getPointAt(i/segments), end=path.getPointAt((i+1)/segments);
+        const chord=new THREE.Line3(start,end);
+        for(const fraction of [.25,.5,.75]) {
+          const point=path.getPointAt((i+fraction)/segments);
+          if(point.distanceTo(chord.closestPointToPoint(point,true,new THREE.Vector3()))>tolerance) {acceptable=false;break;}
+        }
+      }
+      if(acceptable)break;
+    }
+    add(name,new THREE.TubeGeometry(path,segments,r,6,false),color);
+  }
   function rect(x,y,w,h,r=2) {const s=new THREE.Shape();s.moveTo(x+r,y);s.lineTo(x+w-r,y);s.quadraticCurveTo(x+w,y,x+w,y+r);s.lineTo(x+w,y+h-r);s.quadraticCurveTo(x+w,y+h,x+w-r,y+h);s.lineTo(x+r,y+h);s.quadraticCurveTo(x,y+h,x,y+h-r);s.lineTo(x,y+r);s.quadraticCurveTo(x,y,x+r,y);return s;}
   // Hollow cabinet: the vent holes open into a dark interior, not a solid block.
   block('Walnut sides',-114,79,-73,7,143,146,C.wood,1);

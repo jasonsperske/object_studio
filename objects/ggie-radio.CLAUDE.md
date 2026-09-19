@@ -29,6 +29,12 @@ exposed. Use the studio Detail tab to reduce geometry.
 - **Tune to 1050 kHz** → `{ power: 'on', frequency: 1050, volume: 65 }`
 - **Lowest marked station** → `{ frequency: 550 }`
 
+Full-detail geometry uses adaptive sampling for curved strands and relief,
+checking chord error against 0.05 mm or half the strand radius, whichever is
+smaller. Circular fittings use 24 segments; fine rings use 32. This reduces the
+default mesh from 157,424 to 92,368 triangles without removing any parts, grille
+stitches or lettering. The cabinet and relief profiles remain unchanged.
+
 All surfaces are procedural geometry. Label glyphs retain the bundled font
 license in the source. Fine printed legends are marked for texture baking in
 the studio's level-of-detail workflow.
