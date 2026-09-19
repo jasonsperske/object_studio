@@ -220,3 +220,23 @@ test('integrated micro keeps keys inside the deck and tilted glass behind the fa
     assert.ok(!off.some(p => ['screen-content', 'enter-key', 'keys', 'nameplate'].includes(p.name) || p.name.startsWith('drive-slot-')));
     disposeLodParts(off);
 });
+
+test('GGIE controls move the pointer and knobs without changing the cabinet', () => {
+    const def = compileObject('ggie-radio', readFileSync(new URL('../objects/ggie-radio.js', import.meta.url), 'utf8'));
+    const low = def.build({ power: 'on', frequency: 550, volume: 0 });
+    // Keep the photo-based generator under its optimized full-detail budget.
+    assert.ok(count(low) < 100000, 'GGIE full detail should stay below 100k triangles');
+    const high = def.build({ power: 'on', frequency: 1700, volume: 100 });
+    const off = def.build({ power: 'off', frequency: 550, volume: 100 });
+    const find = (parts: Part[], name: string) => parts.find(p => p.name === name)!;
+    try {
+        for (const parts of [low, high, off]) for (const p of parts)
+            assert.ok([...p.geometry.getAttribute('position').array].every(Number.isFinite));
+        for (const name of ['Tuning needle', 'Tuning knob index', 'Power and volume knob index'])
+            assert.notEqual(hash(find(low, name).geometry), hash(find(high, name).geometry), name);
+        assert.equal(hash(find(low, 'Tuning needle').geometry), hash(find(off, 'Tuning needle').geometry));
+        assert.notEqual(find(low, 'Amber tuning scale').color, find(off, 'Amber tuning scale').color);
+        assert.notEqual(hash(find(high, 'Power and volume knob index').geometry), hash(find(off, 'Power and volume knob index').geometry));
+        assert.equal(hash(find(low, 'Walnut sides').geometry), hash(find(high, 'Walnut sides').geometry));
+    } finally { for (const parts of [low, high, off]) disposeLodParts(parts); }
+});
