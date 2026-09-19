@@ -34,6 +34,7 @@ Everything in this repository is CC0.
 | `rock` | A stone, pebble to boulder | Rocks, boulders, geodes. Erosion, moss, cracking open |
 | `crt-television` | A 1948–2008 tube television | Any television with a tube: console, portable, tabletop, late black box |
 | `flat-panel-television` | A 1998– flat television | Any flat television: plasma, LCD, OLED, on a stand or a wall |
+| `ggie-radio` | The 1939 RCA Victor exposition radio | Walnut cabinet, landmark relief, woven grille and AM tuning controls |
 | `field-radio` | A photo-based olive-drab field transmitter-receiver | The reference radio, with labeled tuning, band, meter and switch controls |
 | `gear` | A toothed wheel | Any gear, sprocket, ratchet wheel or toothed pulley |
 
