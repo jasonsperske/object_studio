@@ -263,3 +263,22 @@ test('Silvertone dome turns to the station and pushbuttons hold a key down', () 
         assert.ok(Math.abs(box.min.y) < .01 && box.max.z <= 4 && box.min.z > -297, `bounds ${JSON.stringify(box)}`);
     } finally { for (const parts of [low, high, button]) disposeLodParts(parts); }
 });
+
+test('Fritchle controls turn the knobs and drum without moving the cabinet', () => {
+    const def = compileObject('fritchle-radio', readFileSync(new URL('../objects/fritchle-radio.js', import.meta.url), 'utf8'));
+    const low = def.build({ dial: 0, volume: 0, power: 'off' });
+    assert.ok(count(low) < 100000, 'Fritchle full detail should stay below 100k triangles');
+    const high = def.build({ dial: 100, volume: 100, power: 'on' });
+    const find = (parts: Part[], name: string) => parts.find(p => p.name === name)!;
+    try {
+        for (const parts of [low, high]) for (const p of parts)
+            assert.ok([...p.geometry.getAttribute('position').array].every(Number.isFinite));
+        for (const name of ['Tuning knob index', 'Volume knob index', 'Power knob index', 'Drum numerals', 'Drum ticks'])
+            assert.notEqual(hash(find(low, name).geometry), hash(find(high, name).geometry), name);
+        for (const name of ['Speaker case shell', 'Pierced fan fretwork', 'Cabriole legs', 'Brass escutcheon'])
+            assert.equal(hash(find(low, name).geometry), hash(find(high, name).geometry), name);
+        const box = new THREE.Box3();
+        for (const p of low) { p.geometry.computeBoundingBox(); box.union(p.geometry.boundingBox!); }
+        assert.ok(box.min.y >= 0 && Math.abs(box.max.y - 1540) < 1 && box.max.x - box.min.x < 565, `bounds ${JSON.stringify(box)}`);
+    } finally { for (const parts of [low, high]) disposeLodParts(parts); }
+});
