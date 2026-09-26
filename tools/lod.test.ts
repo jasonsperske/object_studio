@@ -235,7 +235,8 @@ test('GGIE controls move the pointer and knobs without changing the cabinet', ()
         for (const name of ['Tuning needle', 'Tuning knob index', 'Power and volume knob index'])
             assert.notEqual(hash(find(low, name).geometry), hash(find(high, name).geometry), name);
         assert.equal(hash(find(low, 'Tuning needle').geometry), hash(find(off, 'Tuning needle').geometry));
-        assert.notEqual(find(low, 'Amber tuning scale').color, find(off, 'Amber tuning scale').color);
+        // No dial lamp: power must not change the scale's appearance.
+        assert.equal(find(low, 'Amber tuning scale').color, find(off, 'Amber tuning scale').color);
         assert.notEqual(hash(find(high, 'Power and volume knob index').geometry), hash(find(off, 'Power and volume knob index').geometry));
         assert.equal(hash(find(low, 'Walnut sides').geometry), hash(find(high, 'Walnut sides').geometry));
     } finally { for (const parts of [low, high, off]) disposeLodParts(parts); }
