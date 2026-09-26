@@ -1,14 +1,51 @@
 # Field radio
 
 A fixed photo-based model of the olive-drab transmitter-receiver in IMG_0750,
-IMG_0751 and IMG_0752. Includes the recessed faceplate, large analog meter,
+IMG_0751 and IMG_0752. The museum that displays it catalogues it as
+CRI-43044/TS-141VP; see *Historical background* below. Includes the recessed faceplate, large analog meter,
 paired tuning wheels with spinner handles, band selectors, knurled knobs,
 engraved legends, connection leads, carrying handle, canvas side slings,
 pressed side ribs, and separate battery enclosure with light and fuse controls.
 
 The cabinet dimensions are estimated at 400 × 520 × 230 mm, not measured.
+The museum card lists 8″ × 11″ × 7″ (about 203 × 279 × 178 mm). That is roughly
+half the size of the photographed set: at that scale the knobs would be about
+13 mm across. The card figure may describe only part of the equipment, so it is
+recorded here but not applied to the model.
 The front faces +Z, width is centered on X, and the feet rest at Y = 0.
 The cables and straps extend beyond the cabinet.
+
+## Historical background
+
+Source: the museum's exhibit card, *CRI-43044/TS-141VP: Navajo Code Talkers*, and
+its Navajo-language translation, *Diné Bizaad Naaltsoos Áłts’íísígíí Hane’*
+(IMG_0835, IMG_0836). The museum provides the translation for Navajo readers.
+
+The card describes the set as aluminium, 8″ × 11″ × 7″, and dates it to the 1940s.
+In the card's account:
+
+- The CRI-43044/TS and TS-141VP were meant to keep Marine Corps communications
+  from being understood by Japanese forces listening in.
+- The idea is credited to Phillip Johnston. He was a World War I veteran who
+  grew up on the Navajo Nation, where his parents were missionaries, and he
+  learned the language there.
+- Between 1942 and 1945 the Marine Corps recruited Navajo speakers, and speakers
+  from other Native American nations, for this covert work.
+- About 20 Indigenous languages were used in various operations during the war.
+- Every message needed two speakers of the same language, one to send and one
+  to receive.
+- The card ends by noting that the code was never broken.
+
+The card says Johnston developed the idea "for the device". Most histories credit
+him instead with proposing, in 1942, that Navajo speakers send coded voice
+messages. The protection came from the language and the code the code talkers
+spoke, not from the radio. The set itself is a conventional transmitter-receiver:
+its data plate names the Navy Department, Bureau of Ships and Westinghouse
+Electric, and it does not encrypt anything. The model's controls follow the
+Navy TBY documentation cited below.
+
+The data plate in the model reads **TYPE CRI-43044**, matching the museum's
+catalogue name. The other plate lines are as photographed.
 
 ## Controls
 
@@ -53,6 +90,8 @@ are clamped on build. Reset to defaults updates old studio settings to 38 MHz.
 - **Switch off the lower supply** → `{ supplyPower: 'off' }`
 
 All details are procedural geometry; there are no external images or textures.
+The set has no screen. The meter is a printed dial, so the model exposes no image
+or media slots.
 Embedded label glyphs retain their bundled font license in the generator source.
 
 ## Parameters
@@ -96,9 +135,3 @@ Embedded label glyphs retain their bundled font license in the generator source.
 | `rfFilament` | number | 0–100 %, step 1 | `50` | RF FIL RHEOSTAT: adjusts RF-tube heater voltage. The modeled meter follows this control in RF mode. |
 <!-- /generated: parameters -->
 
-## Runtime media
-
-The badge or meter face exposes an image-only `mediaSurface` slot.
-Discover available slots with `listMediaSurfaces(parts)` and bind textures with
-`applySurfaceTextures(parts, bindings)`. UVs follow the model geometry. Assignments never
-enter parameters or object URLs; see the README for ownership and browser support.

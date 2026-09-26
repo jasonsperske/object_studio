@@ -2,7 +2,7 @@
 // Labels are vector geometry, so they survive exports without textures.
 export const meta = {
   name: 'Field radio', order: 0,
-  description: 'A photo-based olive-drab transmitter-receiver, with an analog meter, mechanical tuning wheels, battery box, cables and canvas carrying straps. Dimensions are estimated from the reference photographs.',
+  description: 'A photo-based 1940s US Navy transmitter-receiver, catalogued by its museum as CRI-43044/TS-141VP and shown in its Navajo Code Talkers exhibit. Olive-drab aluminium case with an analog meter, mechanical tuning wheels, battery box, cables and canvas carrying straps. Dimensions are estimated from the reference photographs.',
 }
 // Control meanings checked against Introduction to Radio Equipment, chapter 22:
 // https://www.maritime.org/doc/radio/chap22.php (TBY controls, pp. 300–303).
@@ -45,7 +45,8 @@ export function metrics(p) {
     { label: 'Power', value: active ? 'On' : 'Off' },
     { label: 'Tuned to', value: frequency(p).toFixed(2) + ' MHz' },
     { label: 'Meter circuit', value: meterModes.find(m => m.value === value(p,'meterMode'))?.label || 'Audio filament voltage', note: 'Illustrative needle response; transmitter current rests at zero (no send control modeled).' },
-    { label: 'Cabinet (estimated)', value: '400 × 520 × 230 mm' },
+    { label: 'Cabinet (estimated)', value: '400 × 520 × 230 mm', note: 'Estimated from the photographs. The museum card lists 8 × 11 × 7 in, which does not match the modelled set and is not applied.' },
+    { label: 'Reference', value: 'CRI-43044/TS-141VP · 1940s', note: 'Museum catalogue name, from the Navajo Code Talkers exhibit card.' },
   ]
 }
 
@@ -157,7 +158,7 @@ export function build(p) {
   // Riveted data plate.
   block('Data plate border',0,282,5.5,79,49,2,C.cream,2);
   block('Data plate enamel',0,282,6.8,77,47,1,C.dark,1);
-  label('TYPE CRI-43007',0,299,4,7.5);label('TRANSMITTER-RECEIVER',0,293,2.8,7.5);
+  label('TYPE CRI-43044',0,299,4,7.5);label('TRANSMITTER-RECEIVER',0,293,2.8,7.5);
   label('FREQUENCY RANGE 28 TO 80 MC',0,287,2.6,7.5);
   line('Data plate rules',[-37,282,7.5],[37,282,7.5],.35,C.cream);
   label('NAVY DEPARTMENT - BUREAU OF SHIPS',0,277,2.3,7.5);
@@ -215,11 +216,8 @@ export function build(p) {
   // Sparse deterministic paint chips around exposed edges, as in the photos.
   let seed=750;function rand(){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296}
   for(let i=0;i<390;i++) {let x,y,z;if(i<170){x=(rand()-.5)*380;y=rand()<.5?7+rand()*5:181+rand()*5;z=i<170&&y<20?4:23}else if(i<270){x=(rand()<.5?-1:1)*(184+rand()*7);y=12+rand()*485;z=6}else{x=(rand()-.5)*365;y=185+rand()*305;z=5.1}const r=.35+rand()*1.4;const g=new THREE.CircleGeometry(r,5);g.scale(1,.45+rand(),1);g.rotateZ(rand()*6);g.translate(x,y,z);add('Worn paint flecks',g,i%3?0x8b8c77:0xb3ac90)}
+  // The meter is a printed dial, not a screen, so it carries no image slot.
   for(const {name,color,gs} of groups.values()) {parts.push({name,color,geometry:merge(gs),...(name==='Engraved ivory legends'?{lod:{surface:'z'}}:{})});gs.forEach(g=>g.dispose())}
-  for (const part of parts) if (part.name === 'Meter dial') {
-    surfaceUV(part.geometry)
-    part.mediaSurface = { id: 'meter-dial', label: 'Meter dial face', accept: 'image' }
-  }
   return parts;
 }
 

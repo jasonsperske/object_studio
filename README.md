@@ -478,8 +478,8 @@ its named surface. If several surfaces are available, a drop on an unlabelled pa
 to choose one. Each surface accepts one file at a time. Cartridge and packaging surfaces
 accept images only. All eight computer/television screen generators accept images and muted,
 looping browser-supported movies; animated GIFs loop using WebCodecs ImageDecoder (Chrome/Edge).
-Unsupported formats produce an error without replacing the existing image. Computer badges,
-nameplates and the radio meter also expose image slots where present.
+Unsupported formats produce an error without replacing the existing image. Computer badges
+and nameplates also expose image slots where present.
 
 Assignments survive parameter and detail changes, including temporarily hiding a surface.
 Clear a slot to restore its original colour. Leaving the model or reloading releases its media.
