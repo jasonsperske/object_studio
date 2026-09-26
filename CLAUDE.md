@@ -36,6 +36,7 @@ Everything in this repository is CC0.
 | `flat-panel-television` | A 1998– flat television | Any flat television: plasma, LCD, OLED, on a stand or a wall |
 | `ggie-radio` | The 1939 RCA Victor exposition radio | Walnut cabinet, landmark relief, woven grille and AM tuning controls |
 | `silvertone-rocket-radio` | The 1938 Silvertone 6110 "Rocket" radio | Bakelite cylinder on a slatted base, six pushbuttons, domed nose that turns to tune |
+| `fritchle-radio` | Oliver P. Fritchle's c.1931 cabinet radio on legs | Bell-waisted walnut case, pierced fan grille, brass drum dial and three knobs, cabriole legs |
 | `field-radio` | A photo-based olive-drab field transmitter-receiver | The reference radio, with labeled tuning, band, meter and switch controls |
 | `gear` | A toothed wheel | Any gear, sprocket, ratchet wheel or toothed pulley |
 
