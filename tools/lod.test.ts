@@ -240,3 +240,26 @@ test('GGIE controls move the pointer and knobs without changing the cabinet', ()
         assert.equal(hash(find(low, 'Walnut sides').geometry), hash(find(high, 'Walnut sides').geometry));
     } finally { for (const parts of [low, high, off]) disposeLodParts(parts); }
 });
+
+test('Silvertone dome turns to the station and pushbuttons hold a key down', () => {
+    const def = compileObject('silvertone-rocket-radio', readFileSync(new URL('../objects/silvertone-rocket-radio.js', import.meta.url), 'utf8'));
+    const low = def.build({ frequency: 550, pushbutton: 'none' });
+    assert.ok(count(low) < 100000, 'Silvertone full detail should stay below 100k triangles');
+    const high = def.build({ frequency: 1700, pushbutton: 'none' });
+    const button = def.build({ frequency: 550, pushbutton: '3' });
+    const find = (parts: Part[], name: string) => parts.find(p => p.name === name)!;
+    try {
+        for (const parts of [low, high, button]) for (const p of parts)
+            assert.ok([...p.geometry.getAttribute('position').array].every(Number.isFinite));
+        for (const name of ['Dome lettering', 'Dial scale', 'Rotating dial dome'])
+            assert.notEqual(hash(find(low, name).geometry), hash(find(high, name).geometry), name);
+        // A pressed key overrides manual tuning and drops below its neighbours.
+        assert.notEqual(hash(find(low, 'Dome lettering').geometry), hash(find(button, 'Dome lettering').geometry));
+        assert.notEqual(hash(find(low, 'Pushbuttons').geometry), hash(find(button, 'Pushbuttons').geometry));
+        for (const name of ['Grille slats', 'Cylinder shell', 'Tuning pointer'])
+            assert.equal(hash(find(low, name).geometry), hash(find(high, name).geometry), name);
+        const box = new THREE.Box3();
+        for (const p of low) { p.geometry.computeBoundingBox(); box.union(p.geometry.boundingBox!); }
+        assert.ok(Math.abs(box.min.y) < .01 && box.max.z <= 4 && box.min.z > -297, `bounds ${JSON.stringify(box)}`);
+    } finally { for (const parts of [low, high, button]) disposeLodParts(parts); }
+});
