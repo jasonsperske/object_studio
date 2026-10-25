@@ -1,0 +1,14 @@
+{
+  "length": 7.77,
+  "waistDiameter": 4.52,
+  "baseDiameter": 6.01,
+  "baseThickness": 2,
+  "boreDiameter": 2.48,
+  "webThickness": 0.6,
+  "portRim": 0.12,
+  "portAngle": 88,
+  "portHub": 0.25,
+  "edgeChamfer": 0.15,
+  "outsideAllowance": 0,
+  "boreAllowance": 0
+}
