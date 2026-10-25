@@ -1,0 +1,22 @@
+EARBUD INTERFACE — PHOTO-DERIVED FIT PROTOTYPE
+
+Millimetres. STL envelope 6.01 x 6.01 x 7.77 mm. Import at 100% scale.
+STL is Z-up, flange bottom on build plate. Object Studio uses Y-up.
+
+Confirmed shape: plain open cylinder at top, one 2.00 mm bottom flange,
+and three openings in a triangular arrangement on the bottom.
+Cylinder OD 4.52 mm; radial wall 1.02 mm; derived bore 2.48 mm.
+
+Estimated: bottom web thickness 0.60 mm; three sector openings 88 degrees
+wide at 120-degree intervals; port inner tip radius 0.25 mm; port outer
+rim thickness 0.12 mm; exterior chamfers 0.15 mm. Check against original.
+The three ports open into the shared cylinder bore.
+
+Edit at http://localhost:5173/earbud-interface and export a fresh STL there.
+This STL is a snapshot of parameters.json; it does not update automatically.
+Run node tools/export-earbud.mjs to regenerate from default parameters.
+
+Start with one fit prototype. Verify both mating parts fit without forcing
+and all three bottom ports remain open. No printer tolerance is assumed.
+Mesh validation: one closed shell, 4448 triangles, volume about 112.62 mm3,
+every edge shared twice with consistent winding. Fit remains unverified.
